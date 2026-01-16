@@ -19,7 +19,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/lips/*": ["app/_lips/*"],
+      "@/components/*": ["app/components/*"],
+      "@/login/*": ["app/login/*"]
     }
   },
   "include": [
