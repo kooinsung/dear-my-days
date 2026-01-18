@@ -19,7 +19,7 @@
       }
     ],
     "paths": {
-      "@/lips/*": ["app/_lips/*"],
+      "@/libs/*": ["app/libs/*"],
       "@/components/*": ["app/components/*"],
       "@/login/*": ["app/login/*"]
     }
