@@ -1,28 +1,20 @@
-'use client'
+import { redirect } from 'next/navigation'
+import { createSupabaseServer } from '@/libs/supabase/server'
 
-import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
-import { createSupabaseBrowser } from '@/lips/supabase/browser'
+export default async function HomePage() {
+  const supabase = await createSupabaseServer()
+  const { data } = await supabase.auth.getUser()
 
-export default function Home() {
-  const supabase = useMemo(() => createSupabaseBrowser(), [])
-
-  const router = useRouter()
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) {
-        router.push('/login')
-      } else {
-        setLoading(false)
-      }
-    })
-  }, [router.push, supabase.auth.getUser])
-
-  if (loading) {
-    return null
+  if (!data.user) {
+    redirect('/login')
   }
 
-  return <div>홈 (로그인 성공)</div>
+  const { data: events } = await supabase.from('events').select('*')
+
+  return (
+    <div>
+      <h1>메인 페이지</h1>
+      <pre>{JSON.stringify(events, null, 2)}</pre>
+    </div>
+  )
 }
