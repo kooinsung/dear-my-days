@@ -18,6 +18,7 @@
         "name": "next"
       }
     ],
+    "baseUrl": ".",
     "paths": {
       "@/libs/*": ["app/libs/*"],
       "@/components/*": ["app/components/*"],
