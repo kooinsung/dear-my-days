@@ -58,6 +58,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Cache TypeScript build info
+        uses: actions/cache@v4
+        with:
+          path: |
+            tsconfig.tsbuildinfo
+            **/.next/cache
+          key: ${{ runner.os }}-tsc-${{ hashFiles('**/*.ts', '**/*.tsx', 'tsconfig.json') }}
+          restore-keys: |
+            ${{ runner.os }}-tsc-
+
       - name: Run TypeScript type check
         run: pnpm tsc --noEmit
 
