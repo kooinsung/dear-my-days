@@ -47,26 +47,73 @@ export function useEvents(filters?: { category?: CategoryType | 'ALL' }) {
   })
 }
 
-// 다가오는 이벤트 조회
+// 다가오는 이벤트 조회 (올해만 표시)
 export function useUpcomingEvents() {
   const supabase = createSupabaseBrowser()
 
   return useQuery({
     queryKey: eventKeys.upcoming(),
     queryFn: async () => {
-      const today = new Date().toISOString().split('T')[0]
-
+      // 모든 이벤트를 가져옴
       const { data, error } = await supabase
         .from('events')
         .select('*')
-        .gte('solar_date', today)
         .order('solar_date', { ascending: true })
 
       if (error) {
         throw error
       }
 
-      return data as Event[]
+      const events = data as Event[]
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const thisYear = today.getFullYear()
+
+      // 올해 발생일이 오늘 이후인 이벤트만 필터링
+      const upcomingEvents = events
+        .map((event) => {
+          const eventDate = new Date(event.solar_date)
+
+          // 올해의 해당 월/일로 날짜 생성
+          const eventThisYear = new Date(
+            thisYear,
+            eventDate.getMonth(),
+            eventDate.getDate(),
+          )
+          eventThisYear.setHours(0, 0, 0, 0)
+
+          return {
+            ...event,
+            this_year_occurrence: eventThisYear,
+          }
+        })
+        .filter((event) => {
+          // 올해 발생일이 오늘 이후인 것만 (오늘 포함)
+          return event.this_year_occurrence >= today
+        })
+        .map((event) => {
+          // solar_date를 올해 발생일로 변경 (D-day 계산용)
+          const year = event.this_year_occurrence.getFullYear()
+          const month = String(
+            event.this_year_occurrence.getMonth() + 1,
+          ).padStart(2, '0')
+          const day = String(event.this_year_occurrence.getDate()).padStart(
+            2,
+            '0',
+          )
+          const thisYearDate = `${year}-${month}-${day}`
+
+          return {
+            ...event,
+            solar_date: thisYearDate,
+          }
+        })
+        .sort((a, b) => {
+          // 날짜 기준으로 정렬
+          return a.solar_date.localeCompare(b.solar_date)
+        })
+
+      return upcomingEvents
     },
   })
 }

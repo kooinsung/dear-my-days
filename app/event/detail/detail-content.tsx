@@ -36,7 +36,28 @@ export function EventDetailContent({
     }
   }
 
-  const dday = calculateDday(event.solar_date)
+  // 올해 발생일 계산
+  const calculateThisYearOccurrence = (solarDate: string): string => {
+    const eventDate = new Date(solarDate)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const thisYear = today.getFullYear()
+    const eventThisYear = new Date(
+      thisYear,
+      eventDate.getMonth(),
+      eventDate.getDate(),
+    )
+    eventThisYear.setHours(0, 0, 0, 0)
+
+    const year = eventThisYear.getFullYear()
+    const month = String(eventThisYear.getMonth() + 1).padStart(2, '0')
+    const day = String(eventThisYear.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  const thisYearOccurrence = calculateThisYearOccurrence(event.solar_date)
+  const dday = calculateDday(thisYearOccurrence)
   const ddayText = formatDday(dday)
   const isToday = dday === 0
 
@@ -97,17 +118,20 @@ export function EventDetailContent({
           }}
         >
           <p style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>
-            D-Day
+            올해 이벤트까지
           </p>
           <p
             style={{
               fontSize: '48px',
               fontWeight: 'bold',
-              marginBottom: '16px',
+              marginBottom: '8px',
               color: isToday ? '#dc3545' : '#007bff',
             }}
           >
             {ddayText}
+          </p>
+          <p style={{ fontSize: '14px', color: '#999', marginBottom: '16px' }}>
+            {thisYearOccurrence}
           </p>
           <h2 style={{ fontSize: '28px', fontWeight: 'bold', color: '#333' }}>
             {event.title}
@@ -153,7 +177,7 @@ export function EventDetailContent({
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: event.lunar_date ? '1fr 1fr' : '1fr',
+                gridTemplateColumns: '1fr',
                 gap: '16px',
               }}
             >
@@ -165,7 +189,7 @@ export function EventDetailContent({
                     marginBottom: '4px',
                   }}
                 >
-                  양력
+                  등록된 날짜 (양력)
                 </p>
                 <p
                   style={{ fontSize: '16px', fontWeight: '500', color: '#333' }}
@@ -182,7 +206,7 @@ export function EventDetailContent({
                       marginBottom: '4px',
                     }}
                   >
-                    음력
+                    등록된 날짜 (음력)
                   </p>
                   <p
                     style={{
@@ -192,6 +216,35 @@ export function EventDetailContent({
                     }}
                   >
                     {event.lunar_date}
+                  </p>
+                </div>
+              )}
+              {thisYearOccurrence !== event.solar_date && (
+                <div
+                  style={{
+                    backgroundColor: '#e7f3ff',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    marginTop: '8px',
+                  }}
+                >
+                  <p
+                    style={{
+                      fontSize: '12px',
+                      color: '#0066cc',
+                      marginBottom: '4px',
+                    }}
+                  >
+                    올해 발생일
+                  </p>
+                  <p
+                    style={{
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#0066cc',
+                    }}
+                  >
+                    {thisYearOccurrence}
                   </p>
                 </div>
               )}

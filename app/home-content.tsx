@@ -10,19 +10,11 @@ export function HomeContent() {
   const { data: events, isLoading, error } = useUpcomingEvents()
 
   if (isLoading) {
-    return (
-      <div style={{ padding: '40px', textAlign: 'center' }}>
-        <p style={{ color: '#666' }}>로딩 중...</p>
-      </div>
-    )
+    // ...existing code...
   }
 
   if (error) {
-    return (
-      <div style={{ padding: '40px', textAlign: 'center' }}>
-        <p style={{ color: '#dc3545' }}>이벤트를 불러오는데 실패했습니다.</p>
-      </div>
-    )
+    // ...existing code...
   }
 
   const upcomingEvents = events || []

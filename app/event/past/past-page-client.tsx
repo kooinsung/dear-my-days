@@ -10,16 +10,6 @@ interface PastPageClientProps {
   groupedEvents: Record<string, Event[]>
 }
 
-// 경과 일수 계산
-function calculateDaysAgo(targetDate: string): number {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const target = new Date(targetDate)
-  target.setHours(0, 0, 0, 0)
-  const diffTime = today.getTime() - target.getTime()
-  return Math.floor(diffTime / (1000 * 60 * 60 * 24))
-}
-
 export function PastPageClient({
   groupedEvents,
   filterCategory,
@@ -161,12 +151,6 @@ export function PastPageClient({
                   }}
                 >
                   {monthEvents.map((event) => {
-                    const daysAgo = calculateDaysAgo(event.solar_date)
-                    const displayDate =
-                      event.calendar_type === 'SOLAR'
-                        ? event.solar_date
-                        : event.lunar_date || event.solar_date
-
                     return (
                       <Link
                         key={event.id}
@@ -185,45 +169,44 @@ export function PastPageClient({
                         <div
                           style={{
                             display: 'flex',
-                            justifyContent: 'space-between',
                             alignItems: 'center',
+                            gap: '12px',
                             marginBottom: '12px',
                           }}
                         >
-                          <span style={{ fontSize: '24px' }}>
+                          <span style={{ fontSize: '32px' }}>
                             {getCategoryIcon(event.category)}
                           </span>
-                          <span style={{ fontSize: '12px', color: '#999' }}>
-                            {daysAgo}일 전
-                          </span>
+                          <div style={{ flex: 1 }}>
+                            <h3
+                              style={{
+                                fontSize: '18px',
+                                fontWeight: 'bold',
+                                marginBottom: '4px',
+                                color: '#333',
+                              }}
+                            >
+                              {event.title}
+                            </h3>
+                            <span
+                              style={{ fontSize: '12px', color: '#007bff' }}
+                            >
+                              {getCategoryLabel(event.category)}
+                            </span>
+                          </div>
                         </div>
 
-                        <h3
-                          style={{
-                            fontSize: '18px',
-                            fontWeight: 'bold',
-                            marginBottom: '8px',
-                            color: '#333',
-                          }}
-                        >
-                          {event.title}
-                        </h3>
-
-                        <p
-                          style={{
-                            fontSize: '14px',
-                            color: '#666',
-                            marginBottom: '8px',
-                          }}
-                        >
-                          {displayDate}
-                          {' · '}
-                          {event.calendar_type === 'SOLAR' ? '양력' : '음력'}
-                        </p>
-
-                        <span style={{ fontSize: '12px', color: '#007bff' }}>
-                          {getCategoryLabel(event.category)}
-                        </span>
+                        {event.note && (
+                          <p
+                            style={{
+                              fontSize: '14px',
+                              color: '#666',
+                              margin: 0,
+                            }}
+                          >
+                            {event.note}
+                          </p>
+                        )}
                       </Link>
                     )
                   })}
