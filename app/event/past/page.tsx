@@ -33,10 +33,7 @@ function groupByYearMonth(events: Event[]): Record<string, Event[]> {
     if (!grouped[yearMonth]) {
       grouped[yearMonth] = []
     }
-    grouped[yearMonth].push({
-      ...event,
-      this_year_occurrence: thisYearDate,
-    })
+    grouped[yearMonth].push(event)
   }
 
   return grouped
