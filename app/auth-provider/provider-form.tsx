@@ -97,81 +97,231 @@ export default function ProviderTestForm({ initialUser }: ProviderTestProps) {
   }
 
   return (
-    <div className={styles.container}>
-      <h1 className={styles.title}>Provider 연결/해제 테스트</h1>
+    <div
+      style={{
+        maxWidth: '600px',
+        margin: '40px auto',
+        padding: '24px',
+        backgroundColor: 'white',
+        borderRadius: '8px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+      }}
+    >
+      <h1
+        style={{
+          fontSize: '24px',
+          fontWeight: 'bold',
+          marginBottom: '24px',
+          textAlign: 'center',
+          color: '#333',
+        }}
+      >
+        Provider 연결/해제 테스트
+      </h1>
       {user ? (
         <>
-          <p className={styles.userInfo}>
+          <p
+            style={{
+              marginBottom: '24px',
+              padding: '12px',
+              backgroundColor: '#f8f9fa',
+              borderRadius: '4px',
+              color: '#666',
+              textAlign: 'center',
+            }}
+          >
             로그인된 사용자: {user.email || user.id}
           </p>
-          <div className={styles.buttonGroup}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: '12px',
+              marginBottom: '24px',
+            }}
+          >
             <button
               type="button"
-              className={styles.button}
+              style={{
+                padding: '12px 16px',
+                backgroundColor: '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s',
+              }}
               onClick={() => linkProvider('email')}
             >
               Email 연결
             </button>
             <button
               type="button"
-              className={styles.button}
+              style={{
+                padding: '12px 16px',
+                backgroundColor: '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s',
+              }}
               onClick={() => linkProvider('google')}
             >
               Google 연결
             </button>
             <button
               type="button"
-              className={styles.button}
+              style={{
+                padding: '12px 16px',
+                backgroundColor: '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s',
+              }}
               onClick={() => linkProvider('kakao')}
             >
               Kakao 연결
             </button>
             <button
               type="button"
-              className={styles.button}
+              style={{
+                padding: '12px 16px',
+                backgroundColor: '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s',
+              }}
               onClick={() => linkProvider('naver')}
             >
               Naver 연결
             </button>
           </div>
 
-          <div className={styles.divider} />
+          <div
+            style={{
+              height: '1px',
+              backgroundColor: '#e0e0e0',
+              margin: '24px 0',
+            }}
+          />
 
-          <div className={styles.buttonGroup}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: '12px',
+              marginBottom: '24px',
+            }}
+          >
             <button
               type="button"
-              className={styles.dangerButton}
+              style={{
+                padding: '12px 16px',
+                backgroundColor: '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s',
+              }}
               onClick={() => unlinkProvider('email')}
             >
               Email 해제
             </button>
             <button
               type="button"
-              className={styles.dangerButton}
+              style={{
+                padding: '12px 16px',
+                backgroundColor: '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s',
+              }}
               onClick={() => unlinkProvider('google')}
             >
               Google 해제
             </button>
             <button
               type="button"
-              className={styles.dangerButton}
+              style={{
+                padding: '12px 16px',
+                backgroundColor: '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s',
+              }}
               onClick={() => unlinkProvider('kakao')}
             >
               Kakao 해제
             </button>
             <button
               type="button"
-              className={styles.dangerButton}
+              style={{
+                padding: '12px 16px',
+                backgroundColor: '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s',
+              }}
               onClick={() => unlinkProvider('naver')}
             >
               Naver 해제
             </button>
           </div>
 
-          {message && <p className={styles.message}>{message}</p>}
+          {message && (
+            <p
+              style={{
+                padding: '12px',
+                backgroundColor: '#d4edda',
+                color: '#155724',
+                borderRadius: '4px',
+                textAlign: 'center',
+                margin: 0,
+              }}
+            >
+              {message}
+            </p>
+          )}
         </>
       ) : (
-        <p className={styles.loginRequired}>로그인이 필요합니다.</p>
+        <p
+          style={{
+            padding: '40px 20px',
+            textAlign: 'center',
+            color: '#666',
+            fontSize: '16px',
+          }}
+        >
+          로그인이 필요합니다.
+        </p>
       )}
     </div>
   )
