@@ -4,7 +4,6 @@ import type { User } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
 import { generateNaverAuthUrl } from '@/libs/naver/oauth'
 import { createSupabaseBrowser } from '@/libs/supabase/browser'
-import * as styles from './provider-form.css'
 
 type OAuthProvider = 'google' | 'kakao'
 type TestProvider = 'email' | OAuthProvider | 'naver'

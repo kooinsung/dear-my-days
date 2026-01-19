@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react'
 import { useCreateEvent, useEvent, useUpdateEvent } from '@/hooks/use-events'
 import type { CalendarType, CategoryType } from '@/libs/supabase/database.types'
 import { useUIStore } from '@/stores/ui-store'
-import * as styles from './event-form.css'
 
 interface EventFormProps {
   eventId?: string
@@ -87,33 +86,82 @@ export default function EventForm({ eventId }: EventFormProps) {
   const isSubmitting = createEvent.isPending || updateEvent.isPending
 
   if (eventId && isLoadingEvent) {
-    return <div className={styles.loadingContainer}>로딩 중...</div>
+    return (
+      <div style={{ padding: '40px', textAlign: 'center' }}>로딩 중...</div>
+    )
   }
 
   return (
-    <form onSubmit={handleSubmit} className={styles.form}>
+    <form
+      onSubmit={handleSubmit}
+      style={{ maxWidth: '600px', margin: '0 auto', padding: '24px' }}
+    >
       {/* 카테고리 */}
-      <div className={styles.formGroup}>
-        <div className={styles.label}>카테고리</div>
-        <div className={styles.categoryGrid}>
+      <div style={{ marginBottom: '24px' }}>
+        <div
+          style={{
+            fontSize: '14px',
+            fontWeight: '500',
+            marginBottom: '12px',
+            color: '#333',
+          }}
+        >
+          카테고리
+        </div>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
+            gap: '12px',
+          }}
+        >
           {categories.map((cat) => (
             <button
               key={cat.value}
               type="button"
               onClick={() => setCategory(cat.value)}
-              className={`${styles.categoryButton} ${category === cat.value ? styles.categoryButtonActive : ''}`}
+              style={{
+                padding: '12px',
+                border:
+                  category === cat.value
+                    ? '2px solid #007bff'
+                    : '1px solid #ddd',
+                borderRadius: '8px',
+                backgroundColor: category === cat.value ? '#e7f3ff' : 'white',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '4px',
+              }}
             >
-              <span className={styles.categoryIcon}>{cat.icon}</span>
-              <span className={styles.categoryLabel}>{cat.label}</span>
+              <span style={{ fontSize: '24px' }}>{cat.icon}</span>
+              <span
+                style={{
+                  fontSize: '12px',
+                  fontWeight: category === cat.value ? '600' : '400',
+                }}
+              >
+                {cat.label}
+              </span>
             </button>
           ))}
         </div>
       </div>
 
       {/* 제목 */}
-      <div className={styles.formGroup}>
-        <label htmlFor="title" className={styles.label}>
-          제목 <span className={styles.required}>*</span>
+      <div style={{ marginBottom: '24px' }}>
+        <label
+          htmlFor="title"
+          style={{
+            display: 'block',
+            fontSize: '14px',
+            fontWeight: '500',
+            marginBottom: '8px',
+            color: '#333',
+          }}
+        >
+          제목 <span style={{ color: '#dc3545' }}>*</span>
         </label>
         <input
           id="title"
@@ -122,31 +170,61 @@ export default function EventForm({ eventId }: EventFormProps) {
           onChange={(e) => setTitle(e.target.value)}
           placeholder="예: 엄마 생일"
           required
-          className={styles.input}
+          style={{
+            width: '100%',
+            padding: '12px',
+            border: '1px solid #ddd',
+            borderRadius: '4px',
+            fontSize: '16px',
+            boxSizing: 'border-box',
+          }}
         />
       </div>
 
       {/* 달력 유형 */}
-      <div className={styles.formGroup}>
-        <div className={styles.label}>달력 유형</div>
-        <div className={styles.radioGroup}>
-          <label className={styles.radioLabel}>
+      <div style={{ marginBottom: '24px' }}>
+        <div
+          style={{
+            fontSize: '14px',
+            fontWeight: '500',
+            marginBottom: '12px',
+            color: '#333',
+          }}
+        >
+          달력 유형
+        </div>
+        <div style={{ display: 'flex', gap: '16px' }}>
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+            }}
+          >
             <input
               type="radio"
               name="calendarType"
               checked={calendarType === 'SOLAR'}
               onChange={() => setCalendarType('SOLAR')}
-              className={styles.radio}
+              style={{ width: '16px', height: '16px' }}
             />
             양력
           </label>
-          <label className={styles.radioLabel}>
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+            }}
+          >
             <input
               type="radio"
               name="calendarType"
               checked={calendarType === 'LUNAR'}
               onChange={() => setCalendarType('LUNAR')}
-              className={styles.radio}
+              style={{ width: '16px', height: '16px' }}
             />
             음력
           </label>
@@ -154,9 +232,18 @@ export default function EventForm({ eventId }: EventFormProps) {
       </div>
 
       {/* 양력 날짜 */}
-      <div className={styles.formGroup}>
-        <label htmlFor="solarDate" className={styles.label}>
-          양력 날짜 <span className={styles.required}>*</span>
+      <div style={{ marginBottom: '24px' }}>
+        <label
+          htmlFor="solarDate"
+          style={{
+            display: 'block',
+            fontSize: '14px',
+            fontWeight: '500',
+            marginBottom: '8px',
+            color: '#333',
+          }}
+        >
+          양력 날짜 <span style={{ color: '#dc3545' }}>*</span>
         </label>
         <input
           id="solarDate"
@@ -164,14 +251,30 @@ export default function EventForm({ eventId }: EventFormProps) {
           value={solarDate}
           onChange={(e) => setSolarDate(e.target.value)}
           required
-          className={styles.input}
+          style={{
+            width: '100%',
+            padding: '12px',
+            border: '1px solid #ddd',
+            borderRadius: '4px',
+            fontSize: '16px',
+            boxSizing: 'border-box',
+          }}
         />
       </div>
 
       {/* 음력 날짜 */}
       {calendarType === 'LUNAR' && (
-        <div className={styles.formGroup}>
-          <label htmlFor="lunarDate" className={styles.label}>
+        <div style={{ marginBottom: '24px' }}>
+          <label
+            htmlFor="lunarDate"
+            style={{
+              display: 'block',
+              fontSize: '14px',
+              fontWeight: '500',
+              marginBottom: '8px',
+              color: '#333',
+            }}
+          >
             음력 날짜 (선택)
           </label>
           <input
@@ -179,14 +282,30 @@ export default function EventForm({ eventId }: EventFormProps) {
             type="date"
             value={lunarDate}
             onChange={(e) => setLunarDate(e.target.value)}
-            className={styles.input}
+            style={{
+              width: '100%',
+              padding: '12px',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+              fontSize: '16px',
+              boxSizing: 'border-box',
+            }}
           />
         </div>
       )}
 
       {/* 메모 */}
-      <div className={styles.formGroup}>
-        <label htmlFor="note" className={styles.label}>
+      <div style={{ marginBottom: '24px' }}>
+        <label
+          htmlFor="note"
+          style={{
+            display: 'block',
+            fontSize: '14px',
+            fontWeight: '500',
+            marginBottom: '8px',
+            color: '#333',
+          }}
+        >
           메모 (선택)
         </label>
         <textarea
@@ -194,7 +313,16 @@ export default function EventForm({ eventId }: EventFormProps) {
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="메모를 입력하세요..."
-          className={styles.textarea}
+          style={{
+            width: '100%',
+            padding: '12px',
+            border: '1px solid #ddd',
+            borderRadius: '4px',
+            fontSize: '16px',
+            minHeight: '100px',
+            resize: 'vertical',
+            boxSizing: 'border-box',
+          }}
         />
       </div>
 
@@ -202,7 +330,18 @@ export default function EventForm({ eventId }: EventFormProps) {
       <button
         type="submit"
         disabled={isSubmitting}
-        className={`${styles.button} ${styles.primaryButton}`}
+        style={{
+          width: '100%',
+          padding: '16px',
+          backgroundColor: '#007bff',
+          color: 'white',
+          border: 'none',
+          borderRadius: '8px',
+          fontSize: '16px',
+          fontWeight: '600',
+          cursor: isSubmitting ? 'not-allowed' : 'pointer',
+          opacity: isSubmitting ? 0.6 : 1,
+        }}
       >
         {isSubmitting ? '저장 중...' : eventId ? '수정하기' : '저장하기'}
       </button>

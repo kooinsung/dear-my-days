@@ -7,7 +7,6 @@ import { getCategoryIcon, getCategoryLabel } from '@/libs/helpers'
 import type { Event } from '@/libs/supabase/database.types'
 import { calculateDday, formatDday } from '@/libs/utils'
 import { useUIStore } from '@/stores/ui-store'
-import * as styles from './detail-content.css'
 
 interface EventDetailContentProps {
   event: Event
@@ -42,63 +41,173 @@ export function EventDetailContent({
   const isToday = dday === 0
 
   return (
-    <div className={styles.pageContainer}>
-      <header className={styles.header}>
-        <div className={styles.headerContent}>
-          <Link href="/" className={styles.backLink}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
+      <header
+        style={{
+          backgroundColor: 'white',
+          borderBottom: '1px solid #e0e0e0',
+          padding: '16px 0',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: '800px',
+            margin: '0 auto',
+            padding: '0 24px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <Link
+            href="/"
+            style={{
+              color: '#007bff',
+              textDecoration: 'none',
+              fontSize: '14px',
+            }}
+          >
             ← 뒤로
           </Link>
           <Link
             href={`/event/edit?id=${eventId}`}
-            className={styles.editButton}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#007bff',
+              color: 'white',
+              borderRadius: '4px',
+              textDecoration: 'none',
+              fontSize: '14px',
+            }}
           >
             편집
           </Link>
         </div>
       </header>
 
-      <div className={styles.content}>
-        <div className={styles.ddayCard}>
-          <p className={styles.ddayLabel}>D-Day</p>
+      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '24px' }}>
+        <div
+          style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            padding: '40px',
+            marginBottom: '24px',
+            textAlign: 'center',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          }}
+        >
+          <p style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>
+            D-Day
+          </p>
           <p
-            className={`${styles.ddayValue} ${isToday ? styles.ddayToday : styles.ddayFuture}`}
+            style={{
+              fontSize: '48px',
+              fontWeight: 'bold',
+              marginBottom: '16px',
+              color: isToday ? '#dc3545' : '#007bff',
+            }}
           >
             {ddayText}
           </p>
-          <h2 className={styles.eventTitle}>{event.title}</h2>
+          <h2 style={{ fontSize: '28px', fontWeight: 'bold', color: '#333' }}>
+            {event.title}
+          </h2>
         </div>
 
-        <div className={styles.infoCard}>
-          <div className={styles.infoSection}>
-            <p className={styles.infoLabel}>카테고리</p>
-            <div className={styles.categoryBadge}>
-              <span className={styles.categoryIcon}>
+        <div
+          style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '24px',
+            marginBottom: '24px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          }}
+        >
+          <div style={{ marginBottom: '24px' }}>
+            <p style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>
+              카테고리
+            </p>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                backgroundColor: '#f8f9fa',
+                borderRadius: '20px',
+              }}
+            >
+              <span style={{ fontSize: '20px' }}>
                 {getCategoryIcon(event.category)}
               </span>
               <span>{getCategoryLabel(event.category)}</span>
             </div>
           </div>
 
-          <div className={styles.infoSection}>
-            <p className={styles.infoLabel}>날짜 정보</p>
-            <div className={styles.dateGrid}>
+          <div style={{ marginBottom: '24px' }}>
+            <p
+              style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}
+            >
+              날짜 정보
+            </p>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: event.lunar_date ? '1fr 1fr' : '1fr',
+                gap: '16px',
+              }}
+            >
               <div>
-                <p className={styles.infoLabel}>양력</p>
-                <p className={styles.infoValue}>{event.solar_date}</p>
+                <p
+                  style={{
+                    fontSize: '12px',
+                    color: '#999',
+                    marginBottom: '4px',
+                  }}
+                >
+                  양력
+                </p>
+                <p
+                  style={{ fontSize: '16px', fontWeight: '500', color: '#333' }}
+                >
+                  {event.solar_date}
+                </p>
               </div>
               {event.lunar_date && (
                 <div>
-                  <p className={styles.infoLabel}>음력</p>
-                  <p className={styles.infoValue}>{event.lunar_date}</p>
+                  <p
+                    style={{
+                      fontSize: '12px',
+                      color: '#999',
+                      marginBottom: '4px',
+                    }}
+                  >
+                    음력
+                  </p>
+                  <p
+                    style={{
+                      fontSize: '16px',
+                      fontWeight: '500',
+                      color: '#333',
+                    }}
+                  >
+                    {event.lunar_date}
+                  </p>
                 </div>
               )}
             </div>
           </div>
 
           {event.note && (
-            <div className={styles.infoSection}>
-              <p className={styles.infoLabel}>메모</p>
-              <p className={styles.infoValue}>{event.note}</p>
+            <div>
+              <p
+                style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}
+              >
+                메모
+              </p>
+              <p style={{ fontSize: '16px', color: '#333', lineHeight: '1.6' }}>
+                {event.note}
+              </p>
             </div>
           )}
         </div>
@@ -107,7 +216,18 @@ export function EventDetailContent({
           type="button"
           onClick={handleDelete}
           disabled={deleteEvent.isPending}
-          className={styles.deleteButton}
+          style={{
+            width: '100%',
+            padding: '16px',
+            backgroundColor: '#dc3545',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '16px',
+            fontWeight: '500',
+            cursor: deleteEvent.isPending ? 'not-allowed' : 'pointer',
+            opacity: deleteEvent.isPending ? 0.6 : 1,
+          }}
         >
           {deleteEvent.isPending ? '삭제 중...' : '이벤트 삭제'}
         </button>

@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import type { CategoryType } from '@/libs/supabase/database.types'
-import * as styles from './calendar-page-client.css'
 
 interface MonthData {
   month: number
@@ -36,35 +35,75 @@ export function CalendarPageClient({
   currentYear,
 }: CalendarPageClientProps) {
   return (
-    <div className={styles.pageContainer}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
       {/* 헤더 */}
-      <header className={styles.header}>
-        <div className={styles.headerContent}>
-          <Link href="/" className={styles.backLink}>
+      <header
+        style={{
+          backgroundColor: 'white',
+          borderBottom: '1px solid #e0e0e0',
+          padding: '16px 0',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: '1200px',
+            margin: '0 auto',
+            padding: '0 24px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <Link
+            href="/"
+            style={{
+              color: '#007bff',
+              textDecoration: 'none',
+              fontSize: '14px',
+            }}
+          >
             ← 홈
           </Link>
-          <div className={styles.yearNavigation}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <Link
               href={`/calendar?year=${currentYear - 1}`}
-              className={styles.yearButton}
+              style={{
+                padding: '8px 12px',
+                color: '#333',
+                textDecoration: 'none',
+                fontSize: '20px',
+              }}
             >
               ◀
             </Link>
-            <h1 className={styles.yearTitle}>{currentYear}년</h1>
+            <h1 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>
+              {currentYear}년
+            </h1>
             <Link
               href={`/calendar?year=${currentYear + 1}`}
-              className={styles.yearButton}
+              style={{
+                padding: '8px 12px',
+                color: '#333',
+                textDecoration: 'none',
+                fontSize: '20px',
+              }}
             >
               ▶
             </Link>
           </div>
-          <div className={styles.spacer} />
+          <div style={{ width: '60px' }} />
         </div>
       </header>
 
       {/* 12개월 그리드 */}
-      <div className={styles.contentContainer}>
-        <div className={styles.monthGrid}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+            gap: '20px',
+          }}
+        >
           {monthsData.map((monthData) => {
             const totalEvents = Object.values(monthData.events).reduce(
               (a, b) => a + b,
@@ -73,12 +112,35 @@ export function CalendarPageClient({
             const hasEvents = totalEvents > 0
 
             return (
-              <div key={monthData.month} className={styles.monthCard}>
+              <div
+                key={monthData.month}
+                style={{
+                  backgroundColor: 'white',
+                  borderRadius: '8px',
+                  padding: '20px',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                }}
+              >
                 {/* 월 이름 */}
-                <h3 className={styles.monthName}>{monthData.name}</h3>
+                <h3
+                  style={{
+                    fontSize: '20px',
+                    fontWeight: 'bold',
+                    marginBottom: '16px',
+                    color: '#333',
+                  }}
+                >
+                  {monthData.name}
+                </h3>
 
                 {/* 이벤트 요약 */}
-                <div className={styles.categoryList}>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                  }}
+                >
                   {hasEvents ? (
                     <>
                       {(
@@ -88,17 +150,38 @@ export function CalendarPageClient({
                         ][]
                       ).map(([category, count]) =>
                         count > 0 ? (
-                          <div key={category} className={styles.categoryItem}>
+                          <div
+                            key={category}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                            }}
+                          >
                             <div
-                              className={styles.categoryDot}
                               style={{
+                                width: '12px',
+                                height: '12px',
+                                borderRadius: '50%',
                                 backgroundColor: CATEGORY_COLORS[category],
                               }}
                             />
-                            <span className={styles.categoryLabel}>
+                            <span
+                              style={{
+                                flex: 1,
+                                fontSize: '14px',
+                                color: '#666',
+                              }}
+                            >
                               {CATEGORY_LABELS[category]}
                             </span>
-                            <span className={styles.categoryCount}>
+                            <span
+                              style={{
+                                fontSize: '14px',
+                                fontWeight: '500',
+                                color: '#333',
+                              }}
+                            >
                               {count}개
                             </span>
                           </div>
@@ -106,7 +189,15 @@ export function CalendarPageClient({
                       )}
                     </>
                   ) : (
-                    <span className={styles.emptyText}>이벤트 없음</span>
+                    <span
+                      style={{
+                        fontSize: '14px',
+                        color: '#999',
+                        textAlign: 'center',
+                      }}
+                    >
+                      이벤트 없음
+                    </span>
                   )}
                 </div>
               </div>

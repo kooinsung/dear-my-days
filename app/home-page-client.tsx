@@ -2,20 +2,54 @@
 
 import Link from 'next/link'
 import { HomeContent } from './home-content'
-import * as styles from './home-page-client.css'
 
 export function HomePageClient() {
   return (
-    <div className={styles.pageContainer}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
       {/* 헤더 */}
-      <header className={styles.header}>
-        <div className={styles.headerContent}>
-          <h1 className={styles.logo}>Dear Days</h1>
-          <div className={styles.headerButtons}>
-            <Link href="/event/edit" className={styles.addButton}>
+      <header
+        style={{
+          backgroundColor: 'white',
+          borderBottom: '1px solid #e0e0e0',
+          padding: '16px 0',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: '1200px',
+            margin: '0 auto',
+            padding: '0 24px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <h1 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>
+            Dear Days
+          </h1>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <Link
+              href="/event/edit"
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#007bff',
+                color: 'white',
+                borderRadius: '4px',
+                textDecoration: 'none',
+              }}
+            >
               + 새 이벤트
             </Link>
-            <Link href="/calendar" className={styles.calendarButton}>
+            <Link
+              href="/calendar"
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#6c757d',
+                color: 'white',
+                borderRadius: '4px',
+                textDecoration: 'none',
+              }}
+            >
               📅 캘린더
             </Link>
           </div>
@@ -23,7 +57,7 @@ export function HomePageClient() {
       </header>
 
       {/* 콘텐츠 영역 */}
-      <div className={styles.content}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
         <HomeContent />
       </div>
     </div>
