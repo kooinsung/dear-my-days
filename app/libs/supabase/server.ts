@@ -13,9 +13,14 @@ export async function createSupabaseServer() {
           return cookieStore.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options)
-          })
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options)
+            })
+          } catch {
+            // Server Component에서 쿠키를 설정할 수 없는 경우 무시
+            // Server Action이나 Route Handler에서는 정상 동작
+          }
         },
       },
     },
