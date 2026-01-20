@@ -7,6 +7,9 @@ import { getCategoryIcon, getCategoryLabel } from '@/libs/helpers'
 import type { Event } from '@/libs/supabase/database.types'
 import { calculateDday, formatDday } from '@/libs/utils'
 import { useUIStore } from '@/stores/ui-store'
+import { css, cx } from '@/styled-system/css'
+import { flex, grid } from '@/styled-system/patterns'
+import { button, card } from '@/styled-system/recipes'
 
 interface EventDetailContentProps {
   event: Event
@@ -62,137 +65,158 @@ export function EventDetailContent({
   const isToday = dday === 0
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
+    <div className={css({ minHeight: '100vh', backgroundColor: 'background' })}>
       <header
-        style={{
+        className={css({
           backgroundColor: 'white',
-          borderBottom: '1px solid #e0e0e0',
+          borderBottom: '1px solid',
+          borderColor: 'border',
           padding: '16px 0',
-        }}
+        })}
       >
         <div
-          style={{
+          className={flex({
             maxWidth: '800px',
             margin: '0 auto',
             padding: '0 24px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
+            justify: 'space-between',
+            align: 'center',
+          })}
         >
           <Link
             href="/"
-            style={{
-              color: '#007bff',
+            className={css({
+              color: 'primary',
               textDecoration: 'none',
               fontSize: '14px',
-            }}
+            })}
           >
             ← 뒤로
           </Link>
           <Link
             href={`/event/edit?id=${eventId}`}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#007bff',
-              color: 'white',
-              borderRadius: '4px',
-              textDecoration: 'none',
-              fontSize: '14px',
-            }}
+            className={button({ variant: 'primary', size: 'sm' })}
           >
             편집
           </Link>
         </div>
       </header>
 
-      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '24px' }}>
+      <div
+        className={css({
+          maxWidth: '800px',
+          margin: '0 auto',
+          padding: '24px',
+        })}
+      >
         <div
-          style={{
+          className={css({
             backgroundColor: 'white',
             borderRadius: '12px',
             padding: '40px',
             marginBottom: '24px',
             textAlign: 'center',
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          }}
+          })}
         >
-          <p style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>
+          <p
+            className={css({
+              fontSize: '14px',
+              color: '#666',
+              marginBottom: '8px',
+            })}
+          >
             올해 이벤트까지
           </p>
           <p
-            style={{
+            className={css({
               fontSize: '48px',
               fontWeight: 'bold',
               marginBottom: '8px',
-              color: isToday ? '#dc3545' : '#007bff',
-            }}
+              color: isToday ? 'danger' : 'primary',
+            })}
           >
             {ddayText}
           </p>
-          <p style={{ fontSize: '14px', color: '#999', marginBottom: '16px' }}>
+          <p
+            className={css({
+              fontSize: '14px',
+              color: '#999',
+              marginBottom: '16px',
+            })}
+          >
             {thisYearOccurrence}
           </p>
-          <h2 style={{ fontSize: '28px', fontWeight: 'bold', color: '#333' }}>
+          <h2
+            className={css({
+              fontSize: '28px',
+              fontWeight: 'bold',
+              color: 'text',
+            })}
+          >
             {event.title}
           </h2>
         </div>
 
-        <div
-          style={{
-            backgroundColor: 'white',
-            borderRadius: '8px',
-            padding: '24px',
-            marginBottom: '24px',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-          }}
-        >
-          <div style={{ marginBottom: '24px' }}>
-            <p style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>
+        <div className={cx(card(), css({ marginBottom: '24px' }))}>
+          <div className={css({ marginBottom: '24px' })}>
+            <p
+              className={css({
+                fontSize: '14px',
+                color: '#666',
+                marginBottom: '8px',
+              })}
+            >
               카테고리
             </p>
             <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 16px',
-                backgroundColor: '#f8f9fa',
-                borderRadius: '20px',
-              }}
+              className={cx(
+                flex({
+                  display: 'inline-flex',
+                  align: 'center',
+                  gap: '8px',
+                }),
+                css({
+                  padding: '8px 16px',
+                  backgroundColor: '#f8f9fa',
+                  borderRadius: '20px',
+                }),
+              )}
             >
-              <span style={{ fontSize: '20px' }}>
+              <span className={css({ fontSize: '20px' })}>
                 {getCategoryIcon(event.category)}
               </span>
               <span>{getCategoryLabel(event.category)}</span>
             </div>
           </div>
 
-          <div style={{ marginBottom: '24px' }}>
+          <div className={css({ marginBottom: '24px' })}>
             <p
-              style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}
+              className={css({
+                fontSize: '14px',
+                color: '#666',
+                marginBottom: '12px',
+              })}
             >
               날짜 정보
             </p>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr',
-                gap: '16px',
-              }}
-            >
+            <div className={grid({ gridTemplateColumns: '1fr', gap: '16px' })}>
               <div>
                 <p
-                  style={{
+                  className={css({
                     fontSize: '12px',
                     color: '#999',
                     marginBottom: '4px',
-                  }}
+                  })}
                 >
                   등록된 날짜 (양력)
                 </p>
                 <p
-                  style={{ fontSize: '16px', fontWeight: '500', color: '#333' }}
+                  className={css({
+                    fontSize: '16px',
+                    fontWeight: '500',
+                    color: 'text',
+                  })}
                 >
                   {event.solar_date}
                 </p>
@@ -200,20 +224,20 @@ export function EventDetailContent({
               {event.lunar_date && (
                 <div>
                   <p
-                    style={{
+                    className={css({
                       fontSize: '12px',
                       color: '#999',
                       marginBottom: '4px',
-                    }}
+                    })}
                   >
                     등록된 날짜 (음력)
                   </p>
                   <p
-                    style={{
+                    className={css({
                       fontSize: '16px',
                       fontWeight: '500',
-                      color: '#333',
-                    }}
+                      color: 'text',
+                    })}
                   >
                     {event.lunar_date}
                   </p>
@@ -221,28 +245,28 @@ export function EventDetailContent({
               )}
               {thisYearOccurrence !== event.solar_date && (
                 <div
-                  style={{
-                    backgroundColor: '#e7f3ff',
+                  className={css({
+                    backgroundColor: 'primaryLight',
                     padding: '12px',
                     borderRadius: '8px',
                     marginTop: '8px',
-                  }}
+                  })}
                 >
                   <p
-                    style={{
+                    className={css({
                       fontSize: '12px',
                       color: '#0066cc',
                       marginBottom: '4px',
-                    }}
+                    })}
                   >
                     올해 발생일
                   </p>
                   <p
-                    style={{
+                    className={css({
                       fontSize: '16px',
                       fontWeight: '600',
                       color: '#0066cc',
-                    }}
+                    })}
                   >
                     {thisYearOccurrence}
                   </p>
@@ -254,11 +278,21 @@ export function EventDetailContent({
           {event.note && (
             <div>
               <p
-                style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}
+                className={css({
+                  fontSize: '14px',
+                  color: '#666',
+                  marginBottom: '8px',
+                })}
               >
                 메모
               </p>
-              <p style={{ fontSize: '16px', color: '#333', lineHeight: '1.6' }}>
+              <p
+                className={css({
+                  fontSize: '16px',
+                  color: 'text',
+                  lineHeight: '1.6',
+                })}
+              >
                 {event.note}
               </p>
             </div>
@@ -269,18 +303,15 @@ export function EventDetailContent({
           type="button"
           onClick={handleDelete}
           disabled={deleteEvent.isPending}
-          style={{
-            width: '100%',
-            padding: '16px',
-            backgroundColor: '#dc3545',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '16px',
-            fontWeight: '500',
-            cursor: deleteEvent.isPending ? 'not-allowed' : 'pointer',
-            opacity: deleteEvent.isPending ? 0.6 : 1,
-          }}
+          className={cx(
+            button({ variant: 'primary', size: 'lg' }),
+            css({
+              width: '100%',
+              backgroundColor: 'danger',
+              cursor: deleteEvent.isPending ? 'not-allowed' : 'pointer',
+              opacity: deleteEvent.isPending ? 0.6 : 1,
+            }),
+          )}
         >
           {deleteEvent.isPending ? '삭제 중...' : '이벤트 삭제'}
         </button>

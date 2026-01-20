@@ -5,6 +5,9 @@ import { useUpcomingEvents } from '@/hooks/use-events'
 import { getCategoryIcon, getCategoryLabel } from '@/libs/helpers'
 import type { Event } from '@/libs/supabase/database.types'
 import { calculateDday, formatDday } from '@/libs/utils'
+import { css, cx } from '@/styled-system/css'
+import { flex, vstack } from '@/styled-system/patterns'
+import { badge, ddayBadge, eventCard } from '@/styled-system/recipes'
 
 export function HomeContent() {
   const { data: events, isLoading, error } = useUpcomingEvents()
@@ -22,19 +25,22 @@ export function HomeContent() {
   return (
     <section>
       <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '24px',
-        }}
+        className={cx(
+          flex({
+            justify: 'space-between',
+            align: 'center',
+          }),
+          css({ marginBottom: '24px' }),
+        )}
       >
-        <h2 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>
+        <h2
+          className={css({ fontSize: '24px', fontWeight: 'bold', margin: 0 })}
+        >
           다가오는 이벤트
         </h2>
         <Link
           href="/event/past"
-          style={{ color: '#007bff', textDecoration: 'none' }}
+          className={css({ color: 'primary', textDecoration: 'none' })}
         >
           지난 이벤트 보기 →
         </Link>
@@ -42,28 +48,28 @@ export function HomeContent() {
 
       {upcomingEvents.length === 0 ? (
         <div
-          style={{
+          className={css({
             padding: '60px 20px',
             textAlign: 'center',
             backgroundColor: 'white',
             borderRadius: '8px',
-          }}
+          })}
         >
           <p
-            style={{
+            className={css({
               fontSize: '18px',
               fontWeight: 'bold',
               marginBottom: '8px',
-            }}
+            })}
           >
             등록된 이벤트가 없습니다
           </p>
-          <p style={{ color: '#666' }}>
+          <p className={css({ color: '#666' })}>
             새 이벤트를 추가하여 소중한 날을 기억하세요!
           </p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gap: '16px' }}>
+        <div className={vstack({ gap: '16px', alignItems: 'stretch' })}>
           {upcomingEvents.map((event: Event) => {
             const dday = calculateDday(event.solar_date)
             const ddayText = formatDday(dday)
@@ -79,81 +85,61 @@ export function HomeContent() {
               <Link
                 key={event.id}
                 href={`/event/detail?id=${event.id}`}
-                style={{
-                  display: 'flex',
-                  gap: '16px',
-                  padding: '20px',
-                  backgroundColor: 'white',
-                  borderRadius: '8px',
-                  textDecoration: 'none',
-                  color: 'inherit',
-                  border: '1px solid #e0e0e0',
-                  transition: 'box-shadow 0.2s',
-                }}
+                className={eventCard()}
               >
                 {/* D-Day */}
-                <div style={{ flexShrink: 0 }}>
-                  <span
-                    style={{
-                      display: 'block',
-                      padding: '8px 12px',
-                      borderRadius: '4px',
-                      fontWeight: 'bold',
-                      backgroundColor: isToday ? '#dc3545' : '#007bff',
-                      color: 'white',
-                    }}
-                  >
-                    {ddayText}
-                  </span>
+                <div className={css({ flexShrink: 0 })}>
+                  <span className={ddayBadge({ isToday })}>{ddayText}</span>
                 </div>
 
                 {/* 이벤트 정보 */}
-                <div style={{ flex: 1 }}>
+                <div className={css({ flex: 1 })}>
                   <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      marginBottom: '8px',
-                    }}
+                    className={cx(
+                      flex({
+                        align: 'center',
+                        gap: '8px',
+                      }),
+                      css({ marginBottom: '8px' }),
+                    )}
                   >
-                    <span style={{ fontSize: '20px' }}>
+                    <span className={css({ fontSize: '20px' })}>
                       {getCategoryIcon(event.category)}
                     </span>
                     <h3
-                      style={{
+                      className={css({
                         fontSize: '18px',
                         fontWeight: 'bold',
                         margin: 0,
-                      }}
+                      })}
                     >
                       {event.title}
                     </h3>
                   </div>
 
                   <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      marginBottom: '8px',
-                    }}
+                    className={cx(
+                      flex({
+                        align: 'center',
+                        gap: '8px',
+                      }),
+                      css({ marginBottom: '8px' }),
+                    )}
                   >
-                    <p style={{ margin: 0, color: '#666' }}>{primaryDate}</p>
-                    <span
-                      style={{
-                        padding: '2px 8px',
-                        backgroundColor: '#f0f0f0',
-                        borderRadius: '4px',
-                        fontSize: '12px',
-                      }}
-                    >
-                      {calendarLabel}
-                    </span>
+                    <p className={css({ margin: 0, color: '#666' })}>
+                      {primaryDate}
+                    </p>
+                    <span className={badge()}>{calendarLabel}</span>
                   </div>
 
                   {event.note && (
-                    <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>
+                    <p
+                      className={css({
+                        margin: 0,
+                        color: '#666',
+                        fontSize: '14px',
+                      })}
+                    >
                       {event.note}
                     </p>
                   )}
@@ -161,13 +147,13 @@ export function HomeContent() {
 
                 {/* 카테고리 라벨 */}
                 <div
-                  style={{
+                  className={css({
                     flexShrink: 0,
                     padding: '4px 12px',
                     backgroundColor: '#f8f9fa',
                     borderRadius: '4px',
                     alignSelf: 'flex-start',
-                  }}
+                  })}
                 >
                   {getCategoryLabel(event.category)}
                 </div>

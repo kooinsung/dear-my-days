@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { QueryProvider } from '@/libs/providers/query-provider'
+import '@/common/styles/global.css'
 
 export const viewport: Viewport = {
   width: 'device-width',

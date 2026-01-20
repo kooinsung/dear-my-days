@@ -3,6 +3,8 @@
 import Link from 'next/link'
 import { getCategoryIcon, getCategoryLabel } from '@/libs/helpers'
 import type { CategoryType, Event } from '@/libs/supabase/database.types'
+import { css, cx } from '@/styled-system/css'
+import { flex, grid, hstack } from '@/styled-system/patterns'
 
 interface PastPageClientProps {
   events: Event[]
@@ -22,60 +24,68 @@ export function PastPageClient({
   ]
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
+    <div className={css({ minHeight: '100vh', backgroundColor: 'background' })}>
       {/* 헤더 */}
       <header
-        style={{
+        className={css({
           backgroundColor: 'white',
           borderBottom: '1px solid #e5e5e5',
           position: 'sticky',
           top: 0,
           zIndex: 10,
-        }}
+        })}
       >
         <div
-          style={{
-            maxWidth: '1200px',
+          className={flex({
+            maxWidth: 'container',
             margin: '0 auto',
             padding: '16px 20px',
-            display: 'flex',
-            alignItems: 'center',
+            align: 'center',
             gap: '16px',
-          }}
+          })}
         >
           <Link
             href="/"
-            style={{
-              color: '#007bff',
+            className={css({
+              color: 'primary',
               textDecoration: 'none',
               fontSize: '14px',
-            }}
+            })}
           >
             ← 뒤로
           </Link>
           <h1
-            style={{
+            className={css({
               fontSize: '20px',
               fontWeight: 'bold',
               margin: 0,
               flex: 1,
               textAlign: 'center',
-            }}
+            })}
           >
             지난 이벤트
           </h1>
-          <div style={{ width: '48px' }} />
+          <div className={css({ width: '48px' })} />
         </div>
       </header>
 
       {/* 필터 */}
       <div
-        style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e5e5' }}
+        className={css({
+          backgroundColor: 'white',
+          borderBottom: '1px solid #e5e5e5',
+        })}
       >
         <div
-          style={{ maxWidth: '1200px', margin: '0 auto', padding: '16px 20px' }}
+          className={css({
+            maxWidth: 'container',
+            margin: '0 auto',
+            padding: '16px 20px',
+          })}
         >
-          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto' }}>
+          <div
+            className={cx(hstack({ gap: '8px' }), css({ overflowX: 'auto' }))}
+          >
             {categories.map((cat) => {
               const isActive =
                 (cat.value === 'ALL' && !filterCategory) ||
@@ -89,16 +99,16 @@ export function PastPageClient({
                       ? '/event/past'
                       : `/event/past?category=${cat.value}`
                   }
-                  style={{
+                  className={css({
                     padding: '8px 16px',
                     borderRadius: '20px',
                     border: '1px solid #e5e5e5',
                     textDecoration: 'none',
                     fontSize: '14px',
                     whiteSpace: 'nowrap',
-                    backgroundColor: isActive ? '#007bff' : 'white',
+                    backgroundColor: isActive ? 'primary' : 'white',
                     color: isActive ? 'white' : '#666',
-                  }}
+                  })}
                 >
                   {cat.label}
                 </Link>
@@ -110,18 +120,22 @@ export function PastPageClient({
 
       {/* 콘텐츠 영역 */}
       <div
-        style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px 20px' }}
+        className={css({
+          maxWidth: 'container',
+          margin: '0 auto',
+          padding: '24px 20px',
+        })}
       >
         {Object.keys(groupedEvents).length === 0 ? (
           <div
-            style={{
+            className={css({
               padding: '60px 20px',
               textAlign: 'center',
               backgroundColor: 'white',
               borderRadius: '8px',
-            }}
+            })}
           >
-            <p style={{ fontSize: '18px', color: '#666' }}>
+            <p className={css({ fontSize: '18px', color: '#666' })}>
               지난 이벤트가 없습니다
             </p>
           </div>
@@ -132,30 +146,29 @@ export function PastPageClient({
             {Object.entries(groupedEvents).map(([yearMonth, monthEvents]) => (
               <div key={yearMonth}>
                 <h2
-                  style={{
+                  className={css({
                     fontSize: '20px',
                     fontWeight: 'bold',
                     marginBottom: '16px',
-                    color: '#333',
-                  }}
+                    color: 'text',
+                  })}
                 >
                   {yearMonth.replace('.', '년 ')}월
                 </h2>
 
                 <div
-                  style={{
-                    display: 'grid',
+                  className={grid({
                     gridTemplateColumns:
                       'repeat(auto-fill, minmax(280px, 1fr))',
                     gap: '16px',
-                  }}
+                  })}
                 >
                   {monthEvents.map((event) => {
                     return (
                       <Link
                         key={event.id}
                         href={`/event/detail?id=${event.id}`}
-                        style={{
+                        className={css({
                           display: 'block',
                           backgroundColor: 'white',
                           padding: '20px',
@@ -164,32 +177,39 @@ export function PastPageClient({
                           color: 'inherit',
                           boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
                           transition: 'box-shadow 0.2s',
-                        }}
+                          _hover: {
+                            boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+                          },
+                        })}
                       >
                         <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '12px',
-                            marginBottom: '12px',
-                          }}
+                          className={cx(
+                            flex({
+                              align: 'center',
+                              gap: '12px',
+                            }),
+                            css({ marginBottom: '12px' }),
+                          )}
                         >
-                          <span style={{ fontSize: '32px' }}>
+                          <span className={css({ fontSize: '32px' })}>
                             {getCategoryIcon(event.category)}
                           </span>
-                          <div style={{ flex: 1 }}>
+                          <div className={css({ flex: 1 })}>
                             <h3
-                              style={{
+                              className={css({
                                 fontSize: '18px',
                                 fontWeight: 'bold',
                                 marginBottom: '4px',
-                                color: '#333',
-                              }}
+                                color: 'text',
+                              })}
                             >
                               {event.title}
                             </h3>
                             <span
-                              style={{ fontSize: '12px', color: '#007bff' }}
+                              className={css({
+                                fontSize: '12px',
+                                color: 'primary',
+                              })}
                             >
                               {getCategoryLabel(event.category)}
                             </span>
@@ -198,11 +218,11 @@ export function PastPageClient({
 
                         {event.note && (
                           <p
-                            style={{
+                            className={css({
                               fontSize: '14px',
                               color: '#666',
                               margin: 0,
-                            }}
+                            })}
                           >
                             {event.note}
                           </p>

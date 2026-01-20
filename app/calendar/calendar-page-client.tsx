@@ -2,6 +2,9 @@
 
 import Link from 'next/link'
 import type { CategoryType } from '@/libs/supabase/database.types'
+import { css } from '@/styled-system/css'
+import { flex } from '@/styled-system/patterns'
+import { card } from '@/styled-system/recipes'
 
 interface MonthData {
   month: number
@@ -112,34 +115,26 @@ export function CalendarPageClient({
             const hasEvents = totalEvents > 0
 
             return (
-              <div
-                key={monthData.month}
-                style={{
-                  backgroundColor: 'white',
-                  borderRadius: '8px',
-                  padding: '20px',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                }}
-              >
+              <div key={monthData.month} className={card()}>
                 {/* 월 이름 */}
                 <h3
-                  style={{
+                  className={css({
                     fontSize: '20px',
                     fontWeight: 'bold',
                     marginBottom: '16px',
-                    color: '#333',
-                  }}
+                    color: 'text',
+                  })}
                 >
                   {monthData.name}
                 </h3>
 
                 {/* 이벤트 요약 */}
                 <div
-                  style={{
+                  className={css({
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '8px',
-                  }}
+                  })}
                 >
                   {hasEvents ? (
                     <>
@@ -152,35 +147,31 @@ export function CalendarPageClient({
                         count > 0 ? (
                           <div
                             key={category}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '8px',
-                            }}
+                            className={flex({ align: 'center', gap: '8px' })}
                           >
                             <div
-                              style={{
+                              className={css({
                                 width: '12px',
                                 height: '12px',
                                 borderRadius: '50%',
                                 backgroundColor: CATEGORY_COLORS[category],
-                              }}
+                              })}
                             />
                             <span
-                              style={{
+                              className={css({
                                 flex: 1,
                                 fontSize: '14px',
                                 color: '#666',
-                              }}
+                              })}
                             >
                               {CATEGORY_LABELS[category]}
                             </span>
                             <span
-                              style={{
+                              className={css({
                                 fontSize: '14px',
                                 fontWeight: '500',
-                                color: '#333',
-                              }}
+                                color: 'text',
+                              })}
                             >
                               {count}개
                             </span>
@@ -190,11 +181,11 @@ export function CalendarPageClient({
                     </>
                   ) : (
                     <span
-                      style={{
+                      className={css({
                         fontSize: '14px',
                         color: '#999',
                         textAlign: 'center',
-                      }}
+                      })}
                     >
                       이벤트 없음
                     </span>

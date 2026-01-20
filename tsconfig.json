@@ -25,7 +25,8 @@
       "@/login/*": ["app/login/*"],
       "@/hooks/*": ["app/hooks/*"],
       "@/stores/*": ["app/stores/*"],
-      "@/styles/*": ["app/styles/*"]
+      "@/common/*": ["app/common/*"],
+      "@/styled-system/*": ["styled-system/*"]
     }
   },
   "include": [
