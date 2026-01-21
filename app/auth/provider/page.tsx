@@ -4,8 +4,8 @@ import ProviderTestForm from './provider-form'
 export default async function ProviderTestPage() {
   const supabase = await createSupabaseServer()
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  return <ProviderTestForm initialUser={session?.user || null} />
+  return <ProviderTestForm initialUser={user} />
 }
