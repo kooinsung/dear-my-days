@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useDeleteEvent } from '@/hooks/use-events'
 import { getCategoryIcon, getCategoryLabel } from '@/libs/helpers'
 import type { Event } from '@/libs/supabase/database.types'
-import { calculateDday, formatDday } from '@/libs/utils'
+import { calculateDday, formatDday, toThisYearDate } from '@/libs/utils'
 import { useUIStore } from '@/stores/ui-store'
 import { css, cx } from '@/styled-system/css'
 import { flex, grid } from '@/styled-system/patterns'
@@ -39,27 +39,7 @@ export function EventDetailContent({
     }
   }
 
-  // 올해 발생일 계산
-  const calculateThisYearOccurrence = (solarDate: string): string => {
-    const eventDate = new Date(solarDate)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-
-    const thisYear = today.getFullYear()
-    const eventThisYear = new Date(
-      thisYear,
-      eventDate.getMonth(),
-      eventDate.getDate(),
-    )
-    eventThisYear.setHours(0, 0, 0, 0)
-
-    const year = eventThisYear.getFullYear()
-    const month = String(eventThisYear.getMonth() + 1).padStart(2, '0')
-    const day = String(eventThisYear.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
-  }
-
-  const thisYearOccurrence = calculateThisYearOccurrence(event.solar_date)
+  const thisYearOccurrence = toThisYearDate(event.solar_date)
   const dday = calculateDday(thisYearOccurrence)
   const ddayText = formatDday(dday)
   const isToday = dday === 0

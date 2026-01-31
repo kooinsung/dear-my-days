@@ -1,13 +1,18 @@
 'use client'
 
 import Link from 'next/link'
+import type { Event } from '@/libs/supabase/database.types'
 import { css, cx } from '@/styled-system/css'
 import { HStack } from '@/styled-system/jsx'
-import { flex, hstack } from '@/styled-system/patterns'
+import { flex } from '@/styled-system/patterns'
 import { button, pageContainer } from '@/styled-system/recipes'
 import { HomeContent } from './home-content'
 
-export function HomePageClient() {
+interface HomePageClientProps {
+  upcomingEvents: Event[]
+}
+
+export function HomePageClient({ upcomingEvents }: HomePageClientProps) {
   return (
     <div
       className={css({
@@ -57,7 +62,7 @@ export function HomePageClient() {
 
       {/* 콘텐츠 영역 */}
       <div className={cx(pageContainer(), css({ paddingTop: '24px' }))}>
-        <HomeContent />
+        <HomeContent upcomingEvents={upcomingEvents} />
       </div>
     </div>
   )

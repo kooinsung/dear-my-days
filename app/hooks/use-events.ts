@@ -1,10 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createSupabaseBrowser } from '@/libs/supabase/browser'
-import type {
-  CalendarType,
-  CategoryType,
-  Event,
-} from '@/libs/supabase/database.types'
+import type { CategoryType, Event } from '@/libs/supabase/database.types'
+import { getUpcomingEventsThisYear } from '@/libs/utils'
 
 // Query Keys
 export const eventKeys = {
@@ -48,13 +45,14 @@ export function useEvents(filters?: { category?: CategoryType | 'ALL' }) {
 }
 
 // 다가오는 이벤트 조회 (올해만 표시)
-export function useUpcomingEvents() {
+export function useUpcomingEvents(options?: { initialEvents?: Event[] }) {
   const supabase = createSupabaseBrowser()
 
   return useQuery({
     queryKey: eventKeys.upcoming(),
+    initialData: options?.initialEvents,
     queryFn: async () => {
-      // 모든 이벤트를 가져옴
+      // (fallback) 클라이언트에서 다시 조회해야 하는 경우만 fetch
       const { data, error } = await supabase
         .from('events')
         .select('*')
@@ -64,56 +62,7 @@ export function useUpcomingEvents() {
         throw error
       }
 
-      const events = data as Event[]
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      const thisYear = today.getFullYear()
-
-      // 올해 발생일이 오늘 이후인 이벤트만 필터링
-      const upcomingEvents = events
-        .map((event) => {
-          const eventDate = new Date(event.solar_date)
-
-          // 올해의 해당 월/일로 날짜 생성
-          const eventThisYear = new Date(
-            thisYear,
-            eventDate.getMonth(),
-            eventDate.getDate(),
-          )
-          eventThisYear.setHours(0, 0, 0, 0)
-
-          return {
-            ...event,
-            this_year_occurrence: eventThisYear,
-          }
-        })
-        .filter((event) => {
-          // 올해 발생일이 오늘 이후인 것만 (오늘 포함)
-          return event.this_year_occurrence >= today
-        })
-        .map((event) => {
-          // solar_date를 올해 발생일로 변경 (D-day 계산용)
-          const year = event.this_year_occurrence.getFullYear()
-          const month = String(
-            event.this_year_occurrence.getMonth() + 1,
-          ).padStart(2, '0')
-          const day = String(event.this_year_occurrence.getDate()).padStart(
-            2,
-            '0',
-          )
-          const thisYearDate = `${year}-${month}-${day}`
-
-          return {
-            ...event,
-            solar_date: thisYearDate,
-          }
-        })
-        .sort((a, b) => {
-          // 날짜 기준으로 정렬
-          return a.solar_date.localeCompare(b.solar_date)
-        })
-
-      return upcomingEvents
+      return getUpcomingEventsThisYear((data || []) as Event[])
     },
   })
 }

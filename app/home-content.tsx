@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import { useUpcomingEvents } from '@/hooks/use-events'
 import { getCategoryIcon, getCategoryLabel } from '@/libs/helpers'
 import type { Event } from '@/libs/supabase/database.types'
 import { calculateDday, formatDday } from '@/libs/utils'
@@ -9,19 +8,11 @@ import { css, cx } from '@/styled-system/css'
 import { flex, vstack } from '@/styled-system/patterns'
 import { badge, ddayBadge, eventCard } from '@/styled-system/recipes'
 
-export function HomeContent() {
-  const { data: events, isLoading, error } = useUpcomingEvents()
+interface HomeContentProps {
+  upcomingEvents: Event[]
+}
 
-  if (isLoading) {
-    // ...existing code...
-  }
-
-  if (error) {
-    // ...existing code...
-  }
-
-  const upcomingEvents = events || []
-
+export function HomeContent({ upcomingEvents }: HomeContentProps) {
   return (
     <section>
       <div
