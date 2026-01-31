@@ -4,6 +4,7 @@ import type { User } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
 import { generateNaverAuthUrl } from '@/libs/naver/oauth'
+import { getOAuthCallbackUrl } from '@/libs/oauth/urls'
 import { createSupabaseBrowser } from '@/libs/supabase/browser'
 import { css, cx } from '@/styled-system/css'
 import { center, vstack } from '@/styled-system/patterns'
@@ -50,7 +51,9 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
   const oauthLogin = async (provider: 'google' | 'kakao') => {
     await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: window.location.origin },
+      options: {
+        redirectTo: getOAuthCallbackUrl(window.location.origin),
+      },
     })
   }
 
