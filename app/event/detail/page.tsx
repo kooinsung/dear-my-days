@@ -16,11 +16,6 @@ export default async function DetailPage({
   }
 
   const supabase = await createSupabaseServer()
-  const { data: userData } = await supabase.auth.getUser()
-
-  if (!userData.user) {
-    redirect('/login')
-  }
 
   // 서버 사이드에서 데이터 fetch
   const { data: event, error } = await supabase

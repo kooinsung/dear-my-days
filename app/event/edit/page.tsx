@@ -1,4 +1,3 @@
-import { redirect } from 'next/navigation'
 import { createSupabaseServer } from '@/libs/supabase/server'
 import { EventEditPageClient } from './edit-page-client'
 
@@ -11,11 +10,7 @@ export default async function EditPage({
   const eventId = params.id
 
   const supabase = await createSupabaseServer()
-  const { data: userData } = await supabase.auth.getUser()
-
-  if (!userData.user) {
-    redirect('/login')
-  }
+  void supabase
 
   return <EventEditPageClient eventId={eventId} />
 }

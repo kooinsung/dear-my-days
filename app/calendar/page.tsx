@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
 import type { CategoryType, Event } from '@/libs/supabase/database.types'
 import { createSupabaseServer } from '@/libs/supabase/server'
 
@@ -54,11 +53,6 @@ export default async function CalendarPage({
     : new Date().getFullYear()
 
   const supabase = await createSupabaseServer()
-  const { data: userData } = await supabase.auth.getUser()
-
-  if (!userData.user) {
-    redirect('/login')
-  }
 
   // 해당 년도의 이벤트 조회
   const startDate = `${currentYear}-01-01`

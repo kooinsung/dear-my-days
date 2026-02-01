@@ -1,4 +1,3 @@
-import { redirect } from 'next/navigation'
 import type { CategoryType, Event } from '@/libs/supabase/database.types'
 import { createSupabaseServer } from '@/libs/supabase/server'
 import { dayjs, toThisYearDate } from '@/libs/utils'
@@ -31,11 +30,6 @@ export default async function PastPage({
   const filterCategory = params.category
 
   const supabase = await createSupabaseServer()
-  const { data: userData } = await supabase.auth.getUser()
-
-  if (!userData.user) {
-    redirect('/login')
-  }
 
   // 모든 이벤트를 조회하여 올해 발생일 기준으로 필터링
   let query = supabase
