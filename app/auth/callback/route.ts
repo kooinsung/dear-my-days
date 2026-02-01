@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { withAppBasePath } from '@/libs/oauth/urls'
+import { withBasePath } from '@/libs/oauth/urls'
 import { createSupabaseServer } from '@/libs/supabase/server'
 
 function normalizeNext(next: string): string {
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 
   if (!code) {
     return NextResponse.redirect(
-      `${origin}${withAppBasePath('/login')}?error=oauth_code_missing`,
+      `${origin}${withBasePath('/login')}?error=oauth_code_missing`,
     )
   }
 
@@ -43,9 +43,9 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.redirect(
-      `${origin}${withAppBasePath('/login')}?${params.toString()}`,
+      `${origin}${withBasePath('/login')}?${params.toString()}`,
     )
   }
 
-  return NextResponse.redirect(`${origin}${withAppBasePath(next)}`)
+  return NextResponse.redirect(`${origin}${withBasePath(next)}`)
 }
