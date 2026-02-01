@@ -28,8 +28,22 @@ export async function GET(req: NextRequest) {
   const { error } = await supabase.auth.exchangeCodeForSession(code)
 
   if (error) {
+    const params = new URLSearchParams({
+      error: 'oauth_exchange_failed',
+    })
+
+    const anyErr = error as unknown as {
+      code?: string
+      name?: string
+    }
+
+    const errCode = anyErr.code ?? anyErr.name
+    if (errCode) {
+      params.set('error_code', String(errCode))
+    }
+
     return NextResponse.redirect(
-      `${origin}${withAppBasePath('/login')}?error=oauth_exchange_failed`,
+      `${origin}${withAppBasePath('/login')}?${params.toString()}`,
     )
   }
 
