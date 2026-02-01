@@ -1,4 +1,4 @@
-import { getAppBasePath } from '@/libs/oauth/urls'
+import { getAppBasePath } from '@/libs/urls/base-path'
 
 /**
  * 미들웨어에서 인증을 적용할 보호/공개 경로 정책

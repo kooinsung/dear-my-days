@@ -90,6 +90,7 @@ create table public.events
     updated_at timestamp with time zone null default now(),
     solar_date date not null,
     lunar_date date null,
+    is_leap_month boolean not null default false,
     constraint events_pkey primary key (id),
     constraint events_user_id_fkey foreign KEY (user_id) references auth.users (id) on delete CASCADE
 )

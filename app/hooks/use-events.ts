@@ -1,7 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createSupabaseBrowser } from '@/libs/supabase/browser'
-import type { CategoryType, Event } from '@/libs/supabase/database.types'
-import { getUpcomingEventsThisYear } from '@/libs/utils'
+import type {
+  CalendarType,
+  CategoryType,
+  Event,
+} from '@/libs/supabase/database.types'
+import { getApiUrl, getUpcomingEventsThisYear } from '@/libs/utils'
 
 // Query Keys
 export const eventKeys = {
@@ -149,37 +153,73 @@ export function useCalendarEvents(year: number) {
   })
 }
 
+type ApiSuccess<T> = { success: true; data: T }
+type ApiError = { error: string }
+
+export type CreateEventInput = {
+  title: string
+  category: CategoryType
+  calendar_type: CalendarType
+  note: string | null
+} & (
+  | {
+      calendar_type: 'SOLAR'
+      solar_date: string
+      lunar_date?: null
+    }
+  | {
+      calendar_type: 'LUNAR'
+      lunar_date: string | null
+      solar_date?: string
+    }
+)
+
+export type UpdateEventInput = {
+  id: string
+  updates: {
+    title?: string
+    category?: CategoryType
+    note?: string | null
+    calendar_type?: CalendarType
+    solar_date?: string
+    lunar_date?: string | null
+  }
+}
+
+async function postJson<T>(url: string, body: unknown): Promise<T> {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+
+  const json = (await res.json().catch(() => ({}))) as unknown
+
+  if (!res.ok) {
+    const msg =
+      json && typeof json === 'object' && 'error' in json
+        ? String((json as ApiError).error)
+        : `Request failed: ${res.status}`
+    throw new Error(msg)
+  }
+
+  return json as T
+}
+
 // 이벤트 생성
 export function useCreateEvent() {
   const queryClient = useQueryClient()
-  const supabase = createSupabaseBrowser()
 
   return useMutation({
-    mutationFn: async (
-      newEvent: Omit<Event, 'id' | 'user_id' | 'created_at' | 'updated_at'>,
-    ) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) {
-        throw new Error('Unauthorized')
+    mutationFn: async (newEvent: CreateEventInput) => {
+      const res = await postJson<ApiSuccess<Event>>(
+        getApiUrl('/api/events/create'),
+        newEvent,
+      )
+      if (!res.data) {
+        throw new Error('Failed to create event')
       }
-
-      const { data, error } = await supabase
-        .from('events')
-        .insert({
-          ...newEvent,
-          user_id: user.id,
-        })
-        .select()
-        .single()
-
-      if (error) {
-        throw error
-      }
-
-      return data as Event
+      return res.data
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: eventKeys.all })
@@ -190,28 +230,17 @@ export function useCreateEvent() {
 // 이벤트 수정
 export function useUpdateEvent() {
   const queryClient = useQueryClient()
-  const supabase = createSupabaseBrowser()
 
   return useMutation({
-    mutationFn: async ({
-      id,
-      updates,
-    }: {
-      id: string
-      updates: Partial<Event>
-    }) => {
-      const { data, error } = await supabase
-        .from('events')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single()
-
-      if (error) {
-        throw error
+    mutationFn: async ({ id, updates }: UpdateEventInput) => {
+      const res = await postJson<ApiSuccess<Event>>(
+        getApiUrl('/api/events/update'),
+        { id, ...updates },
+      )
+      if (!res.data) {
+        throw new Error('Failed to update event')
       }
-
-      return data as Event
+      return res.data
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: eventKeys.all })

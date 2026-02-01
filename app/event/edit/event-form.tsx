@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { useCreateEvent, useEvent, useUpdateEvent } from '@/hooks/use-events'
 import type { CalendarType, CategoryType } from '@/libs/supabase/database.types'
+import { withBasePath } from '@/libs/urls/base-path'
 import { useUIStore } from '@/stores/ui-store'
 import { css, cx } from '@/styled-system/css'
 import { flex, grid, hstack } from '@/styled-system/patterns'
@@ -61,34 +62,51 @@ export default function EventForm({ eventId }: EventFormProps) {
     e.preventDefault()
 
     try {
+      const basePayload = {
+        title,
+        category,
+        note: note || null,
+      }
+
       if (eventId) {
         await updateEvent.mutateAsync({
           id: eventId,
-          updates: {
-            title,
-            category,
-            solar_date: solarDate,
-            lunar_date: lunarDate || null,
-            calendar_type: calendarType,
-            note: note || null,
-          },
+          updates:
+            calendarType === 'LUNAR'
+              ? {
+                  ...basePayload,
+                  calendar_type: 'LUNAR',
+                  lunar_date: lunarDate || null,
+                }
+              : {
+                  ...basePayload,
+                  calendar_type: 'SOLAR',
+                  solar_date: solarDate,
+                },
         })
         showToast('이벤트가 수정되었습니다', 'success')
       } else {
-        await createEvent.mutateAsync({
-          title,
-          category,
-          solar_date: solarDate,
-          lunar_date: lunarDate || null,
-          calendar_type: calendarType,
-          note: note || null,
-        })
+        await createEvent.mutateAsync(
+          calendarType === 'LUNAR'
+            ? {
+                ...basePayload,
+                calendar_type: 'LUNAR',
+                lunar_date: lunarDate || null,
+              }
+            : {
+                ...basePayload,
+                calendar_type: 'SOLAR',
+                solar_date: solarDate,
+              },
+        )
         showToast('이벤트가 생성되었습니다', 'success')
       }
 
       router.push('/')
       router.refresh()
-    } catch (_error) {
+    } catch (error) {
+      // 디버깅을 위해 실제 에러를 남김(네트워크 404/500 등)
+      console.error(error)
       showToast('저장에 실패했습니다', 'error')
     }
   }
@@ -194,34 +212,39 @@ export default function EventForm({ eventId }: EventFormProps) {
       </div>
 
       {/* 양력 날짜 */}
-      <div className={formField()}>
-        <label htmlFor="solarDate" className={label()}>
-          양력 날짜 <span className={css({ color: 'danger' })}>*</span>
-        </label>
-        <input
-          id="solarDate"
-          type="date"
-          value={solarDate}
-          onChange={(e) => setSolarDate(e.target.value)}
-          required
-          className={input()}
-        />
-      </div>
-
-      {/* 음력 날짜 */}
-      {calendarType === 'LUNAR' && (
+      {calendarType === 'SOLAR' && (
         <div className={formField()}>
-          <label htmlFor="lunarDate" className={label()}>
-            음력 날짜 (선택)
+          <label htmlFor="solarDate" className={label()}>
+            양력 날짜 <span className={css({ color: 'danger' })}>*</span>
           </label>
           <input
-            id="lunarDate"
+            id="solarDate"
             type="date"
-            value={lunarDate}
-            onChange={(e) => setLunarDate(e.target.value)}
+            value={solarDate}
+            onChange={(e) => setSolarDate(e.target.value)}
+            required
             className={input()}
           />
         </div>
+      )}
+
+      {/* 음력 날짜 */}
+      {calendarType === 'LUNAR' && (
+        <>
+          <div className={formField()}>
+            <label htmlFor="lunarDate" className={label()}>
+              음력 날짜 <span className={css({ color: 'danger' })}>*</span>
+            </label>
+            <input
+              id="lunarDate"
+              type="date"
+              value={lunarDate}
+              onChange={(e) => setLunarDate(e.target.value)}
+              required
+              className={input()}
+            />
+          </div>
+        </>
       )}
 
       {/* 메모 */}

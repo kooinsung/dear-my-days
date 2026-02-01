@@ -31,4 +31,5 @@ export interface Event {
   updated_at: string | null
   solar_date: string
   lunar_date: string | null
+  is_leap_month: boolean
 }
