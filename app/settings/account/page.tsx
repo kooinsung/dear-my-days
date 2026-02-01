@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { css, cx } from '@/styled-system/css'
 import { flex, vstack } from '@/styled-system/patterns'
 import { button, card } from '@/styled-system/recipes'
+import { DeleteAccountButton } from './delete-account-button'
 import { LogoutButton } from './logout-button'
 
 export default async function SettingsAccountPage() {
@@ -44,7 +45,10 @@ export default async function SettingsAccountPage() {
       >
         <section className={cx(card(), css({ marginBottom: '16px' }))}>
           <h2 className={css({ fontSize: '18px', marginTop: 0 })}>계정 작업</h2>
-          <LogoutButton />
+          <div className={vstack({ gap: '12px', alignItems: 'stretch' })}>
+            <LogoutButton />
+            <DeleteAccountButton />
+          </div>
         </section>
 
         <section
