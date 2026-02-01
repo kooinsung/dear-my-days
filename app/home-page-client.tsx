@@ -56,6 +56,9 @@ export function HomePageClient({ upcomingEvents }: HomePageClientProps) {
             >
               📅 캘린더
             </Link>
+            <Link href="/settings" className={button({ variant: 'secondary' })}>
+              설정
+            </Link>
           </HStack>
         </div>
       </header>
