@@ -45,6 +45,8 @@ export function LinkedProvidersClient({
     [user.identities],
   )
 
+  const canUnlink = identities.length >= 2
+
   const refreshUser = useCallback(async () => {
     const {
       data: { user: freshUser },
@@ -74,11 +76,6 @@ export function LinkedProvidersClient({
     setLoading(true)
 
     try {
-      if ((user.identities?.length ?? 0) <= 1) {
-        setError('최소 1개의 로그인 수단은 남아있어야 합니다.')
-        return
-      }
-
       const { error } = await supabase.auth.unlinkIdentity(identity)
 
       if (error) {
@@ -185,32 +182,23 @@ export function LinkedProvidersClient({
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    className={cx(
-                      button({ variant: 'primary', size: 'sm' }),
-                      css({ backgroundColor: 'danger' }),
-                    )}
-                    disabled={loading}
-                    onClick={() => handleUnlink(identity)}
-                  >
-                    {loading ? '처리 중...' : '연결 해제'}
-                  </button>
+                  {canUnlink ? (
+                    <button
+                      type="button"
+                      className={cx(
+                        button({ variant: 'primary', size: 'sm' }),
+                        css({ backgroundColor: 'danger' }),
+                      )}
+                      disabled={loading}
+                      onClick={() => handleUnlink(identity)}
+                    >
+                      {loading ? '처리 중...' : '연결 해제'}
+                    </button>
+                  ) : null}
                 </div>
               ))}
             </div>
           )}
-
-          <div
-            className={css({
-              marginTop: '16px',
-              color: '#666',
-              fontSize: '12px',
-            })}
-          >
-            * 실수로 마지막 로그인 수단까지 해제하면 계정에 다시 접근하기 어려울
-            수 있어요.
-          </div>
         </section>
       </main>
     </div>
