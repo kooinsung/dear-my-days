@@ -54,7 +54,12 @@ export function buildLoginRedirect(
   const pathname = stripBasePath(pathnameWithBase)
 
   const url = new URL(`${origin}${base}/login`)
-  // 로그인 후 원래 페이지로 돌아가기 위해 next 파라미터를 basePath 없는 내부 경로로 유지
-  url.searchParams.set('next', pathname)
+
+  // 홈으로 돌아가는 경우는 next 없이도 동일하므로 파라미터를 생략
+  if (pathname !== '/') {
+    // 로그인 후 원래 페이지로 돌아가기 위해 next 파라미터를 basePath 없는 내부 경로로 유지
+    url.searchParams.set('next', pathname)
+  }
+
   return url.toString()
 }
