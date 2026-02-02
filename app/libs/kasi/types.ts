@@ -65,6 +65,17 @@ export interface LunarToSolarResult {
   day: number
 }
 
+export interface LunarToSolarCandidate {
+  solarYear: number
+  solarMonth: number
+  solarDay: number
+  isLeapMonth: boolean
+}
+
+export interface LunarToSolarCandidatesResult {
+  candidates: LunarToSolarCandidate[]
+}
+
 export interface LunarSpecialResult extends LunarToSolarResult {
   lunarYear: number
   lunarMonth: number

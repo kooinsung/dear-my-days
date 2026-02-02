@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { lunarToSolar } from '@/libs/kasi/lunar-to-solar'
+import { lunarToSolarCandidates } from '@/libs/kasi/lunar-to-solar'
 import { solarToLunar } from '@/libs/kasi/solar-to-lunar'
 import type { CalendarType } from '@/libs/supabase/database.types'
 import { createSupabaseServer } from '@/libs/supabase/server'
@@ -29,16 +29,25 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { id, title, category, solar_date, lunar_date, calendar_type, note } =
-      body as {
-        id: string
-        title?: string
-        category?: string
-        solar_date?: string
-        lunar_date?: string
-        calendar_type?: CalendarType
-        note?: string | null
-      }
+    const {
+      id,
+      title,
+      category,
+      solar_date,
+      lunar_date,
+      calendar_type,
+      note,
+      is_leap_month,
+    } = body as {
+      id: string
+      title?: string
+      category?: string
+      solar_date?: string
+      lunar_date?: string
+      calendar_type?: CalendarType
+      note?: string | null
+      is_leap_month?: boolean
+    }
 
     if (!id) {
       return NextResponse.json({ error: 'Event ID required' }, { status: 400 })
@@ -62,11 +71,31 @@ export async function POST(req: NextRequest) {
           { status: 400 },
         )
       }
+
       const { year, month, day } = parseYmd(lunar_date)
-      const converted = await lunarToSolar(year, month, day, false)
-      finalSolar = fmtYmd(converted)
+      const { candidates } = await lunarToSolarCandidates(year, month, day)
+
+      if (!candidates.length) {
+        return NextResponse.json(
+          { error: 'No conversion candidates returned from KASI' },
+          { status: 500 },
+        )
+      }
+
+      const preferred =
+        typeof is_leap_month === 'boolean'
+          ? candidates.find((c) => c.isLeapMonth === is_leap_month)
+          : candidates.find((c) => c.isLeapMonth)
+
+      const picked = preferred ?? candidates[0]
+
+      finalSolar = fmtYmd({
+        year: picked.solarYear,
+        month: picked.solarMonth,
+        day: picked.solarDay,
+      })
       finalLunar = lunar_date
-      finalIsLeapMonth = false
+      finalIsLeapMonth = picked.isLeapMonth
     } else {
       if (!solar_date) {
         return NextResponse.json(

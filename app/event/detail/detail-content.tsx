@@ -212,15 +212,39 @@ export function EventDetailContent({
                   >
                     등록된 날짜 (음력)
                   </p>
-                  <p
-                    className={css({
-                      fontSize: '16px',
-                      fontWeight: '500',
-                      color: 'text',
+                  <div
+                    className={flex({
+                      align: 'center',
+                      gap: '8px',
+                      wrap: 'wrap',
                     })}
                   >
-                    {event.lunar_date}
-                  </p>
+                    <p
+                      className={css({
+                        fontSize: '16px',
+                        fontWeight: '500',
+                        color: 'text',
+                      })}
+                    >
+                      {event.lunar_date}
+                    </p>
+                    {event.calendar_type === 'LUNAR' && event.is_leap_month && (
+                      <span
+                        className={css({
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          padding: '2px 8px',
+                          borderRadius: '9999px',
+                          backgroundColor: 'warning.100',
+                          color: 'warning.700',
+                          border: '1px solid',
+                          borderColor: 'warning.200',
+                        })}
+                      >
+                        윤달
+                      </span>
+                    )}
+                  </div>
                 </div>
               )}
               {thisYearOccurrence !== event.solar_date && (

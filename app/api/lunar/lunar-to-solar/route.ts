@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server'
-import { lunarToSolar } from '@/libs/kasi/lunar-to-solar'
+import { lunarToSolarCandidates } from '@/libs/kasi/lunar-to-solar'
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const year = Number(searchParams.get('year'))
   const month = Number(searchParams.get('month'))
   const day = Number(searchParams.get('day'))
-  const isLeapMonth = searchParams.get('isLeapMonth') === 'true'
 
   if (
     !Number.isFinite(year) ||
@@ -20,7 +19,9 @@ export async function GET(req: Request) {
   }
 
   try {
-    const result = await lunarToSolar(year, month, day, isLeapMonth)
+    const result = await lunarToSolarCandidates(year, month, day)
+    // 응답 형태:
+    // { candidates: [{ solarYear, solarMonth, solarDay, isLeapMonth }, ...] }
     return NextResponse.json(result)
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'Unknown error'
