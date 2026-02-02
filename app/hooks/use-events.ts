@@ -166,11 +166,13 @@ export type CreateEventInput = {
       calendar_type: 'SOLAR'
       solar_date: string
       lunar_date?: null
+      is_leap_month?: false
     }
   | {
       calendar_type: 'LUNAR'
       lunar_date: string | null
       solar_date?: string
+      is_leap_month: boolean
     }
 )
 
@@ -183,6 +185,7 @@ export type UpdateEventInput = {
     calendar_type?: CalendarType
     solar_date?: string
     lunar_date?: string | null
+    is_leap_month?: boolean
   }
 }
 

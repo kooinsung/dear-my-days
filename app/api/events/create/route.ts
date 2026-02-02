@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { lunarToSolar } from '@/libs/kasi/lunar-to-solar'
+import { lunarToSolarCandidates } from '@/libs/kasi/lunar-to-solar'
 import { solarToLunar } from '@/libs/kasi/solar-to-lunar'
 import type { CalendarType } from '@/libs/supabase/database.types'
 import { createSupabaseServer } from '@/libs/supabase/server'
@@ -29,15 +29,24 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { title, category, solar_date, lunar_date, calendar_type, note } =
-      body as {
-        title: string
-        category: string
-        solar_date?: string
-        lunar_date?: string
-        calendar_type: CalendarType
-        note?: string | null
-      }
+    const {
+      title,
+      category,
+      solar_date,
+      lunar_date,
+      calendar_type,
+      note,
+      is_leap_month,
+    } = body as {
+      title: string
+      category: string
+      solar_date?: string
+      lunar_date?: string
+      calendar_type: CalendarType
+      note?: string | null
+      // 선택값(옵션). 후보가 2개인 경우 사용자가 선택한 윤달 여부
+      is_leap_month?: boolean
+    }
 
     if (!title || !category || !calendar_type) {
       return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
@@ -54,11 +63,35 @@ export async function POST(req: NextRequest) {
           { status: 400 },
         )
       }
+
       const { year, month, day } = parseYmd(lunar_date)
-      const converted = await lunarToSolar(year, month, day, false)
-      finalSolar = fmtYmd(converted)
+
+      const { candidates } = await lunarToSolarCandidates(year, month, day)
+
+      if (!candidates.length) {
+        return NextResponse.json(
+          { error: 'No conversion candidates returned from KASI' },
+          { status: 500 },
+        )
+      }
+
+      // 1) 사용자가 선택값을 보냈다면 해당 후보를 우선 선택
+      // 2) 선택값이 없고 후보가 2개 이상이면 윤달 후보가 있으면 윤달 우선(요구사항 3)
+      // 3) 그 외엔 첫 후보(정렬: 평->윤)
+      const preferred =
+        typeof is_leap_month === 'boolean'
+          ? candidates.find((c) => c.isLeapMonth === is_leap_month)
+          : candidates.find((c) => c.isLeapMonth)
+
+      const picked = preferred ?? candidates[0]
+
+      finalSolar = fmtYmd({
+        year: picked.solarYear,
+        month: picked.solarMonth,
+        day: picked.solarDay,
+      })
       finalLunar = lunar_date
-      finalIsLeapMonth = false
+      finalIsLeapMonth = picked.isLeapMonth
     } else {
       if (!solar_date) {
         return NextResponse.json(
