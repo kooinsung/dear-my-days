@@ -2,14 +2,15 @@
 
 import type { User } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useState } from 'react'
 import { generateNaverAuthUrl } from '@/libs/naver/oauth'
 import { getOAuthCallbackUrl } from '@/libs/oauth/urls'
 import { createSupabaseBrowser } from '@/libs/supabase/browser'
 import { css, cx } from '@/styled-system/css'
 import { center, vstack } from '@/styled-system/patterns'
 import { button, card, input } from '@/styled-system/recipes'
-import { login, logout } from './actions'
+import { login, logout, signup } from './actions'
+import { PasswordResetModal } from './password-reset-modal'
 
 interface LoginFormProps {
   initialUser: User | null
@@ -23,7 +24,13 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState('')
-  const [isPending, startTransition] = useTransition()
+  // success 메시지도 필요해서 별도 상태로 둠
+  const [infoMessage, setInfoMessage] = useState('')
+
+  const [isLoginPending, setIsLoginPending] = useState(false)
+  const [isSignupPending, setIsSignupPending] = useState(false)
+  const [isLogoutPending, setIsLogoutPending] = useState(false)
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false)
 
   // 세션 변화 감지
   useEffect(() => {
@@ -33,9 +40,33 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
     return () => data.subscription.unsubscribe()
   }, [supabase])
 
+  // 인증 완료 후 리다이렉트(/login?verified=1)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const verified = params.get('verified')
+    if (verified === '1') {
+      setInfoMessage('이메일 인증이 완료되었습니다. 이제 로그인할 수 있어요.')
+    }
+
+    const reset = params.get('reset')
+    if (reset === '1') {
+      setInfoMessage(
+        '비밀번호가 변경되었습니다. 새 비밀번호로 로그인해 주세요.',
+      )
+    }
+  }, [])
+
   // ✅ Email 로그인 (Server Action 직접 호출)
-  const handleEmailLogin = () => {
-    startTransition(async () => {
+  const handleEmailLogin = async () => {
+    if (isLoginPending || isSignupPending || isLogoutPending) {
+      return
+    }
+
+    setIsLoginPending(true)
+    try {
+      setMessage('')
+      setInfoMessage('')
+
       const result = await login(email, password)
 
       if (result?.error) {
@@ -44,7 +75,34 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
       }
 
       router.push('/')
-    })
+    } finally {
+      setIsLoginPending(false)
+    }
+  }
+
+  const handleEmailSignup = async () => {
+    if (isLoginPending || isSignupPending || isLogoutPending) {
+      return
+    }
+
+    setIsSignupPending(true)
+    try {
+      setMessage('')
+      setInfoMessage('')
+
+      const result = await signup(email, password)
+
+      if (result?.error) {
+        setMessage(result.error)
+        return
+      }
+
+      setInfoMessage(
+        '회원가입이 완료되었습니다. 인증 메일을 보냈으니 메일함에서 확인 후 링크를 클릭해 로그인해 주세요.',
+      )
+    } finally {
+      setIsSignupPending(false)
+    }
   }
 
   // OAuth
@@ -63,12 +121,19 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
     window.location.href = generateNaverAuthUrl(state)
   }
 
-  const handleLogout = () => {
-    startTransition(async () => {
+  const handleLogout = async () => {
+    if (isLoginPending || isSignupPending || isLogoutPending) {
+      return
+    }
+
+    setIsLogoutPending(true)
+    try {
       await logout()
       setUser(null)
       router.push('/login')
-    })
+    } finally {
+      setIsLogoutPending(false)
+    }
   }
 
   return (
@@ -88,18 +153,6 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
           }),
         )}
       >
-        <h1
-          className={css({
-            fontSize: '28px',
-            fontWeight: 'bold',
-            textAlign: 'center',
-            marginBottom: '32px',
-            color: 'text',
-          })}
-        >
-          Dear Days
-        </h1>
-
         {user ? (
           <div className={css({ textAlign: 'center' })}>
             <p
@@ -114,18 +167,18 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
             <button
               type="button"
               onClick={handleLogout}
-              disabled={isPending}
+              disabled={isLogoutPending}
               className={cx(
                 button({ variant: 'primary' }),
                 css({
                   width: '100%',
                   backgroundColor: 'danger',
-                  cursor: isPending ? 'not-allowed' : 'pointer',
-                  opacity: isPending ? 0.6 : 1,
+                  cursor: isLogoutPending ? 'not-allowed' : 'pointer',
+                  opacity: isLogoutPending ? 0.6 : 1,
                 }),
               )}
             >
-              로그아웃
+              {isLogoutPending ? '로그아웃 중...' : '로그아웃'}
             </button>
           </div>
         ) : (
@@ -142,6 +195,21 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
                 })}
               >
                 {message}
+              </div>
+            )}
+
+            {infoMessage && (
+              <div
+                className={css({
+                  padding: '12px',
+                  marginBottom: '16px',
+                  backgroundColor: '#d1ecf1',
+                  color: '#0c5460',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                })}
+              >
+                {infoMessage}
               </div>
             )}
 
@@ -169,17 +237,41 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
               <button
                 type="button"
                 onClick={handleEmailLogin}
-                disabled={isPending}
+                disabled={isLoginPending || isSignupPending}
                 className={cx(
                   button({ variant: 'primary' }),
                   css({
                     width: '100%',
-                    cursor: isPending ? 'not-allowed' : 'pointer',
-                    opacity: isPending ? 0.6 : 1,
+                    cursor:
+                      isLoginPending || isSignupPending
+                        ? 'not-allowed'
+                        : 'pointer',
+                    opacity: isLoginPending || isSignupPending ? 0.6 : 1,
                   }),
                 )}
               >
-                {isPending ? '로그인 중...' : '이메일 로그인'}
+                {isLoginPending ? '로그인 중...' : '이메일 로그인'}
+              </button>
+            </div>
+
+            <div className={css({ marginBottom: '24px' })}>
+              <button
+                type="button"
+                onClick={handleEmailSignup}
+                disabled={isSignupPending || isLoginPending}
+                className={cx(
+                  button({ variant: 'secondary' }),
+                  css({
+                    width: '100%',
+                    cursor:
+                      isSignupPending || isLoginPending
+                        ? 'not-allowed'
+                        : 'pointer',
+                    opacity: isSignupPending || isLoginPending ? 0.6 : 1,
+                  }),
+                )}
+              >
+                {isSignupPending ? '회원가입 중...' : '이메일 회원가입'}
               </button>
             </div>
 
@@ -223,6 +315,36 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
                 Naver 로그인
               </button>
             </div>
+
+            <div className={css({ marginTop: '16px', textAlign: 'center' })}>
+              <button
+                type="button"
+                onClick={() => setIsResetModalOpen(true)}
+                className={css({
+                  backgroundColor: 'transparent',
+                  color: 'primary',
+                  border: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  textDecoration: 'underline',
+                })}
+              >
+                비밀번호를 잊으셨나요?
+              </button>
+            </div>
+
+            <PasswordResetModal
+              isOpen={isResetModalOpen}
+              defaultEmail={email}
+              onClose={() => setIsResetModalOpen(false)}
+              onSuccess={() => {
+                // 모달에서 성공 메시지는 자체 노출, 화면 상단에도 안내 표시
+                setInfoMessage(
+                  '재설정 메일을 발송했습니다. 메일함을 확인해 주세요. (가입된 이메일이라면 발송됩니다)',
+                )
+              }}
+            />
           </>
         )}
       </div>

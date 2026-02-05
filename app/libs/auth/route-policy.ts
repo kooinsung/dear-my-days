@@ -6,10 +6,12 @@ const PUBLIC_PATHS = [
   '/login',
   '/auth/callback',
   '/auth/provider',
+  '/auth/verify-email',
+  '/auth/reset-password',
   '/api/health-check',
 ] as const
 
-const PUBLIC_PREFIXES = ['/_next', '/favicon.ico'] as const
+const PUBLIC_PREFIXES = ['/_next', '/favicon.ico', '/api'] as const
 
 const PUBLIC_FILE_EXT = /\.(?:svg|png|jpg|jpeg|gif|webp|ico)$/i
 
@@ -30,9 +32,7 @@ export function isPublicPath(pathname: string): boolean {
 export function buildLoginRedirect(pathname: string, origin: string): string {
   const url = new URL(`${origin}/login`)
 
-  if (pathname !== '/') {
-    url.searchParams.set('next', pathname)
-  }
+  url.searchParams.set('returnUrl', pathname)
 
   return url.toString()
 }

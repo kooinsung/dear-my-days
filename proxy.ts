@@ -9,8 +9,7 @@ export async function proxy(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname
 
-  // 공개 경로는 통과하되, 홈('/')은 항상 로그인 체크가 필요함
-  if (isPublicPath(pathname) && pathname !== '/') {
+  if (isPublicPath(pathname)) {
     return response
   }
 

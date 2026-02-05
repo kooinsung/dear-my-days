@@ -52,11 +52,21 @@ NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
+# Web
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+NEXT_PUBLIC_WEB_BASE_URL=http://localhost:3000
+
+# Resend (Custom SMTP 대체)
+RESEND_API_KEY=your-resend-api-key
+RESEND_FROM_EMAIL="Dear Days <no-reply@your-domain>"
+
 # Naver OAuth
 NEXT_PUBLIC_NAVER_CLIENT_ID=your-naver-client-id
 NAVER_CLIENT_SECRET=your-naver-client-secret
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
+
+> 이메일 회원가입을 사용할 경우, 인증 메일은 Supabase 기본 메일이 아니라 Resend로 발송됩니다.
+> 가입 후 메일의 링크(`/auth/verify-email?uid=...&token=...`)를 클릭하면 Supabase 계정이 이메일 인증 처리됩니다.
 
 ### Installation
 
