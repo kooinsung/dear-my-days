@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Suspense } from 'react'
 import ResetPasswordForm from './reset-password-form'
 
 export default function ResetPasswordPage() {
@@ -12,7 +13,9 @@ export default function ResetPasswordPage() {
         새 비밀번호를 입력해 재설정을 완료해 주세요.
       </p>
 
-      <ResetPasswordForm />
+      <Suspense fallback={<p style={{ marginBottom: 16 }}>로딩 중...</p>}>
+        <ResetPasswordForm />
+      </Suspense>
 
       <div style={{ marginTop: 16 }}>
         <Link href="/login">로그인으로 이동</Link>
