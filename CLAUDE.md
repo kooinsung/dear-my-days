@@ -26,6 +26,7 @@ Dear Days는 생일, 기념일, 기일 등의 특별한 날을 관리하는 웹 
   - Zustand (클라이언트 상태)
   - TanStack Query v5 (서버 상태, 캐싱)
 - **Validation**: Zod (런타임 타입 검증)
+- **Environment**: @t3-oss/env-nextjs (타입 안전한 환경 변수)
 - **Linting**: Biome (빠른 린터/포맷터)
 
 ### 백엔드
@@ -38,7 +39,7 @@ Dear Days는 생일, 기념일, 기일 등의 특별한 날을 관리하는 웹 
 
 ### 배포
 - **Hosting**: Vercel
-- **Environment**: `.env` (환경 변수는 `app/libs/config/env.ts`에서 검증)
+- **Environment**: `.env` (@t3-oss/env-nextjs로 타입 안전하게 검증)
 
 ---
 
@@ -73,7 +74,7 @@ app/
 │   ├── utils/               # 공통 유틸리티
 │   └── validation/          # Zod 스키마
 ├── stores/                  # Zustand 스토어
-└── layout.tsx               # 루트 레이아웃 (환경 변수 검증 호출)
+└── layout.tsx               # 루트 레이아웃
 
 middleware.ts                # Next.js 미들웨어 (인증 체크)
 proxy.ts                     # 인증 프록시
@@ -85,12 +86,29 @@ proxy.ts                     # 인증 프록시
 
 ### 1. 환경 변수 관리
 
-**CRITICAL**: 환경 변수는 앱 시작 시 `validateEnv()`로 검증됩니다.
+**CRITICAL**: 환경 변수는 **@t3-oss/env-nextjs**로 관리되며, `env` 객체를 import하는 순간 자동으로 검증됩니다.
 
 ```typescript
 // app/libs/config/env.ts
-export function validateEnv() { /* 모든 필수 환경 변수 검증 */ }
-export const env = { /* 타입 안전한 환경 변수 */ }
+import { createEnv } from '@t3-oss/env-nextjs'
+import { z } from 'zod'
+
+export const env = createEnv({
+  server: {
+    SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+    RESEND_FROM_EMAIL: z.string().email(),
+    // ...
+  },
+  client: {
+    NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
+    // ...
+  },
+  runtimeEnv: {
+    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    // ...
+  },
+})
 ```
 
 **사용법**:
@@ -98,10 +116,16 @@ export const env = { /* 타입 안전한 환경 변수 */ }
 // ❌ 절대 이렇게 하지 마세요
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 
-// ✅ 항상 검증된 env 사용
+// ✅ 항상 검증된 env 사용 (타입 안전 + 자동완성)
 import { env } from '@/libs/config/env'
-const url = env.NEXT_PUBLIC_SUPABASE_URL
+const url = env.NEXT_PUBLIC_SUPABASE_URL  // string (URL 검증됨)
 ```
+
+**주요 특징**:
+- ✅ Zod 스키마 기반 런타임 검증 (URL, Email, min length 등)
+- ✅ 타입 안전성 + 자동완성
+- ✅ 클라이언트/서버 변수 명확한 분리
+- ✅ import 시 자동 검증 (누락/잘못된 값 즉시 에러)
 
 ### 2. Supabase 클라이언트 패턴
 
@@ -242,7 +266,8 @@ const { mutate } = useMutation({
 
 1. **타입 안전성**
    - 타입 단언 `as` 최소화 (Zod 검증 활용)
-   - Non-null assertion `!` 사용 시 반드시 biome-ignore 주석 + 이유 명시
+   - Non-null assertion `!` 사용 최소화 (@t3-oss/env-nextjs가 환경 변수 타입 보장)
+   - `!` 필요 시 반드시 biome-ignore 주석 + 이유 명시
 
 2. **함수/변수 명명**
    - 파일명: kebab-case (`lunar-to-solar.ts`)
@@ -375,8 +400,9 @@ NEXT_PUBLIC_SITE_URL=
 ```
 
 **검증**:
-- `app/layout.tsx`에서 앱 시작 시 `validateEnv()` 호출
-- 누락 시 즉시 에러로 앱 시작 차단
+- @t3-oss/env-nextjs가 `env` import 시 자동으로 검증
+- 누락되거나 잘못된 환경 변수가 있으면 즉시 에러 발생
+- Zod 스키마로 타입 검증 (URL, Email 등)
 
 ### 2. 인증 플로우
 
@@ -602,6 +628,7 @@ pnpm remove <package>      # 패키지 제거
 - [Supabase 문서](https://supabase.com/docs)
 - [Panda CSS 문서](https://panda-css.com)
 - [Zod 문서](https://zod.dev)
+- [@t3-oss/env-nextjs 문서](https://env.t3.gg/)
 - [TanStack Query 문서](https://tanstack.com/query/latest)
 - [Biome 문서](https://biomejs.dev)
 - [KASI API 문서](https://www.kasi.re.kr)
@@ -612,6 +639,7 @@ pnpm remove <package>      # 패키지 제거
 
 **최근 리팩토링 완료** (2026-02-06):
 - ✅ 환경 변수 검증 시스템 구축
+- ✅ **@t3-oss/env-nextjs 마이그레이션** (Zod 기반 타입 안전 환경 변수)
 - ✅ Admin 클라이언트 서버 전용 보호
 - ✅ Zod 입력 검증 전면 적용
 - ✅ 통합 에러 처리 시스템
@@ -629,5 +657,5 @@ pnpm remove <package>      # 패키지 제거
 
 ---
 
-**마지막 업데이트**: 2026-02-06
+**마지막 업데이트**: 2026-02-06 (@t3-oss/env-nextjs 마이그레이션)
 **메인테이너**: @a17050
