@@ -19,6 +19,7 @@ interface UIState {
 
   // 토스트 메시지
   toast: { message: string; type: 'success' | 'error' | 'info' } | null
+  toastTimeoutId: NodeJS.Timeout | null
   showToast: (message: string, type: 'success' | 'error' | 'info') => void
   hideToast: () => void
 
@@ -31,7 +32,7 @@ interface UIState {
 export const useUIStore = create<UIState>()(
   devtools(
     persist(
-      (set) => ({
+      (set, get) => ({
         // 필터 상태
         selectedCategory: 'ALL',
         setSelectedCategory: (category) => {
@@ -55,14 +56,25 @@ export const useUIStore = create<UIState>()(
 
         // 토스트 메시지
         toast: null,
+        toastTimeoutId: null,
         showToast: (message, type) => {
-          set({ toast: { message, type } })
-          setTimeout(() => {
-            set({ toast: null })
+          const { toastTimeoutId } = get()
+          if (toastTimeoutId) {
+            clearTimeout(toastTimeoutId)
+          }
+
+          const newTimeoutId = setTimeout(() => {
+            set({ toast: null, toastTimeoutId: null })
           }, 3000)
+
+          set({ toast: { message, type }, toastTimeoutId: newTimeoutId })
         },
         hideToast: () => {
-          set({ toast: null })
+          const { toastTimeoutId } = get()
+          if (toastTimeoutId) {
+            clearTimeout(toastTimeoutId)
+          }
+          set({ toast: null, toastTimeoutId: null })
         },
 
         // 사이드바

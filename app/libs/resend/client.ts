@@ -1,10 +1,6 @@
 import { Resend } from 'resend'
+import { env } from '@/libs/config/env'
 
 export function createResendClient(): Resend {
-  const apiKey = process.env.RESEND_API_KEY
-  if (!apiKey) {
-    throw new Error('RESEND_API_KEY is not set')
-  }
-
-  return new Resend(apiKey)
+  return new Resend(env.RESEND_API_KEY)
 }

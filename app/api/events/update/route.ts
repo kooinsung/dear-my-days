@@ -1,20 +1,8 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { lunarToSolarCandidates } from '@/libs/kasi/lunar-to-solar'
-import { solarToLunar } from '@/libs/kasi/solar-to-lunar'
-import type { CalendarType } from '@/libs/supabase/database.types'
 import { createSupabaseServer } from '@/libs/supabase/server'
-
-function parseYmd(date: string): { year: number; month: number; day: number } {
-  const [y, m, d] = date.split('-').map((v) => Number(v))
-  if (!y || !m || !d) {
-    throw new Error('Invalid date format. Expected YYYY-MM-DD')
-  }
-  return { year: y, month: m, day: d }
-}
-
-function fmtYmd(parts: { year: number; month: number; day: number }): string {
-  return `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`
-}
+import { convertCalendarDates } from '@/libs/utils/calendar-conversion'
+import { handleApiError, successResponse } from '@/libs/utils/errors'
+import { updateEventSchema } from '@/libs/validation/schemas'
 
 export async function POST(req: NextRequest) {
   try {
@@ -28,105 +16,40 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Zod 검증
     const body = await req.json()
-    const {
-      id,
-      title,
-      category,
-      solar_date,
-      lunar_date,
-      calendar_type,
-      note,
-      is_leap_month,
-    } = body as {
-      id: string
-      title?: string
-      category?: string
-      solar_date?: string
-      lunar_date?: string
-      calendar_type?: CalendarType
-      note?: string | null
-      is_leap_month?: boolean
-    }
+    const validated = updateEventSchema.parse(body)
 
-    if (!id) {
-      return NextResponse.json({ error: 'Event ID required' }, { status: 400 })
-    }
-
-    if (!calendar_type) {
+    // calendar_type은 필수 (partial이지만 update 시에는 필요)
+    if (!validated.calendar_type) {
       return NextResponse.json(
         { error: 'calendar_type is required' },
         { status: 400 },
       )
     }
 
-    let finalSolar = solar_date ?? ''
-    let finalLunar: string | null = lunar_date ?? null
-    let finalIsLeapMonth = false
+    // 달력 변환
+    const { finalSolar, finalLunar, finalIsLeapMonth } =
+      await convertCalendarDates(
+        validated.calendar_type,
+        validated.solar_date,
+        validated.lunar_date,
+        validated.is_leap_month,
+      )
 
-    if (calendar_type === 'LUNAR') {
-      if (!lunar_date) {
-        return NextResponse.json(
-          { error: 'lunar_date is required when calendar_type is LUNAR' },
-          { status: 400 },
-        )
-      }
-
-      const { year, month, day } = parseYmd(lunar_date)
-      const { candidates } = await lunarToSolarCandidates(year, month, day)
-
-      if (!candidates.length) {
-        return NextResponse.json(
-          { error: 'No conversion candidates returned from KASI' },
-          { status: 500 },
-        )
-      }
-
-      const preferred =
-        typeof is_leap_month === 'boolean'
-          ? candidates.find((c) => c.isLeapMonth === is_leap_month)
-          : candidates.find((c) => c.isLeapMonth)
-
-      const picked = preferred ?? candidates[0]
-
-      finalSolar = fmtYmd({
-        year: picked.solarYear,
-        month: picked.solarMonth,
-        day: picked.solarDay,
-      })
-      finalLunar = lunar_date
-      finalIsLeapMonth = picked.isLeapMonth
-    } else {
-      if (!solar_date) {
-        return NextResponse.json(
-          { error: 'solar_date is required when calendar_type is SOLAR' },
-          { status: 400 },
-        )
-      }
-
-      const { year, month, day } = parseYmd(solar_date)
-      const converted = await solarToLunar(year, month, day)
-      finalSolar = solar_date
-      finalLunar = fmtYmd({
-        year: converted.lunarYear,
-        month: converted.lunarMonth,
-        day: converted.lunarDay,
-      })
-      finalIsLeapMonth = converted.isLeapMonth
-    }
-
+    // DB 업데이트
     const { data, error } = await supabase
       .from('events')
       .update({
-        title,
-        category,
+        title: validated.title,
+        category: validated.category,
         solar_date: finalSolar,
         lunar_date: finalLunar,
-        calendar_type,
+        calendar_type: validated.calendar_type,
         is_leap_month: finalIsLeapMonth,
-        note: note ?? null,
+        note: validated.note ?? null,
       })
-      .eq('id', id)
+      .eq('id', validated.id)
       .eq('user_id', user.id)
       .select('*')
       .single()
@@ -135,9 +58,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, data })
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : 'Unknown error'
-    return NextResponse.json({ error: msg }, { status: 500 })
+    return successResponse(data)
+  } catch (error) {
+    return handleApiError(error)
   }
 }

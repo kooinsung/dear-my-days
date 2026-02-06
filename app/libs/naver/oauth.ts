@@ -1,6 +1,7 @@
 export function generateNaverAuthUrl(state: string) {
   const params = new URLSearchParams({
     response_type: 'code',
+    // biome-ignore lint/style/noNonNullAssertion: Naver client ID is required for OAuth flow
     client_id: process.env.NEXT_PUBLIC_NAVER_CLIENT_ID!,
     redirect_uri: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback/naver`,
     state,
@@ -12,7 +13,9 @@ export function generateNaverAuthUrl(state: string) {
 export async function exchangeNaverToken(code: string, state: string) {
   const params = new URLSearchParams({
     grant_type: 'authorization_code',
+    // biome-ignore lint/style/noNonNullAssertion: Naver client ID is required for OAuth flow
     client_id: process.env.NEXT_PUBLIC_NAVER_CLIENT_ID!,
+    // biome-ignore lint/style/noNonNullAssertion: Naver client secret is required for OAuth flow
     client_secret: process.env.NAVER_CLIENT_SECRET!,
     code,
     state,

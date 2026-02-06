@@ -137,48 +137,46 @@ export function CalendarPageClient({
                   })}
                 >
                   {hasEvents ? (
-                    <>
-                      {(
-                        Object.entries(monthData.events) as [
-                          CategoryType,
-                          number,
-                        ][]
-                      ).map(([category, count]) =>
-                        count > 0 ? (
+                    (
+                      Object.entries(monthData.events) as [
+                        CategoryType,
+                        number,
+                      ][]
+                    ).map(([category, count]) =>
+                      count > 0 ? (
+                        <div
+                          key={category}
+                          className={flex({ align: 'center', gap: '8px' })}
+                        >
                           <div
-                            key={category}
-                            className={flex({ align: 'center', gap: '8px' })}
+                            className={css({
+                              width: '12px',
+                              height: '12px',
+                              borderRadius: '50%',
+                              backgroundColor: CATEGORY_COLORS[category],
+                            })}
+                          />
+                          <span
+                            className={css({
+                              flex: 1,
+                              fontSize: '14px',
+                              color: '#666',
+                            })}
                           >
-                            <div
-                              className={css({
-                                width: '12px',
-                                height: '12px',
-                                borderRadius: '50%',
-                                backgroundColor: CATEGORY_COLORS[category],
-                              })}
-                            />
-                            <span
-                              className={css({
-                                flex: 1,
-                                fontSize: '14px',
-                                color: '#666',
-                              })}
-                            >
-                              {CATEGORY_LABELS[category]}
-                            </span>
-                            <span
-                              className={css({
-                                fontSize: '14px',
-                                fontWeight: '500',
-                                color: 'text',
-                              })}
-                            >
-                              {count}개
-                            </span>
-                          </div>
-                        ) : null,
-                      )}
-                    </>
+                            {CATEGORY_LABELS[category]}
+                          </span>
+                          <span
+                            className={css({
+                              fontSize: '14px',
+                              fontWeight: '500',
+                              color: 'text',
+                            })}
+                          >
+                            {count}개
+                          </span>
+                        </div>
+                      ) : null,
+                    )
                   ) : (
                     <span
                       className={css({

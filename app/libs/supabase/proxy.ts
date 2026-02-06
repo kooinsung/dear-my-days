@@ -20,7 +20,7 @@ export async function updateSession(request: NextRequest) {
         setAll(cookiesToSet) {
           // 2. 쿠키 업데이트 로직
           // 요청(Request) 객체에 쿠키 설정
-          cookiesToSet.forEach(({ name, value, options }) => {
+          cookiesToSet.forEach(({ name, value }) => {
             request.cookies.set(name, value)
           })
 

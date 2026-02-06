@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from 'next'
+import { validateEnv } from '@/libs/config/env'
 import { QueryProvider } from '@/libs/providers/query-provider'
 import '@/common/styles/global.css'
+
+// 앱 시작 시 환경 변수 검증
+validateEnv()
 
 export const viewport: Viewport = {
   width: 'device-width',

@@ -1,6 +1,8 @@
 import crypto from 'node:crypto'
 import { type NextRequest, NextResponse } from 'next/server'
+import { env } from '@/libs/config/env'
 import { createResendClient } from '@/libs/resend/client'
+import { supabaseAdmin } from '@/libs/supabase/admin'
 
 function generateResetToken(): string {
   return crypto.randomBytes(32).toString('base64url')
@@ -18,17 +20,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !serviceRoleKey) {
-      return NextResponse.json({ error: '서버 설정 오류' }, { status: 500 })
-    }
-
-    const { createClient } = await import('@supabase/supabase-js')
-    const admin = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { persistSession: false },
-    })
+    const admin = supabaseAdmin()
 
     // ✅ 유저 열거 방지: 존재 여부와 무관하게 항상 success: true를 반환
 
@@ -103,18 +95,14 @@ export async function POST(req: NextRequest) {
     }
 
     // 3) Resend 발송
-    const origin = req.nextUrl.origin
-    const baseUrl = process.env.NEXT_PUBLIC_WEB_BASE_URL || origin
+    const baseUrl = env.NEXT_PUBLIC_WEB_BASE_URL
 
     const resetUrl = new URL(`${baseUrl}/auth/reset-password`)
     resetUrl.searchParams.set('uid', user.id)
     resetUrl.searchParams.set('token', token)
 
     const resend = createResendClient()
-    const from = process.env.RESEND_FROM_EMAIL
-    if (!from) {
-      return NextResponse.json({ success: true })
-    }
+    const from = env.RESEND_FROM_EMAIL
 
     await resend.emails.send({
       from,

@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
+import { supabaseAdmin } from '@/libs/supabase/admin'
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,17 +27,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !serviceRoleKey) {
-      return NextResponse.json({ error: '서버 설정 오류' }, { status: 500 })
-    }
-
-    const { createClient } = await import('@supabase/supabase-js')
-    const admin = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { persistSession: false },
-    })
+    const admin = supabaseAdmin()
 
     const { data, error } = await admin.auth.admin.getUserById(uid)
     if (error || !data.user) {

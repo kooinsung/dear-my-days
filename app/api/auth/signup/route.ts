@@ -3,6 +3,8 @@ import {
   generateEmailVerificationToken,
   sendEmailVerificationMail,
 } from '@/libs/auth/email-verification'
+import { env } from '@/libs/config/env'
+import { supabaseAdmin } from '@/libs/supabase/admin'
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,27 +23,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl) {
-      return NextResponse.json(
-        { error: '서버 설정 오류(NEXT_PUBLIC_SUPABASE_URL)' },
-        { status: 500 },
-      )
-    }
-
-    if (!serviceRoleKey) {
-      return NextResponse.json(
-        { error: '서버 설정 오류(SUPABASE_SERVICE_ROLE_KEY)' },
-        { status: 500 },
-      )
-    }
-
-    const { createClient } = await import('@supabase/supabase-js')
-    const admin = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { persistSession: false },
-    })
+    const admin = supabaseAdmin()
 
     // 1) Admin API로 유저 생성 (Supabase confirmation email 발송을 피함)
     const { data: created, error: createErr } =
@@ -83,8 +65,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 3) Resend로 인증 메일 발송
-    const origin = req.nextUrl.origin
-    const baseUrl = process.env.NEXT_PUBLIC_WEB_BASE_URL || origin
+    const baseUrl = env.NEXT_PUBLIC_WEB_BASE_URL
 
     const verificationUrl = new URL(`${baseUrl}/auth/verify-email/confirm`)
     verificationUrl.searchParams.set('uid', created.user.id)

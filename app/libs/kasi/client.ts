@@ -1,3 +1,4 @@
+import { env } from '@/libs/config/env'
 import { parseKasiXml } from './parser'
 import type { KasiResponse } from './types'
 
@@ -7,11 +8,7 @@ const BASE_URL =
 const DEFAULT_REVALIDATE_SECONDS = 60 * 60 * 24 * 30
 
 function requireServiceKey(): string {
-  const key = process.env.KASI_SERVICE_KEY
-  if (!key) {
-    throw new Error('KASI_SERVICE_KEY is required')
-  }
-  return key
+  return env.KASI_SERVICE_KEY
 }
 
 function pad2(n: number): string {
