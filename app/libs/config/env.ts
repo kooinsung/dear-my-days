@@ -14,6 +14,11 @@ export const env = createEnv({
 
     // Naver OAuth (선택사항)
     NAVER_CLIENT_SECRET: z.string().optional(),
+
+    // IAP (In-App Purchases) - 선택사항
+    APPLE_SHARED_SECRET: z.string().optional(),
+    GOOGLE_PACKAGE_NAME: z.string().optional(),
+    GOOGLE_SERVICE_ACCOUNT_TOKEN: z.string().optional(),
   },
 
   /**
@@ -40,6 +45,9 @@ export const env = createEnv({
     RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL,
     KASI_SERVICE_KEY: process.env.KASI_SERVICE_KEY,
     NAVER_CLIENT_SECRET: process.env.NAVER_CLIENT_SECRET,
+    APPLE_SHARED_SECRET: process.env.APPLE_SHARED_SECRET,
+    GOOGLE_PACKAGE_NAME: process.env.GOOGLE_PACKAGE_NAME,
+    GOOGLE_SERVICE_ACCOUNT_TOKEN: process.env.GOOGLE_SERVICE_ACCOUNT_TOKEN,
 
     // Client
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
