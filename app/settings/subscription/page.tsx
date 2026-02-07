@@ -29,7 +29,6 @@ type SubscriptionInfo = {
 
 export default function SubscriptionPage() {
   const router = useRouter()
-  const supabase = createSupabaseBrowser()
 
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -47,6 +46,9 @@ export default function SubscriptionPage() {
   useEffect(() => {
     async function initialize() {
       try {
+        // Supabase 클라이언트 생성 (클라이언트에서만)
+        const supabase = createSupabaseBrowser()
+
         // IAP 가능 여부 확인
         const available = await isIAPAvailable()
         setIapEnabled(available)
@@ -87,13 +89,14 @@ export default function SubscriptionPage() {
     }
 
     initialize()
-  }, [supabase, router])
+  }, [router])
 
   const handlePurchase = async (productId: ProductId) => {
     setPurchasing(true)
     setMessage('')
 
     try {
+      const supabase = createSupabaseBrowser()
       const {
         data: { user },
       } = await supabase.auth.getUser()
@@ -135,6 +138,7 @@ export default function SubscriptionPage() {
     setMessage('')
 
     try {
+      const supabase = createSupabaseBrowser()
       const {
         data: { user },
       } = await supabase.auth.getUser()
