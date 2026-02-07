@@ -14,8 +14,9 @@ CREATE TABLE IF NOT EXISTS notification_logs (
 );
 
 -- 2. Create indexes for performance
+-- Note: Using sent_at directly instead of DATE(sent_at) to avoid IMMUTABLE requirement
 CREATE INDEX IF NOT EXISTS idx_notification_logs_event_date
-  ON notification_logs(event_id, DATE(sent_at));
+  ON notification_logs(event_id, sent_at);
 
 CREATE INDEX IF NOT EXISTS idx_notification_logs_user
   ON notification_logs(user_id, sent_at DESC);
@@ -49,12 +50,14 @@ BEGIN
   LEFT JOIN notification_logs nl ON (
     nl.event_id = e.id
     AND nl.device_token = dt.token
-    AND DATE(nl.sent_at) = CURRENT_DATE
+    -- Use timestamp range for better index usage
+    AND nl.sent_at >= CURRENT_DATE
+    AND nl.sent_at < CURRENT_DATE + INTERVAL '1 day'
     AND nl.status = 'SUCCESS'
   )
   WHERE
     -- 오늘이 알림 발송일 (이벤트 날짜 - days_before)
-    DATE(e.solar_date) - ens.days_before = CURRENT_DATE
+    e.solar_date::date - ens.days_before = CURRENT_DATE
     -- 설정된 시간/분과 일치
     AND ens.notification_hour = current_hour
     AND ens.notification_minute = current_minute
