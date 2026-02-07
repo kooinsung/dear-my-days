@@ -74,7 +74,7 @@ export function EventDetailContent({
             ← 뒤로
           </Link>
           <Link
-            href={`/event/edit?id=${eventId}`}
+            href={`/event/edit/${eventId}`}
             className={button({ variant: 'primary', size: 'sm' })}
           >
             편집

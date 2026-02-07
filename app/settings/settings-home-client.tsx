@@ -98,6 +98,11 @@ export function SettingsHomeClient({ user }: SettingsHomeClientProps) {
 
         <section className={vstack({ gap: '12px', alignItems: 'stretch' })}>
           <SettingsMenuItem
+            title="구독 관리"
+            description="프리미엄 구독을 관리하거나 추가 이벤트 슬롯을 구매할 수 있어요."
+            href="/settings/subscription"
+          />
+          <SettingsMenuItem
             title="연결된 로그인 수단"
             description="Google/Kakao/Naver/Email 연결 상태를 확인하고 연결을 해제할 수 있어요."
             href="/settings/link"

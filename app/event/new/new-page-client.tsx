@@ -4,9 +4,9 @@ import Link from 'next/link'
 import { css } from '@/styled-system/css'
 import { flex } from '@/styled-system/patterns'
 import { card } from '@/styled-system/recipes'
-import EventForm from './event-form'
+import EventForm from '../edit/[id]/event-form'
 
-export function EventEditPageClient({ eventId }: { eventId?: string }) {
+export function EventNewPageClient() {
   return (
     <div className={css({ minHeight: '100vh', backgroundColor: 'background' })}>
       <header
@@ -28,7 +28,7 @@ export function EventEditPageClient({ eventId }: { eventId?: string }) {
           })}
         >
           <Link
-            href={eventId ? `/event/detail?id=${eventId}` : '/'}
+            href="/"
             className={css({
               color: 'primary',
               textDecoration: 'none',
@@ -46,7 +46,7 @@ export function EventEditPageClient({ eventId }: { eventId?: string }) {
               textAlign: 'center',
             })}
           >
-            {eventId ? '이벤트 수정' : '새 이벤트'}
+            새 이벤트
           </h1>
           <div className={css({ width: '48px' })} />
         </div>
@@ -60,7 +60,7 @@ export function EventEditPageClient({ eventId }: { eventId?: string }) {
         })}
       >
         <div className={card()}>
-          <EventForm eventId={eventId} />
+          <EventForm />
         </div>
       </div>
     </div>

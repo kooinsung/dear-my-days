@@ -44,7 +44,7 @@ export function HomePageClient({ upcomingEvents }: HomePageClientProps) {
             Dear Days
           </h1>
           <HStack gap={12}>
-            <Link href="/event/edit" className={button({ variant: 'primary' })}>
+            <Link href="/event/new" className={button({ variant: 'primary' })}>
               + 새 이벤트
             </Link>
             <Link
