@@ -1,6 +1,7 @@
 'use client'
 
 import { App } from '@capacitor/app'
+import type { PluginListenerHandle } from '@capacitor/core'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { isNativeSync } from './platform'
@@ -16,18 +17,26 @@ export function useNativeBackButton() {
       return
     }
 
-    // Android 뒤로가기 버튼 감지
-    const listener = App.addListener('backButton', ({ canGoBack }) => {
-      if (canGoBack) {
-        router.back()
-      } else {
-        // 최상위 페이지에서 뒤로가기 시 앱 종료 확인
-        App.exitApp()
-      }
-    })
+    let listenerHandle: PluginListenerHandle | null = null
+
+    const setupListener = async () => {
+      // Android 뒤로가기 버튼 감지
+      listenerHandle = await App.addListener('backButton', ({ canGoBack }) => {
+        if (canGoBack) {
+          router.back()
+        } else {
+          // 최상위 페이지에서 뒤로가기 시 앱 종료 확인
+          App.exitApp()
+        }
+      })
+    }
+
+    setupListener()
 
     return () => {
-      listener.remove()
+      if (listenerHandle) {
+        listenerHandle.remove()
+      }
     }
   }, [router])
 }
@@ -41,16 +50,27 @@ export function useAppState(onActive?: () => void, onInactive?: () => void) {
       return
     }
 
-    const stateListener = App.addListener('appStateChange', ({ isActive }) => {
-      if (isActive) {
-        onActive?.()
-      } else {
-        onInactive?.()
-      }
-    })
+    let listenerHandle: PluginListenerHandle | null = null
+
+    const setupListener = async () => {
+      listenerHandle = await App.addListener(
+        'appStateChange',
+        ({ isActive }) => {
+          if (isActive) {
+            onActive?.()
+          } else {
+            onInactive?.()
+          }
+        },
+      )
+    }
+
+    setupListener()
 
     return () => {
-      stateListener.remove()
+      if (listenerHandle) {
+        listenerHandle.remove()
+      }
     }
   }, [onActive, onInactive])
 }

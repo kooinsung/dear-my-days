@@ -12,11 +12,11 @@ export type CategoryType =
 
 export type CalendarType = 'SOLAR' | 'LUNAR'
 
-export type PaymentProvider = 'DEFAULT' | 'APPLE' | 'GOOGLE' | 'STRIPE'
+export type PaymentProvider = 'APPLE' | 'GOOGLE' | 'STRIPE'
 
 export type NotificationStatus = 'PENDING' | 'SENT' | 'FAILED' | 'CANCELLED'
 
-export type PlanType = 'FREE' | 'PREMIUM' | 'ENTERPRISE'
+export type PlanType = 'FREE' | 'PREMIUM_MONTHLY' | 'PREMIUM_YEARLY'
 
 export type AuthProvider = 'email' | 'google' | 'kakao' | 'naver' | 'apple'
 
