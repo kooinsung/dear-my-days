@@ -19,6 +19,11 @@ export const env = createEnv({
     APPLE_SHARED_SECRET: z.string().optional(),
     GOOGLE_PACKAGE_NAME: z.string().optional(),
     GOOGLE_SERVICE_ACCOUNT_TOKEN: z.string().optional(),
+
+    // Firebase (Push Notifications) - 선택사항
+    FIREBASE_PROJECT_ID: z.string().optional(),
+    FIREBASE_CLIENT_EMAIL: z.string().optional(),
+    FIREBASE_PRIVATE_KEY: z.string().optional(),
   },
 
   /**
@@ -48,6 +53,9 @@ export const env = createEnv({
     APPLE_SHARED_SECRET: process.env.APPLE_SHARED_SECRET,
     GOOGLE_PACKAGE_NAME: process.env.GOOGLE_PACKAGE_NAME,
     GOOGLE_SERVICE_ACCOUNT_TOKEN: process.env.GOOGLE_SERVICE_ACCOUNT_TOKEN,
+    FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID,
+    FIREBASE_CLIENT_EMAIL: process.env.FIREBASE_CLIENT_EMAIL,
+    FIREBASE_PRIVATE_KEY: process.env.FIREBASE_PRIVATE_KEY,
 
     // Client
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,

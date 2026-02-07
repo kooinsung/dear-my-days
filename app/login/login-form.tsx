@@ -3,6 +3,8 @@
 import type { User } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { isNative } from '@/libs/capacitor/platform'
+import { registerPushNotifications } from '@/libs/capacitor/push-notifications'
 import { generateNaverAuthUrl } from '@/libs/naver/oauth'
 import { getOAuthCallbackUrl } from '@/libs/oauth/urls'
 import { createSupabaseBrowser } from '@/libs/supabase/browser'
@@ -72,6 +74,16 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
       if (result?.error) {
         setMessage(result.error)
         return
+      }
+
+      // 로그인 성공 시 네이티브 앱에서 푸시 알림 등록
+      if (await isNative()) {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+        if (user) {
+          await registerPushNotifications(user.id)
+        }
       }
 
       router.push('/')
