@@ -9,7 +9,7 @@ import { isNative } from './platform'
 export const PRODUCT_IDS = {
   PREMIUM_MONTHLY: 'com.dearmydays.premium.monthly',
   PREMIUM_YEARLY: 'com.dearmydays.premium.yearly',
-  ENTERPRISE: 'com.dearmydays.enterprise',
+  EVENT_SLOT: 'com.dearmydays.event.slot',
 } as const
 
 export type ProductId = (typeof PRODUCT_IDS)[keyof typeof PRODUCT_IDS]
@@ -53,8 +53,8 @@ export async function getProducts(): Promise<Product[]> {
     return [
       {
         id: PRODUCT_IDS.PREMIUM_MONTHLY,
-        title: 'Premium Monthly',
-        description: '월간 프리미엄 구독',
+        title: '프리미엄 월간',
+        description: '무제한 이벤트 + 모든 기능',
         price: '₩4,900',
         priceValue: 4900,
         currency: 'KRW',
@@ -62,10 +62,19 @@ export async function getProducts(): Promise<Product[]> {
       },
       {
         id: PRODUCT_IDS.PREMIUM_YEARLY,
-        title: 'Premium Yearly',
-        description: '연간 프리미엄 구독 (2개월 무료)',
+        title: '프리미엄 연간',
+        description: '무제한 이벤트 + 모든 기능 (2개월 무료)',
         price: '₩49,000',
         priceValue: 49000,
+        currency: 'KRW',
+        platform: 'web',
+      },
+      {
+        id: PRODUCT_IDS.EVENT_SLOT,
+        title: '이벤트 슬롯 1개',
+        description: '추가 이벤트 등록 슬롯 (영구)',
+        price: '₩990',
+        priceValue: 990,
         currency: 'KRW',
         platform: 'web',
       },

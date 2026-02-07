@@ -16,6 +16,13 @@ import { css, cx } from '@/styled-system/css'
 import { vstack } from '@/styled-system/patterns'
 import { button, card } from '@/styled-system/recipes'
 
+type SubscriptionInfo = {
+  planType: PlanType | null
+  expiresAt: string | null
+  extraEventSlots: number
+  eventLimit: number
+}
+
 export default function SubscriptionPage() {
   const router = useRouter()
   const supabase = createSupabaseBrowser()
@@ -25,8 +32,12 @@ export default function SubscriptionPage() {
   const [purchasing, setPurchasing] = useState(false)
   const [restoring, setRestoring] = useState(false)
   const [iapEnabled, setIapEnabled] = useState(false)
-  const [currentPlan, setCurrentPlan] = useState<PlanType | null>(null)
-  const [expiresAt, setExpiresAt] = useState<string | null>(null)
+  const [subscription, setSubscription] = useState<SubscriptionInfo>({
+    planType: 'FREE',
+    expiresAt: null,
+    extraEventSlots: 0,
+    eventLimit: 3,
+  })
   const [message, setMessage] = useState('')
 
   useEffect(() => {
@@ -46,9 +57,8 @@ export default function SubscriptionPage() {
         }
 
         // 현재 구독 상태 조회
-        const subscription = await getCurrentSubscription(user.id)
-        setCurrentPlan(subscription.planType)
-        setExpiresAt(subscription.expiresAt)
+        const subscriptionInfo = await getCurrentSubscription(user.id)
+        setSubscription(subscriptionInfo as SubscriptionInfo)
 
         // 상품 목록 조회
         if (available) {
@@ -97,13 +107,17 @@ export default function SubscriptionPage() {
       const result = await purchaseSubscription(productId, user.id)
 
       if (result.success) {
-        setMessage('구독이 완료되었습니다!')
+        const isEventSlot = productId.includes('event.slot')
+        setMessage(
+          isEventSlot
+            ? '이벤트 슬롯 구매가 완료되었습니다!'
+            : '구독이 완료되었습니다!',
+        )
         // 구독 상태 다시 조회
-        const subscription = await getCurrentSubscription(user.id)
-        setCurrentPlan(subscription.planType)
-        setExpiresAt(subscription.expiresAt)
+        const subscriptionInfo = await getCurrentSubscription(user.id)
+        setSubscription(subscriptionInfo as SubscriptionInfo)
       } else {
-        setMessage(`구독 실패: ${result.error}`)
+        setMessage(`구매 실패: ${result.error}`)
       }
     } catch (error) {
       setMessage(`오류: ${String(error)}`)
@@ -136,9 +150,8 @@ export default function SubscriptionPage() {
       if (result.success) {
         setMessage('구독이 복원되었습니다!')
         // 구독 상태 다시 조회
-        const subscription = await getCurrentSubscription(user.id)
-        setCurrentPlan(subscription.planType)
-        setExpiresAt(subscription.expiresAt)
+        const subscriptionInfo = await getCurrentSubscription(user.id)
+        setSubscription(subscriptionInfo as SubscriptionInfo)
       } else {
         setMessage(`복원 실패: ${result.error}`)
       }
@@ -148,6 +161,27 @@ export default function SubscriptionPage() {
       setRestoring(false)
     }
   }
+
+  const getPlanDisplayName = (planType: PlanType | null): string => {
+    switch (planType) {
+      case 'PREMIUM_MONTHLY':
+        return '프리미엄 월간'
+      case 'PREMIUM_YEARLY':
+        return '프리미엄 연간'
+      case 'FREE':
+        return '무료'
+      default:
+        return '무료'
+    }
+  }
+
+  const isPremium =
+    subscription.planType === 'PREMIUM_MONTHLY' ||
+    subscription.planType === 'PREMIUM_YEARLY'
+
+  // 구독 상품과 이벤트 슬롯 상품 분리
+  const subscriptionProducts = products.filter((p) => p.id.includes('premium'))
+  const eventSlotProducts = products.filter((p) => p.id.includes('event.slot'))
 
   if (loading) {
     return (
@@ -208,15 +242,91 @@ export default function SubscriptionPage() {
         </div>
       )}
 
-      {currentPlan && (
-        <div
-          className={cx(
-            card(),
-            css({
-              marginBottom: '20px',
-            }),
-          )}
+      {/* 현재 구독 정보 */}
+      <div
+        className={cx(
+          card(),
+          css({
+            marginBottom: '24px',
+          }),
+        )}
+      >
+        <h2
+          className={css({
+            fontSize: '18px',
+            fontWeight: 'bold',
+            marginBottom: '12px',
+          })}
         >
+          현재 플랜
+        </h2>
+        <div
+          className={css({
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '8px',
+          })}
+        >
+          <span
+            className={css({
+              fontSize: '20px',
+              fontWeight: 'bold',
+              color: isPremium ? '#4CAF50' : '#666',
+            })}
+          >
+            {getPlanDisplayName(subscription.planType)}
+          </span>
+          {isPremium && (
+            <span
+              className={css({
+                fontSize: '12px',
+                padding: '2px 8px',
+                backgroundColor: '#4CAF50',
+                color: 'white',
+                borderRadius: '12px',
+              })}
+            >
+              활성
+            </span>
+          )}
+        </div>
+
+        {subscription.expiresAt && (
+          <p
+            className={css({
+              color: '#666',
+              fontSize: '14px',
+              marginBottom: '8px',
+            })}
+          >
+            만료일: {new Date(subscription.expiresAt).toLocaleDateString()}
+          </p>
+        )}
+
+        <div
+          className={css({
+            marginTop: '12px',
+            padding: '12px',
+            backgroundColor: '#f8f9fa',
+            borderRadius: '4px',
+          })}
+        >
+          <p className={css({ fontSize: '14px', marginBottom: '4px' })}>
+            <strong>이벤트 등록 제한:</strong>{' '}
+            {isPremium ? '무제한' : `${subscription.eventLimit}개`}
+          </p>
+          {!isPremium && subscription.extraEventSlots > 0 && (
+            <p className={css({ fontSize: '14px', color: '#666' })}>
+              (기본 3개 + 추가 {subscription.extraEventSlots}개)
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* 구독 상품 */}
+      {subscriptionProducts.length > 0 && (
+        <>
           <h2
             className={css({
               fontSize: '18px',
@@ -224,66 +334,145 @@ export default function SubscriptionPage() {
               marginBottom: '12px',
             })}
           >
-            현재 구독
+            프리미엄 구독
           </h2>
-          <p>플랜: {currentPlan}</p>
-          {expiresAt && (
-            <p className={css({ color: '#666', fontSize: '14px' })}>
-              만료일: {new Date(expiresAt).toLocaleDateString()}
-            </p>
-          )}
-        </div>
+          <div className={vstack({ gap: '16px', marginBottom: '24px' })}>
+            {subscriptionProducts.map((product) => (
+              <div key={product.id} className={card()}>
+                <div
+                  className={css({
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    marginBottom: '8px',
+                  })}
+                >
+                  <h3
+                    className={css({
+                      fontSize: '18px',
+                      fontWeight: 'bold',
+                    })}
+                  >
+                    {product.title}
+                  </h3>
+                  <p
+                    className={css({
+                      fontSize: '20px',
+                      fontWeight: 'bold',
+                      color: '#4CAF50',
+                    })}
+                  >
+                    {product.price}
+                  </p>
+                </div>
+                <p
+                  className={css({
+                    color: '#666',
+                    marginBottom: '12px',
+                    fontSize: '14px',
+                  })}
+                >
+                  {product.description}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => handlePurchase(product.id)}
+                  disabled={purchasing || !iapEnabled}
+                  className={cx(
+                    button({ variant: 'primary' }),
+                    css({
+                      width: '100%',
+                      cursor:
+                        purchasing || !iapEnabled ? 'not-allowed' : 'pointer',
+                      opacity: purchasing || !iapEnabled ? 0.6 : 1,
+                    }),
+                  )}
+                >
+                  {purchasing ? '처리 중...' : '구독하기'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
-      <div className={vstack({ gap: '16px', marginBottom: '20px' })}>
-        {products.map((product) => (
-          <div key={product.id} className={card()}>
-            <h3
-              className={css({
-                fontSize: '18px',
-                fontWeight: 'bold',
-                marginBottom: '8px',
-              })}
-            >
-              {product.title}
-            </h3>
-            <p
-              className={css({
-                color: '#666',
-                marginBottom: '12px',
-                fontSize: '14px',
-              })}
-            >
-              {product.description}
-            </p>
-            <p
-              className={css({
-                fontSize: '20px',
-                fontWeight: 'bold',
-                color: 'primary',
-                marginBottom: '12px',
-              })}
-            >
-              {product.price}
-            </p>
-            <button
-              type="button"
-              onClick={() => handlePurchase(product.id)}
-              disabled={purchasing || !iapEnabled}
-              className={cx(
-                button({ variant: 'primary' }),
-                css({
-                  width: '100%',
-                  cursor: purchasing || !iapEnabled ? 'not-allowed' : 'pointer',
-                  opacity: purchasing || !iapEnabled ? 0.6 : 1,
-                }),
-              )}
-            >
-              {purchasing ? '처리 중...' : '구독하기'}
-            </button>
+      {/* 이벤트 슬롯 상품 */}
+      {eventSlotProducts.length > 0 && (
+        <>
+          <h2
+            className={css({
+              fontSize: '18px',
+              fontWeight: 'bold',
+              marginBottom: '12px',
+            })}
+          >
+            추가 이벤트 슬롯
+          </h2>
+          <div className={vstack({ gap: '16px', marginBottom: '24px' })}>
+            {eventSlotProducts.map((product) => (
+              <div key={product.id} className={card()}>
+                <div
+                  className={css({
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    marginBottom: '8px',
+                  })}
+                >
+                  <h3
+                    className={css({
+                      fontSize: '18px',
+                      fontWeight: 'bold',
+                    })}
+                  >
+                    {product.title}
+                  </h3>
+                  <p
+                    className={css({
+                      fontSize: '20px',
+                      fontWeight: 'bold',
+                      color: '#FF9800',
+                    })}
+                  >
+                    {product.price}
+                  </p>
+                </div>
+                <p
+                  className={css({
+                    color: '#666',
+                    marginBottom: '12px',
+                    fontSize: '14px',
+                  })}
+                >
+                  {product.description}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => handlePurchase(product.id)}
+                  disabled={purchasing || !iapEnabled || isPremium}
+                  className={cx(
+                    button({ variant: 'secondary' }),
+                    css({
+                      width: '100%',
+                      cursor:
+                        purchasing || !iapEnabled || isPremium
+                          ? 'not-allowed'
+                          : 'pointer',
+                      opacity: purchasing || !iapEnabled || isPremium ? 0.6 : 1,
+                    }),
+                  )}
+                >
+                  {isPremium
+                    ? '프리미엄 회원은 무제한'
+                    : purchasing
+                      ? '처리 중...'
+                      : '구매하기'}
+                </button>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </>
+      )}
 
       {iapEnabled && (
         <button
@@ -296,6 +485,7 @@ export default function SubscriptionPage() {
               width: '100%',
               cursor: restoring ? 'not-allowed' : 'pointer',
               opacity: restoring ? 0.6 : 1,
+              marginBottom: '20px',
             }),
           )}
         >
@@ -305,7 +495,6 @@ export default function SubscriptionPage() {
 
       <div
         className={css({
-          marginTop: '20px',
           padding: '16px',
           backgroundColor: '#f8f9fa',
           borderRadius: '4px',
@@ -315,6 +504,12 @@ export default function SubscriptionPage() {
       >
         <p className={css({ marginBottom: '8px' })}>
           • 구독은 자동 갱신됩니다.
+        </p>
+        <p className={css({ marginBottom: '8px' })}>
+          • 이벤트 슬롯은 1회 구매 시 영구적으로 사용 가능합니다.
+        </p>
+        <p className={css({ marginBottom: '8px' })}>
+          • 프리미엄 구독 시 이벤트를 무제한으로 등록할 수 있습니다.
         </p>
         <p className={css({ marginBottom: '8px' })}>
           • 구독 취소는 iOS 설정 또는 Google Play에서 가능합니다.

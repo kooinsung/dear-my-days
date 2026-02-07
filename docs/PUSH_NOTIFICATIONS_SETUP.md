@@ -1,50 +1,50 @@
-# Push Notifications Setup Guide
+# 푸시 알림 설정 가이드
 
-## Overview
+## 개요
 
-This guide explains how to set up push notifications for the Capacitor app, including scheduled event reminders.
+이 가이드는 Capacitor 앱의 푸시 알림 설정 방법을 설명합니다. 예약된 이벤트 리마인더를 포함합니다.
 
-## Architecture
+## 아키텍처
 
-**Two-Part System:**
-1. **Infrastructure (Phase 5-1):** Token registration, permission handling, basic send API
-2. **Scheduling (Phase 5-2):** Automated notifications based on event dates and user preferences
+**2부 시스템:**
+1. **인프라 (Phase 5-1):** 토큰 등록, 권한 처리, 기본 전송 API
+2. **스케줄링 (Phase 5-2):** 이벤트 날짜와 사용자 설정 기반 자동 알림
 
-## Part 1: Push Notification Infrastructure
+## Part 1: 푸시 알림 인프라
 
-### 1.1 Firebase Setup
+### 1.1 Firebase 설정
 
-#### Create Firebase Project
+#### Firebase 프로젝트 생성
 
-1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Create new project or use existing
-3. Add iOS app:
+1. [Firebase Console](https://console.firebase.google.com/)로 이동
+2. 새 프로젝트 생성 또는 기존 프로젝트 사용
+3. iOS 앱 추가:
    - iOS bundle ID: `com.dearmydays.app`
-   - Download `GoogleService-Info.plist`
-4. Add Android app:
+   - `GoogleService-Info.plist` 다운로드
+4. Android 앱 추가:
    - Android package name: `com.dearmydays.app`
-   - Download `google-services.json`
+   - `google-services.json` 다운로드
 
-#### Configure Firebase Cloud Messaging
+#### Firebase Cloud Messaging 설정
 
 **iOS (APNs):**
-1. Go to Project Settings → Cloud Messaging
-2. Upload APNs Authentication Key:
-   - Get from Apple Developer Console → Keys → Create APNs key
-   - Upload to Firebase
-3. Enter Team ID
+1. Project Settings → Cloud Messaging으로 이동
+2. APNs 인증 키 업로드:
+   - Apple Developer Console → Keys에서 APNs 키 생성
+   - Firebase에 업로드
+3. Team ID 입력
 
 **Android (FCM):**
-- Automatically configured when you add Android app
-- FCM uses the `google-services.json` file
+- Android 앱 추가 시 자동 설정
+- FCM은 `google-services.json` 파일 사용
 
-### 1.2 iOS Native Setup
+### 1.2 iOS 네이티브 설정
 
-**Add Firebase SDK to iOS project:**
+**iOS 프로젝트에 Firebase SDK 추가:**
 
-1. Place `GoogleService-Info.plist` in `ios/App/App/`
+1. `GoogleService-Info.plist`를 `ios/App/App/`에 배치
 
-2. Add to `ios/App/Podfile`:
+2. `ios/App/Podfile`에 추가:
 ```ruby
 target 'App' do
   capacitor_pods
@@ -54,13 +54,13 @@ target 'App' do
 end
 ```
 
-3. Run:
+3. 실행:
 ```bash
 cd ios/App
 pod install
 ```
 
-4. Update `ios/App/App/AppDelegate.swift`:
+4. `ios/App/App/AppDelegate.swift` 업데이트:
 ```swift
 import UIKit
 import Capacitor
@@ -98,13 +98,13 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
 }
 ```
 
-### 1.3 Android Native Setup
+### 1.3 Android 네이티브 설정
 
-**Add Firebase to Android project:**
+**Android 프로젝트에 Firebase 추가:**
 
-1. Place `google-services.json` in `android/app/`
+1. `google-services.json`을 `android/app/`에 배치
 
-2. Update `android/build.gradle`:
+2. `android/build.gradle` 업데이트:
 ```gradle
 buildscript {
     dependencies {
@@ -113,7 +113,7 @@ buildscript {
 }
 ```
 
-3. Update `android/app/build.gradle`:
+3. `android/app/build.gradle` 업데이트:
 ```gradle
 apply plugin: 'com.android.application'
 apply plugin: 'com.google.gms.google-services'
@@ -123,7 +123,7 @@ dependencies {
 }
 ```
 
-4. Create `android/app/src/main/java/.../FirebaseMessagingService.java`:
+4. `android/app/src/main/java/.../FirebaseMessagingService.java` 생성:
 ```java
 package com.dearmydays.app;
 
@@ -146,7 +146,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
 }
 ```
 
-5. Update `AndroidManifest.xml`:
+5. `AndroidManifest.xml` 업데이트:
 ```xml
 <service
     android:name=".MyFirebaseMessagingService"
@@ -157,93 +157,93 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
 </service>
 ```
 
-### 1.4 Environment Variables
+### 1.4 환경 변수
 
-Add to `.env.local`:
+`.env.local`에 추가:
 ```env
-# Firebase (for server-side notification sending)
+# Firebase (서버측 알림 발송용)
 FIREBASE_PROJECT_ID=your-project-id
 FIREBASE_CLIENT_EMAIL=firebase-adminsdk@your-project.iam.gserviceaccount.com
 FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYOUR_KEY_HERE\n-----END PRIVATE KEY-----\n"
 ```
 
-**Get Firebase credentials:**
+**Firebase 자격 증명 가져오기:**
 1. Firebase Console → Project Settings → Service Accounts
-2. Generate new private key
-3. Download JSON file
-4. Extract `project_id`, `client_email`, `private_key`
+2. 새 비공개 키 생성
+3. JSON 파일 다운로드
+4. `project_id`, `client_email`, `private_key` 추출
 
-### 1.5 Testing Push Notifications
+### 1.5 푸시 알림 테스트
 
-**Test token registration:**
+**토큰 등록 테스트:**
 ```bash
 pnpm dev:ios
-# Login to app
-# Check console logs for "Push token: ..."
-# Verify token is saved in device_tokens table
+# 앱에 로그인
+# 콘솔 로그에서 "Push token: ..." 확인
+# device_tokens 테이블에 토큰이 저장되었는지 확인
 ```
 
-**Send test notification:**
+**테스트 알림 전송:**
 ```bash
-# Use Firebase Console → Cloud Messaging → Send test message
-# Or use the API:
+# Firebase Console → Cloud Messaging → 테스트 메시지 전송 사용
+# 또는 API 사용:
 curl -X POST http://localhost:3000/api/notifications/send \
   -H "Content-Type: application/json" \
   -d '{
     "userId": "user-uuid",
-    "title": "Test Notification",
-    "bodyText": "This is a test",
+    "title": "테스트 알림",
+    "bodyText": "테스트입니다",
     "data": {"eventId": "event-uuid"}
   }'
 ```
 
-## Part 2: Notification Scheduling System
+## Part 2: 알림 스케줄링 시스템
 
-### 2.1 Database Setup
+### 2.1 데이터베이스 설정
 
-Run the SQL migration in Supabase SQL Editor:
+Supabase SQL Editor에서 SQL 마이그레이션 실행:
 ```bash
-# File: supabase/migrations/create_notification_system.sql
+# 파일: supabase/migrations/create_notification_system.sql
 ```
 
-This creates:
-- `notification_logs` table
-- `get_pending_notifications()` function
-- Indexes for performance
-- RLS policies
+다음을 생성합니다:
+- `notification_logs` 테이블
+- `get_pending_notifications()` 함수
+- 성능을 위한 인덱스
+- RLS 정책
 
-### 2.2 Edge Function Deployment
+### 2.2 Edge Function 배포
 
-**Deploy the Edge Function:**
+**Edge Function 배포:**
 ```bash
-# Install Supabase CLI
+# Supabase CLI 설치
 brew install supabase/tap/supabase
 
-# Login
+# 로그인
 supabase login
 
-# Link project
+# 프로젝트 연결
 supabase link --project-ref your-project-ref
 
-# Deploy function
+# 함수 배포
 supabase functions deploy send-scheduled-notifications
 
-# Set secrets
+# Secrets 설정
 supabase secrets set FIREBASE_PROJECT_ID=your-project
 supabase secrets set FIREBASE_CLIENT_EMAIL=xxx@xxx.iam.gserviceaccount.com
 supabase secrets set FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nxxx\n-----END PRIVATE KEY-----\n"
 ```
 
-### 2.3 Cron Job Setup
+### 2.3 Cron 작업 설정
 
-**Option 1: Supabase pg_cron (Recommended)**
+**옵션 1: Supabase pg_cron (권장)**
 
-Run in Supabase SQL Editor:
+Supabase SQL Editor에서 실행:
 ```sql
--- Enable pg_cron extension
+-- pg_cron 확장 활성화
 CREATE EXTENSION IF NOT EXISTS pg_cron;
 
--- Schedule function to run every minute
+-- 매분마다 실행되도록 함수 예약
 SELECT cron.schedule(
   'send-scheduled-notifications',
   '* * * * *',
@@ -259,16 +259,16 @@ SELECT cron.schedule(
   $$
 );
 
--- View scheduled jobs
+-- 예약된 작업 보기
 SELECT * FROM cron.job;
 
--- Unschedule (if needed)
+-- 예약 취소 (필요시)
 -- SELECT cron.unschedule('send-scheduled-notifications');
 ```
 
-**Option 2: External Cron (e.g., Vercel Cron, GitHub Actions)**
+**옵션 2: 외부 Cron (예: Vercel Cron, GitHub Actions)**
 
-Create `vercel.json`:
+`vercel.json` 생성:
 ```json
 {
   "crons": [{
@@ -278,10 +278,10 @@ Create `vercel.json`:
 }
 ```
 
-Create `/api/cron/send-notifications/route.ts`:
+`/api/cron/send-notifications/route.ts` 생성:
 ```typescript
 export async function GET(req: NextRequest) {
-  // Call Supabase Edge Function
+  // Supabase Edge Function 호출
   const response = await fetch(
     'https://YOUR_PROJECT_REF.supabase.co/functions/v1/send-scheduled-notifications',
     {
@@ -296,19 +296,19 @@ export async function GET(req: NextRequest) {
 }
 ```
 
-### 2.4 Configure Event Notification Settings
+### 2.4 이벤트 알림 설정 구성
 
-**User Flow:**
-1. User creates/edits event
-2. User sees notification settings UI
-3. User selects when to be reminded (D-7, D-3, D-1, D-Day)
-4. User sets time (hour and minute)
-5. Settings saved to `event_notification_settings` table
+**사용자 플로우:**
+1. 사용자가 이벤트 생성/편집
+2. 사용자가 알림 설정 UI 확인
+3. 사용자가 알림 받을 시기 선택 (D-7, D-3, D-1, 당일)
+4. 사용자가 시간 설정 (시와 분)
+5. 설정이 `event_notification_settings` 테이블에 저장
 
-**Example:**
+**예시:**
 ```typescript
-// Event: Birthday on 2025-01-15
-// Settings:
+// 이벤트: 2025-01-15 생일
+// 설정:
 [
   { days_before: 7, hour: 9, minute: 0 },  // 2025-01-08 09:00
   { days_before: 1, hour: 9, minute: 0 },  // 2025-01-14 09:00
@@ -316,86 +316,86 @@ export async function GET(req: NextRequest) {
 ]
 ```
 
-### 2.5 Testing Scheduled Notifications
+### 2.5 예약된 알림 테스트
 
-**Test the PostgreSQL function:**
+**PostgreSQL 함수 테스트:**
 ```sql
--- Simulate current time: 9:00 AM
+-- 현재 시간 시뮬레이션: 오전 9:00
 SELECT * FROM get_pending_notifications(9, 0);
 
--- Should return events scheduled for today at 9:00
+-- 오늘 9:00에 예약된 이벤트를 반환해야 함
 ```
 
-**Test Edge Function locally:**
+**Edge Function 로컬 테스트:**
 ```bash
-# Start local Supabase
+# 로컬 Supabase 시작
 supabase start
 
-# Serve Edge Function
+# Edge Function 서빙
 supabase functions serve send-scheduled-notifications --env-file .env.local
 
-# Trigger manually
+# 수동으로 트리거
 curl -X POST http://localhost:54321/functions/v1/send-scheduled-notifications \
   -H "Authorization: Bearer YOUR_ANON_KEY"
 ```
 
-**Test in production:**
-1. Create event with notification setting (tomorrow at current hour+1 minute)
-2. Wait for cron job to run
-3. Check `notification_logs` table
-4. Verify push received on device
+**프로덕션 테스트:**
+1. 내일 현재 시간+1분에 알림 설정이 있는 이벤트 생성
+2. Cron 작업이 실행될 때까지 대기
+3. `notification_logs` 테이블 확인
+4. 기기에서 푸시 수신 확인
 
-## Troubleshooting
+## 문제 해결
 
-### iOS: No push token received
-- Check APNs key is uploaded to Firebase
-- Verify bundle ID matches exactly
-- Check device has internet connection
-- Try restarting app
+### iOS: 푸시 토큰을 받지 못함
+- APNs 키가 Firebase에 업로드되었는지 확인
+- Bundle ID가 정확히 일치하는지 확인
+- 기기가 인터넷에 연결되어 있는지 확인
+- 앱 재시작 시도
 
-### Android: No push token received
-- Check `google-services.json` is in correct location
-- Verify package name matches exactly
-- Check Google Play Services is installed on device
-- Try clearing app data and reinstalling
+### Android: 푸시 토큰을 받지 못함
+- `google-services.json`이 올바른 위치에 있는지 확인
+- 패키지 이름이 정확히 일치하는지 확인
+- 기기에 Google Play Services가 설치되어 있는지 확인
+- 앱 데이터 삭제 후 재설치 시도
 
-### No notifications sent
-- Check Edge Function logs: `supabase functions logs send-scheduled-notifications`
-- Verify cron job is running: `SELECT * FROM cron.job_run_details ORDER BY start_time DESC;`
-- Check `get_pending_notifications()` returns results
-- Verify Firebase credentials are correct
+### 알림이 전송되지 않음
+- Edge Function 로그 확인: `supabase functions logs send-scheduled-notifications`
+- Cron 작업이 실행 중인지 확인: `SELECT * FROM cron.job_run_details ORDER BY start_time DESC;`
+- `get_pending_notifications()`가 결과를 반환하는지 확인
+- Firebase 자격 증명이 올바른지 확인
 
-### Notifications sent but not received
-- Check device has notifications enabled for app
-- Verify FCM token is valid (not expired)
-- Check Firebase Console → Cloud Messaging → logs
-- Test sending from Firebase Console directly
+### 알림이 전송되었지만 수신되지 않음
+- 기기에서 앱 알림이 활성화되어 있는지 확인
+- FCM 토큰이 유효한지 확인 (만료되지 않음)
+- Firebase Console → Cloud Messaging → 로그 확인
+- Firebase Console에서 직접 전송 테스트
 
-### Duplicate notifications
-- Check `notification_logs` table has proper unique constraints
-- Verify same notification isn't scheduled multiple times
-- Check cron job isn't running multiple times
+### 중복 알림
+- `notification_logs` 테이블에 적절한 unique 제약 조건이 있는지 확인
+- 동일한 알림이 여러 번 예약되지 않았는지 확인
+- Cron 작업이 여러 번 실행되지 않는지 확인
 
-## Production Checklist
+## 프로덕션 체크리스트
 
-- [ ] Firebase project created and configured
-- [ ] iOS APNs key uploaded to Firebase
-- [ ] Android `google-services.json` added
-- [ ] Push notification plugin configured in native code
-- [ ] Database migration run (notification_logs, functions)
-- [ ] Edge Function deployed
-- [ ] Firebase secrets set in Supabase
-- [ ] Cron job scheduled (pg_cron or external)
-- [ ] Token registration tested on real devices
-- [ ] Scheduled notifications tested end-to-end
-- [ ] Error logging and monitoring set up
-- [ ] Rate limiting considered (avoid spam)
+- [ ] Firebase 프로젝트 생성 및 설정
+- [ ] iOS APNs 키를 Firebase에 업로드
+- [ ] Android `google-services.json` 추가
+- [ ] 네이티브 코드에서 푸시 알림 플러그인 설정
+- [ ] 데이터베이스 마이그레이션 실행 (notification_logs, functions)
+- [ ] Edge Function 배포
+- [ ] Supabase에 Firebase secrets 설정
+- [ ] Cron 작업 예약 (pg_cron 또는 외부)
+- [ ] 실제 기기에서 토큰 등록 테스트
+- [ ] 예약된 알림 엔드투엔드 테스트
+- [ ] 에러 로깅 및 모니터링 설정
+- [ ] Rate limiting 고려 (스팸 방지)
 
-## Resources
+## 참고 자료
 
 - [Capacitor Push Notifications](https://capacitorjs.com/docs/apis/push-notifications)
 - [Firebase Cloud Messaging](https://firebase.google.com/docs/cloud-messaging)
 - [Supabase Edge Functions](https://supabase.com/docs/guides/functions)
 - [Supabase pg_cron](https://supabase.com/docs/guides/database/extensions/pg_cron)
-- [APNs Setup](https://developer.apple.com/documentation/usernotifications)
-- [FCM Setup](https://firebase.google.com/docs/cloud-messaging/android/client)
+- [APNs 설정](https://developer.apple.com/documentation/usernotifications)
+- [FCM 설정](https://firebase.google.com/docs/cloud-messaging/android/client)

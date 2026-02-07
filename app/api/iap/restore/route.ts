@@ -67,6 +67,34 @@ export async function POST(req: NextRequest) {
       .eq('transaction_id', transactionId)
       .single()
 
+    // 상품 정보 매핑
+    const productInfo: Record<
+      string,
+      { amount: number; type: 'SUBSCRIPTION' | 'EVENT_SLOT'; planType?: string }
+    > = {
+      'com.dearmydays.premium.monthly': {
+        amount: 4900,
+        type: 'SUBSCRIPTION',
+        planType: 'PREMIUM_MONTHLY',
+      },
+      'com.dearmydays.premium.yearly': {
+        amount: 49000,
+        type: 'SUBSCRIPTION',
+        planType: 'PREMIUM_YEARLY',
+      },
+      'com.dearmydays.event.slot': { amount: 990, type: 'EVENT_SLOT' },
+    }
+
+    const finalProductId = verificationResult.productId || productId
+    const product = productInfo[finalProductId]
+
+    if (!product) {
+      return NextResponse.json(
+        { success: false, error: 'Unknown product ID' },
+        { status: 400 },
+      )
+    }
+
     if (existingPurchase) {
       // 다른 사용자의 거래인 경우 에러
       if (existingPurchase.user_id !== user.id) {
@@ -76,20 +104,25 @@ export async function POST(req: NextRequest) {
         )
       }
 
-      // 같은 사용자의 거래인 경우 플랜만 업데이트
-      const { error: planError } = await admin.from('user_plans').upsert({
-        user_id: user.id,
-        plan_type: 'PREMIUM',
-        started_at: new Date().toISOString(),
-        expired_at: verificationResult.expiresAt?.toISOString() || null,
-      })
+      // 같은 사용자의 거래인 경우 플랜 또는 슬롯 업데이트
+      if (product.type === 'SUBSCRIPTION') {
+        const { error: planError } = await admin.from('user_plans').upsert({
+          user_id: user.id,
+          plan_type: product.planType,
+          started_at: new Date().toISOString(),
+          expired_at: verificationResult.expiresAt?.toISOString() || null,
+        })
 
-      if (planError) {
-        console.error('Failed to restore plan:', planError)
-        return NextResponse.json(
-          { success: false, error: 'Failed to restore subscription' },
-          { status: 500 },
-        )
+        if (planError) {
+          console.error('Failed to restore plan:', planError)
+          return NextResponse.json(
+            { success: false, error: 'Failed to restore subscription' },
+            { status: 500 },
+          )
+        }
+      } else if (product.type === 'EVENT_SLOT') {
+        // 이벤트 슬롯은 이미 구매 기록이 있으므로 별도 처리 불필요
+        // 필요시 extra_event_slots를 다시 확인하고 동기화
       }
 
       return successResponse({
@@ -100,22 +133,15 @@ export async function POST(req: NextRequest) {
     }
 
     // 새 거래로 기록
-    const priceMap: Record<string, number> = {
-      'com.dearmydays.premium.monthly': 4900,
-      'com.dearmydays.premium.yearly': 49000,
-      'com.dearmydays.enterprise': 99000,
-    }
-
-    const amount =
-      priceMap[verificationResult.productId || ''] || priceMap[productId] || 0
-
     const { error: purchaseError } = await admin
       .from('event_purchases')
       .insert({
         user_id: user.id,
         provider: provider as PaymentProvider,
         transaction_id: transactionId,
-        amount,
+        product_id: finalProductId,
+        purchase_type: product.type,
+        amount: product.amount,
         currency: 'KRW',
         purchased_at: new Date().toISOString(),
       })
@@ -128,20 +154,54 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // 플랜 업데이트
-    const { error: planError } = await admin.from('user_plans').upsert({
-      user_id: user.id,
-      plan_type: 'PREMIUM',
-      started_at: new Date().toISOString(),
-      expired_at: verificationResult.expiresAt?.toISOString() || null,
-    })
+    // 구독 또는 이벤트 슬롯에 따라 처리
+    if (product.type === 'SUBSCRIPTION') {
+      // 구독: user_plans 테이블 업데이트
+      const { error: planError } = await admin.from('user_plans').upsert({
+        user_id: user.id,
+        plan_type: product.planType,
+        started_at: new Date().toISOString(),
+        expired_at: verificationResult.expiresAt?.toISOString() || null,
+      })
 
-    if (planError) {
-      console.error('Failed to update plan:', planError)
-      return NextResponse.json(
-        { success: false, error: 'Failed to update subscription' },
-        { status: 500 },
-      )
+      if (planError) {
+        console.error('Failed to update plan:', planError)
+        return NextResponse.json(
+          { success: false, error: 'Failed to update subscription' },
+          { status: 500 },
+        )
+      }
+    } else if (product.type === 'EVENT_SLOT') {
+      // 이벤트 슬롯: extra_event_slots 증가
+      const { error: slotError } = await admin.rpc('increment_event_slots', {
+        user_id_param: user.id,
+        increment_by: 1,
+      })
+
+      if (slotError) {
+        // RPC 함수가 없으면 직접 업데이트
+        const { data: currentPlan } = await admin
+          .from('user_plans')
+          .select('extra_event_slots')
+          .eq('user_id', user.id)
+          .single()
+
+        const currentSlots = currentPlan?.extra_event_slots || 0
+
+        const { error: updateError } = await admin.from('user_plans').upsert({
+          user_id: user.id,
+          plan_type: 'FREE',
+          extra_event_slots: currentSlots + 1,
+        })
+
+        if (updateError) {
+          console.error('Failed to update event slots:', updateError)
+          return NextResponse.json(
+            { success: false, error: 'Failed to add event slot' },
+            { status: 500 },
+          )
+        }
+      }
     }
 
     return successResponse({

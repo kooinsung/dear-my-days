@@ -25,15 +25,17 @@ export async function GET(_req: NextRequest) {
     // 사용자의 구독 플랜 조회
     const { data: plan, error: planError } = await supabase
       .from('user_plans')
-      .select('plan_type, started_at, expired_at')
+      .select('plan_type, started_at, expired_at, extra_event_slots')
       .eq('user_id', user.id)
       .single()
 
     if (planError) {
-      // 구독 없음
+      // 구독 없음 (FREE 플랜)
       return successResponse({
-        planType: null,
+        planType: 'FREE',
         expiresAt: null,
+        extraEventSlots: 0,
+        eventLimit: 3,
       })
     }
 
@@ -42,11 +44,18 @@ export async function GET(_req: NextRequest) {
     const expiresAt = plan.expired_at ? new Date(plan.expired_at) : null
     const isExpired = expiresAt && expiresAt < now
 
+    // 이벤트 제한 계산
+    const planType = isExpired ? 'FREE' : plan.plan_type
+    const extraSlots = plan.extra_event_slots || 0
+    const eventLimit = planType === 'FREE' ? 3 + extraSlots : 999999 // PREMIUM은 무제한
+
     return successResponse({
-      planType: isExpired ? null : plan.plan_type,
+      planType,
       startedAt: plan.started_at,
       expiresAt: plan.expired_at,
       isActive: !isExpired,
+      extraEventSlots: extraSlots,
+      eventLimit,
     })
   } catch (error) {
     return handleApiError(error)

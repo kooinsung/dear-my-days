@@ -1,55 +1,55 @@
-# Supabase Redirect URLs Configuration
+# Supabase 리다이렉트 URL 설정
 
-## Quick Setup
+## 빠른 설정
 
-Add these URLs to your Supabase project:
+Supabase 프로젝트에 다음 URL들을 추가하세요:
 
 **Supabase Dashboard → Authentication → URL Configuration → Redirect URLs**
 
 ```
-https://dearmydays.com/auth/callback
+https://dear-my-days.com/auth/callback
 http://localhost:3000/auth/callback
 dearmydays://auth/callback
 capacitor://localhost/auth/callback
 ```
 
-## URL Explanations
+## URL 설명
 
-| URL | Purpose |
-|-----|---------|
-| `https://dearmydays.com/auth/callback` | Production web app & Universal Links (iOS) / App Links (Android) |
-| `http://localhost:3000/auth/callback` | Local development (web browser) |
-| `dearmydays://auth/callback` | Custom URL scheme for mobile app deep links |
-| `capacitor://localhost/auth/callback` | Capacitor WebView internal URL |
+| URL | 용도 |
+|-----|------|
+| `https://dear-my-days.com/auth/callback` | 프로덕션 웹앱 & Universal Links (iOS) / App Links (Android) |
+| `http://localhost:3000/auth/callback` | 로컬 개발 환경 (웹 브라우저) |
+| `dearmydays://auth/callback` | 모바일 앱 딥링크용 커스텀 URL 스킴 |
+| `capacitor://localhost/auth/callback` | Capacitor WebView 내부 URL |
 
-## Why Multiple URLs?
+## 왜 여러 URL이 필요한가?
 
-1. **Production Web**: Users on dearmydays.com in browsers
-2. **Local Development**: Testing on localhost
-3. **Custom Scheme**: Fallback for mobile deep links
-4. **Capacitor Internal**: Required for WebView OAuth flow
+1. **프로덕션 웹**: 브라우저에서 dear-my-days.com을 사용하는 사용자
+2. **로컬 개발**: localhost에서 테스트
+3. **커스텀 스킴**: 모바일 딥링크 폴백
+4. **Capacitor 내부**: WebView OAuth 플로우에 필요
 
-## Testing Each URL
+## 각 URL 테스트
 
-### Production
+### 프로덕션
 ```bash
-# Deploy to Vercel
+# Vercel에 배포
 vercel --prod
 
-# Test OAuth in browser
-https://dearmydays.com/login
+# 브라우저에서 OAuth 테스트
+https://dear-my-days.com/login
 ```
 
-### Local Development
+### 로컬 개발
 ```bash
-# Run dev server
+# 개발 서버 실행
 pnpm dev
 
-# Test OAuth
+# OAuth 테스트
 http://localhost:3000/login
 ```
 
-### Mobile App (Development)
+### 모바일 앱 (개발 모드)
 ```bash
 # iOS
 pnpm dev:ios
@@ -57,10 +57,10 @@ pnpm dev:ios
 # Android
 pnpm dev:android
 
-# OAuth will use capacitor://localhost URL internally
+# OAuth는 내부적으로 capacitor://localhost URL 사용
 ```
 
-### Deep Links
+### 딥링크
 ```bash
 # iOS
 xcrun simctl openurl booted dearmydays://auth/callback?code=test
@@ -69,28 +69,28 @@ xcrun simctl openurl booted dearmydays://auth/callback?code=test
 adb shell am start -a android.intent.action.VIEW -d "dearmydays://auth/callback?code=test"
 ```
 
-## Common Issues
+## 일반적인 문제
 
-### "Invalid redirect URL" Error
-- Verify URL is added to Supabase exactly as shown above
-- Check for trailing slashes (don't add them)
-- Ensure URL is in the **Redirect URLs** section, not Site URL
+### "Invalid redirect URL" 에러
+- URL이 위에 표시된 대로 정확히 Supabase에 추가되었는지 확인
+- 후행 슬래시 확인 (추가하지 마세요)
+- URL이 Site URL이 아닌 **Redirect URLs** 섹션에 있는지 확인
 
-### OAuth Opens Browser Instead of WebView
-- Add `capacitor://localhost/auth/callback` to redirect URLs
-- Check that Capacitor is configured correctly
+### OAuth가 WebView 대신 브라우저에서 열림
+- `capacitor://localhost/auth/callback`을 리다이렉트 URL에 추가
+- Capacitor가 올바르게 설정되었는지 확인
 
-### Universal Links Don't Open App
-- Ensure `https://dearmydays.com/auth/callback` is in redirect URLs
-- Deploy apple-app-site-association file
-- Test on real device (not simulator)
+### Universal Links가 앱을 열지 않음
+- `https://dear-my-days.com/auth/callback`이 리다이렉트 URL에 있는지 확인
+- apple-app-site-association 파일 배포
+- 실제 기기에서 테스트 (시뮬레이터 아님)
 
-## Production Checklist
+## 프로덕션 체크리스트
 
-Before going live:
+라이브 전:
 
-- [ ] Add production URL to Supabase redirect URLs
-- [ ] Remove localhost URLs from production (optional, for security)
-- [ ] Test OAuth on production domain
-- [ ] Verify Universal Links work on iOS device
-- [ ] Verify App Links work on Android device
+- [ ] Supabase 리다이렉트 URL에 프로덕션 URL 추가
+- [ ] 프로덕션에서 localhost URL 제거 (선택사항, 보안을 위해)
+- [ ] 프로덕션 도메인에서 OAuth 테스트
+- [ ] iOS 기기에서 Universal Links 작동 확인
+- [ ] Android 기기에서 App Links 작동 확인

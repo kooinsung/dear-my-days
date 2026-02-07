@@ -1,17 +1,20 @@
 # Dear Days - 프로젝트 가이드
 
-> 한국 음력 달력을 지원하는 기념일 관리 웹 애플리케이션
+> 한국 음력 달력을 지원하는 크로스 플랫폼 기념일 관리 애플리케이션
 
 ## 프로젝트 개요
 
-Dear Days는 생일, 기념일, 기일 등의 특별한 날을 관리하는 웹 애플리케이션입니다.
-한국 음력 달력을 완벽하게 지원하며, 윤달 처리 등 복잡한 음력 변환 로직을 포함합니다.
+Dear Days는 생일, 기념일, 기일 등의 특별한 날을 관리하는 **웹 및 모바일 애플리케이션**입니다.
+Next.js 웹앱을 Capacitor로 래핑하여 iOS/Android 네이티브 앱으로 제공하며, 한국 음력 달력을 완벽하게 지원합니다.
 
 ### 핵심 기능
 - 🎂 **이벤트 관리**: 생일, 기념일, 기일, 공휴일, 기타 이벤트 CRUD
 - 🌙 **음력 지원**: KASI API를 활용한 양력↔음력 변환, 윤달 처리
 - 📅 **달력 뷰**: 월별 이벤트 캘린더, 과거 이벤트 조회
-- 🔐 **다중 인증**: 이메일, Google, Kakao, Naver OAuth
+- 🔐 **다중 인증**: 이메일, Google, Kakao, Naver, Apple OAuth
+- 🔔 **푸시 알림**: 이벤트 리마인더 (사용자 설정 가능)
+- 💳 **인앱결제**: 프리미엄 구독 (Apple/Google IAP)
+- 📱 **네이티브 앱**: iOS/Android (Capacitor 6)
 - ⚙️ **설정**: 계정 관리, 데이터 내보내기, 알림 설정
 
 ---
@@ -28,17 +31,21 @@ Dear Days는 생일, 기념일, 기일 등의 특별한 날을 관리하는 웹 
 - **Validation**: Zod (런타임 타입 검증)
 - **Environment**: @t3-oss/env-nextjs (타입 안전한 환경 변수)
 - **Linting**: Biome (빠른 린터/포맷터)
+- **Mobile**: Capacitor 6 (iOS/Android 네이티브 앱)
 
 ### 백엔드
 - **Database**: Supabase (PostgreSQL)
 - **Authentication**: Supabase Auth (Email, OAuth)
 - **Email**: Resend (트랜잭션 이메일)
+- **Push Notifications**: Firebase Cloud Messaging
 - **External APIs**:
   - KASI (한국천문연구원) - 음력 변환
-  - Naver/Kakao/Google OAuth
+  - Naver/Kakao/Google/Apple OAuth
 
 ### 배포
-- **Hosting**: Vercel
+- **Web Hosting**: Vercel
+- **Mobile**: App Store (iOS), Google Play (Android)
+- **Edge Functions**: Supabase (알림 스케줄링)
 - **Environment**: `.env` (@t3-oss/env-nextjs로 타입 안전하게 검증)
 
 ---
@@ -618,12 +625,143 @@ pnpm panda codegen    # CSS 재생성
 pnpm add <package>         # 패키지 추가
 pnpm add -D <package>      # 개발 의존성 추가
 pnpm remove <package>      # 패키지 제거
+
+# Capacitor 모바일 앱
+pnpm cap:sync             # 네이티브 프로젝트 동기화
+pnpm cap:ios              # Xcode 열기
+pnpm cap:android          # Android Studio 열기
+pnpm dev:ios              # iOS 앱 개발 모드 실행
+pnpm dev:android          # Android 앱 개발 모드 실행
 ```
+
+---
+
+## Capacitor 모바일 앱
+
+### 아키텍처 개요
+
+Dear Days는 **웹 URL 로드 방식**의 Capacitor 앱으로 구현되어 있습니다:
+
+- **웹앱**: Vercel에 배포된 Next.js 앱 (Server Actions/API Routes 유지)
+- **모바일 앱**: WebView에서 프로덕션 웹 URL을 로드
+- **네이티브 기능**: Capacitor 플러그인으로 IAP, 푸시 알림, 딥링크 등 추가
+
+### 핵심 특징
+
+✅ **장점**:
+- 단일 코드베이스 (웹과 앱 100% 동일)
+- Server Actions 및 API Routes 그대로 사용
+- 웹 배포 시 앱도 자동 업데이트
+- 빠른 개발 및 유지보수
+
+⚠️ **제약사항**:
+- 네트워크 연결 필수 (오프라인 불가)
+- 초기 로딩 시간 약간 증가 (Splash Screen으로 커버)
+
+### 네이티브 기능
+
+| 기능 | 구현 상태 | 위치 |
+|-----|----------|------|
+| **플랫폼 감지** | ✅ 완료 | `app/libs/capacitor/platform.ts` |
+| **네이티브 Navigation** | ✅ 완료 | `app/libs/capacitor/use-native-navigation.ts` |
+| **딥링크** | ✅ 완료 | `app/libs/capacitor/deep-link.ts` |
+| **OAuth 인증** | ✅ 완료 | 기존 로직 재사용 (변경 없음) |
+| **푸시 알림** | ✅ 완료 | `app/libs/capacitor/push-notifications.ts` |
+| **알림 스케줄링** | ✅ 완료 | `supabase/functions/send-scheduled-notifications` |
+| **인앱결제 (IAP)** | ✅ 인프라 완료 | `app/libs/capacitor/iap.ts` |
+
+### 프로젝트 구조 (모바일 추가 부분)
+
+```
+dear-my-days/
+├── app/
+│   └── libs/
+│       └── capacitor/           # Capacitor 유틸리티
+│           ├── platform.ts      # 플랫폼 감지
+│           ├── use-native-navigation.ts  # 네이티브 뒤로가기
+│           ├── deep-link.ts     # 딥링크 핸들러
+│           ├── iap.ts           # 인앱결제
+│           ├── push-notifications.ts  # 푸시 알림
+│           └── native-app-provider.tsx  # 통합 Provider
+├── ios/                         # iOS 네이티브 프로젝트
+│   └── App/
+│       └── App/
+│           ├── Info.plist       # iOS 설정 (권한, URL 스킴)
+│           └── capacitor.config.json
+├── android/                     # Android 네이티브 프로젝트
+│   └── app/
+│       └── src/main/
+│           ├── AndroidManifest.xml  # Android 설정
+│           └── assets/capacitor.config.json
+├── public/.well-known/          # Universal/App Links
+│   ├── apple-app-site-association
+│   └── assetlinks.json
+├── supabase/functions/          # Supabase Edge Functions
+│   └── send-scheduled-notifications/  # 알림 발송
+├── docs/                        # 상세 문서
+│   ├── OAUTH_SETUP.md           # OAuth 및 딥링크 설정
+│   ├── IAP_SETUP.md             # 인앱결제 구현 가이드
+│   ├── PUSH_NOTIFICATIONS_SETUP.md  # 푸시 알림 설정
+│   └── DEPLOYMENT_CHECKLIST.md  # 배포 체크리스트
+└── capacitor.config.ts          # Capacitor 메인 설정
+```
+
+### 개발 워크플로우
+
+**웹 개발 (기존과 동일)**:
+```bash
+pnpm dev              # localhost:3000
+```
+
+**모바일 개발**:
+```bash
+# iOS 시뮬레이터 (localhost:3000 자동 로드)
+pnpm dev:ios
+
+# Android 에뮬레이터
+pnpm dev:android
+
+# 네이티브 IDE 열기
+pnpm cap:ios          # Xcode
+pnpm cap:android      # Android Studio
+```
+
+**코드 변경 후 동기화**:
+```bash
+pnpm cap:sync         # TypeScript 변경 시 네이티브 프로젝트 동기화
+```
+
+### 환경 변수 (모바일 추가)
+
+```env
+# Firebase (Push Notifications)
+FIREBASE_PROJECT_ID=your-project
+FIREBASE_CLIENT_EMAIL=xxx@xxx.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nxxx\n-----END PRIVATE KEY-----\n"
+
+# Apple IAP
+APPLE_SHARED_SECRET=xxx
+
+# Google IAP
+GOOGLE_PACKAGE_NAME=com.dearmydays.app
+GOOGLE_SERVICE_ACCOUNT_TOKEN=xxx
+```
+
+### 상세 문서
+
+Capacitor 구현의 자세한 내용은 다음 문서를 참고하세요:
+
+- **[구현 계획](.claude/plans/)**: 6단계 Capacitor 구현 계획 (아키텍처, 설계 결정)
+- **[OAuth 설정](./docs/OAUTH_SETUP.md)**: OAuth 딥링크 및 Universal Links 설정
+- **[IAP 설정](./docs/IAP_SETUP.md)**: Apple/Google 인앱결제 구현
+- **[푸시 알림 설정](./docs/PUSH_NOTIFICATIONS_SETUP.md)**: Firebase 푸시 알림 및 스케줄링
+- **[배포 체크리스트](./docs/DEPLOYMENT_CHECKLIST.md)**: 전체 배포 가이드
 
 ---
 
 ## 참고 자료
 
+### 웹 개발
 - [Next.js 16 문서](https://nextjs.org/docs)
 - [Supabase 문서](https://supabase.com/docs)
 - [Panda CSS 문서](https://panda-css.com)
@@ -633,13 +771,31 @@ pnpm remove <package>      # 패키지 제거
 - [Biome 문서](https://biomejs.dev)
 - [KASI API 문서](https://www.kasi.re.kr)
 
+### 모바일 개발
+- [Capacitor 문서](https://capacitorjs.com/docs)
+- [Capacitor 플러그인](https://capacitorjs.com/docs/plugins)
+- [iOS Developer](https://developer.apple.com)
+- [Android Developer](https://developer.android.com)
+- [Firebase Cloud Messaging](https://firebase.google.com/docs/cloud-messaging)
+- [Apple In-App Purchase](https://developer.apple.com/in-app-purchase/)
+- [Google Play Billing](https://developer.android.com/google/play/billing)
+
 ---
 
 ## 프로젝트 상태
 
-**최근 리팩토링 완료** (2026-02-06):
+**최근 구현 완료** (2026-02-07):
+- ✅ **Capacitor 모바일 앱 구현** (iOS/Android)
+- ✅ 네이티브 Navigation 처리 (뒤로가기, 앱 상태)
+- ✅ OAuth 딥링크 및 Universal Links
+- ✅ 푸시 알림 인프라 및 스케줄링 시스템
+- ✅ 인앱결제 (IAP) 인프라
+- ✅ 알림 스케줄 사용자 설정 기능
+- ✅ 도메인 변경 (dearmydays.com → dear-my-days.com)
+
+**이전 리팩토링** (2026-02-06):
 - ✅ 환경 변수 검증 시스템 구축
-- ✅ **@t3-oss/env-nextjs 마이그레이션** (Zod 기반 타입 안전 환경 변수)
+- ✅ @t3-oss/env-nextjs 마이그레이션 (Zod 기반 타입 안전 환경 변수)
 - ✅ Admin 클라이언트 서버 전용 보호
 - ✅ Zod 입력 검증 전면 적용
 - ✅ 통합 에러 처리 시스템
@@ -649,13 +805,14 @@ pnpm remove <package>      # 패키지 제거
 - ✅ Biome 린팅 100% 통과
 
 **다음 단계 권장사항**:
-1. EventForm 추가 리팩토링 (516줄 → ~150줄)
-2. LoginForm 추가 리팩토링 (353줄 → ~100줄)
+1. iOS/Android 네이티브 코드 구현 (StoreKit, Billing Library)
+2. 앱스토어 배포 준비 (스크린샷, 설명, 심사)
 3. 유닛 테스트 추가 (Jest + React Testing Library)
 4. E2E 테스트 추가 (Playwright)
 5. 에러 모니터링 도구 통합 (Sentry)
 
 ---
 
-**마지막 업데이트**: 2026-02-06 (@t3-oss/env-nextjs 마이그레이션)
+**마지막 업데이트**: 2026-02-07 (Capacitor 모바일 앱 구현 완료)
 **메인테이너**: @a17050
+**Co-Author**: Claude Sonnet 4.5

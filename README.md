@@ -201,12 +201,12 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=xxx
 SUPABASE_SERVICE_ROLE_KEY=xxx
 
 # Web
-NEXT_PUBLIC_WEB_BASE_URL=https://dearmydays.com
-NEXT_PUBLIC_SITE_URL=https://dearmydays.com
+NEXT_PUBLIC_WEB_BASE_URL=https://dear-my-days.com
+NEXT_PUBLIC_SITE_URL=https://dear-my-days.com
 
 # Email
 RESEND_API_KEY=xxx
-RESEND_FROM_EMAIL=noreply@dearmydays.com
+RESEND_FROM_EMAIL=noreply@dear-my-days.com
 
 # KASI (Lunar Calendar)
 KASI_SERVICE_KEY=xxx

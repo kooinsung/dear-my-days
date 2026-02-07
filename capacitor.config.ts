@@ -18,7 +18,7 @@ const config: CapacitorConfig = {
       }
     : {
         // Production: Vercel deployed web app
-        url: 'https://dearmydays.com', // Replace with actual web app URL
+        url: 'https://dear-my-days.com', // Replace with actual web app URL
         cleartext: false,
       },
 

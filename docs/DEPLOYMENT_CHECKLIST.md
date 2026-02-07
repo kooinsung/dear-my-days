@@ -1,22 +1,22 @@
-# Deployment Checklist for Dear My Days Mobile App
+# Dear My Days 모바일 앱 배포 체크리스트
 
-## Overview
+## 개요
 
-This checklist covers all steps needed to deploy the Dear My Days Capacitor app to production.
+이 체크리스트는 Dear My Days Capacitor 앱을 프로덕션에 배포하는 데 필요한 모든 단계를 다룹니다.
 
-## Pre-Deployment Checklist
+## 배포 전 체크리스트
 
-### 1. Code & Configuration ✅
+### 1. 코드 & 설정 ✅
 
-- [x] All phases implemented (Phase 1-6)
-- [x] Capacitor configured (`capacitor.config.ts`)
-- [x] Environment variables documented
-- [x] Linting passes (`pnpm biome check`)
-- [x] Build succeeds (`pnpm build`)
+- [x] 모든 단계 구현 완료 (Phase 1-6)
+- [x] Capacitor 설정 완료 (`capacitor.config.ts`)
+- [x] 환경 변수 문서화 완료
+- [x] 린팅 통과 (`pnpm biome check`)
+- [x] 빌드 성공 (`pnpm build`)
 
-### 2. Environment Variables
+### 2. 환경 변수
 
-#### Required (All Environments)
+#### 필수 (모든 환경)
 ```env
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
@@ -24,18 +24,18 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=xxx
 SUPABASE_SERVICE_ROLE_KEY=xxx
 
 # Web
-NEXT_PUBLIC_WEB_BASE_URL=https://dearmydays.com
-NEXT_PUBLIC_SITE_URL=https://dearmydays.com
+NEXT_PUBLIC_WEB_BASE_URL=https://dear-my-days.com
+NEXT_PUBLIC_SITE_URL=https://dear-my-days.com
 
 # Email
 RESEND_API_KEY=xxx
-RESEND_FROM_EMAIL=noreply@dearmydays.com
+RESEND_FROM_EMAIL=noreply@dear-my-days.com
 
 # KASI (Lunar Calendar)
 KASI_SERVICE_KEY=xxx
 ```
 
-#### Optional (OAuth)
+#### 선택 (OAuth)
 ```env
 # Naver
 NEXT_PUBLIC_NAVER_CLIENT_ID=xxx
@@ -44,344 +44,344 @@ NAVER_CLIENT_SECRET=xxx
 # Google/Kakao/Apple - Configure in Supabase Dashboard
 ```
 
-#### Optional (IAP - If Implementing)
+#### 선택 (IAP - 구현 시)
 ```env
 APPLE_SHARED_SECRET=xxx
 GOOGLE_PACKAGE_NAME=com.dearmydays.app
 GOOGLE_SERVICE_ACCOUNT_TOKEN=xxx
 ```
 
-#### Optional (Push Notifications - If Implementing)
+#### 선택 (푸시 알림 - 구현 시)
 ```env
 FIREBASE_PROJECT_ID=your-project
 FIREBASE_CLIENT_EMAIL=firebase-adminsdk@xxx.iam.gserviceaccount.com
 FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nxxx\n-----END PRIVATE KEY-----\n"
 ```
 
-### 3. Supabase Configuration
+### 3. Supabase 설정
 
-#### Database Setup
-- [ ] Run all migrations
-- [ ] Verify tables exist:
+#### 데이터베이스 설정
+- [ ] 모든 마이그레이션 실행
+- [ ] 테이블 존재 확인:
   - `events`
   - `user_plans`
-  - `event_purchases` (if using IAP)
-  - `device_tokens` (if using push)
-  - `event_notification_settings` (if using push)
-  - `notification_logs` (if using push)
-- [ ] Enable Row Level Security (RLS) on all tables
-- [ ] Test RLS policies
+  - `event_purchases` (IAP 사용 시)
+  - `device_tokens` (푸시 사용 시)
+  - `event_notification_settings` (푸시 사용 시)
+  - `notification_logs` (푸시 사용 시)
+- [ ] 모든 테이블에 Row Level Security (RLS) 활성화
+- [ ] RLS 정책 테스트
 
-#### Authentication Setup
-- [ ] Add redirect URLs:
+#### 인증 설정
+- [ ] 리다이렉트 URL 추가:
   ```
-  https://dearmydays.com/auth/callback
+  https://dear-my-days.com/auth/callback
   http://localhost:3000/auth/callback
   dearmydays://auth/callback
   capacitor://localhost/auth/callback
   ```
-- [ ] Configure OAuth providers (Google, Kakao, Apple, Naver)
-- [ ] Test each OAuth flow
+- [ ] OAuth 제공자 설정 (Google, Kakao, Apple, Naver)
+- [ ] 각 OAuth 플로우 테스트
 
-#### Edge Functions (If Using Push Notifications)
-- [ ] Deploy Edge Function:
+#### Edge Functions (푸시 알림 사용 시)
+- [ ] Edge Function 배포:
   ```bash
   supabase functions deploy send-scheduled-notifications
   ```
-- [ ] Set secrets:
+- [ ] Secrets 설정:
   ```bash
   supabase secrets set FIREBASE_PROJECT_ID=xxx
   supabase secrets set FIREBASE_CLIENT_EMAIL=xxx
   supabase secrets set FIREBASE_PRIVATE_KEY=xxx
   ```
-- [ ] Set up pg_cron job (see PUSH_NOTIFICATIONS_SETUP.md)
+- [ ] pg_cron 작업 설정 (PUSH_NOTIFICATIONS_SETUP.md 참조)
 
-### 4. Web Deployment (Vercel)
+### 4. 웹 배포 (Vercel)
 
-- [ ] Connect GitHub repository to Vercel
-- [ ] Configure environment variables in Vercel
-- [ ] Set build command: `next build`
-- [ ] Set output directory: `.next`
-- [ ] Deploy production build
-- [ ] Test web app: https://dearmydays.com
-- [ ] Verify `.well-known` files accessible:
+- [ ] GitHub 저장소를 Vercel에 연결
+- [ ] Vercel에서 환경 변수 설정
+- [ ] 빌드 명령어 설정: `next build`
+- [ ] 출력 디렉토리 설정: `.next`
+- [ ] 프로덕션 빌드 배포
+- [ ] 웹 앱 테스트: https://dear-my-days.com
+- [ ] `.well-known` 파일 접근 가능 확인:
   - `/.well-known/apple-app-site-association`
   - `/.well-known/assetlinks.json`
 
-### 5. iOS Setup
+### 5. iOS 설정
 
-#### Apple Developer Account
-- [ ] Enroll in Apple Developer Program ($99/year)
-- [ ] Create App ID: `com.dearmydays.app`
-- [ ] Enable capabilities:
-  - Associated Domains (for Universal Links)
+#### Apple Developer 계정
+- [ ] Apple Developer Program 등록 ($99/년)
+- [ ] App ID 생성: `com.dearmydays.app`
+- [ ] 기능 활성화:
+  - Associated Domains (Universal Links용)
   - Push Notifications
-  - In-App Purchase (if implementing)
-  - Sign in with Apple (if implementing)
+  - In-App Purchase (구현 시)
+  - Sign in with Apple (구현 시)
 
-#### Xcode Configuration
-- [ ] Open `ios/App/App.xcworkspace` in Xcode
-- [ ] Update Bundle Identifier: `com.dearmydays.app`
-- [ ] Configure Signing & Capabilities:
-  - Select your development team
-  - Enable automatic signing
-  - Add Associated Domains: `applinks:dearmydays.com`
-  - Add Push Notifications capability
-- [ ] Update version and build number
-- [ ] Replace app icon (Assets.xcassets)
-- [ ] Test on iOS Simulator
+#### Xcode 설정
+- [ ] Xcode에서 `ios/App/App.xcworkspace` 열기
+- [ ] Bundle Identifier 업데이트: `com.dearmydays.app`
+- [ ] Signing & Capabilities 설정:
+  - 개발 팀 선택
+  - 자동 서명 활성화
+  - Associated Domains 추가: `applinks:dear-my-days.com`
+  - Push Notifications 기능 추가
+- [ ] 버전 및 빌드 번호 업데이트
+- [ ] 앱 아이콘 교체 (Assets.xcassets)
+- [ ] iOS 시뮬레이터에서 테스트
 
-#### Firebase Setup (If Using Push Notifications)
-- [ ] Add `GoogleService-Info.plist` to `ios/App/App/`
-- [ ] Update `Podfile` with Firebase dependencies
-- [ ] Run `pod install`
-- [ ] Update `AppDelegate.swift` with Firebase initialization
-- [ ] Upload APNs key to Firebase Console
+#### Firebase 설정 (푸시 알림 사용 시)
+- [ ] `ios/App/App/`에 `GoogleService-Info.plist` 추가
+- [ ] Firebase 의존성으로 `Podfile` 업데이트
+- [ ] `pod install` 실행
+- [ ] Firebase 초기화 코드로 `AppDelegate.swift` 업데이트
+- [ ] Firebase Console에 APNs 키 업로드
 
-#### TestFlight Deployment
-- [ ] Archive app (Product → Archive)
-- [ ] Distribute to App Store Connect
-- [ ] Add to TestFlight
-- [ ] Invite internal testers
-- [ ] Test on real devices
+#### TestFlight 배포
+- [ ] 앱 아카이브 (Product → Archive)
+- [ ] App Store Connect로 배포
+- [ ] TestFlight에 추가
+- [ ] 내부 테스터 초대
+- [ ] 실제 기기에서 테스트
 
-#### App Store Submission
-- [ ] Create app in App Store Connect
-- [ ] Upload screenshots (all required sizes)
-- [ ] Write app description (Korean + English)
-- [ ] Set category and keywords
-- [ ] Add privacy policy URL
-- [ ] Submit for review
+#### App Store 제출
+- [ ] App Store Connect에서 앱 생성
+- [ ] 스크린샷 업로드 (모든 필수 크기)
+- [ ] 앱 설명 작성 (한국어 + 영어)
+- [ ] 카테고리 및 키워드 설정
+- [ ] 개인정보 처리방침 URL 추가
+- [ ] 검토 제출
 
-### 6. Android Setup
+### 6. Android 설정
 
 #### Google Play Console
-- [ ] Create Google Play Developer account ($25 one-time)
-- [ ] Create application
-- [ ] Set up app details:
-  - App name: Dear My Days
-  - Package name: `com.dearmydays.app`
-  - Category: Lifestyle or Productivity
+- [ ] Google Play Developer 계정 생성 ($25 일회성)
+- [ ] 애플리케이션 생성
+- [ ] 앱 세부정보 설정:
+  - 앱 이름: Dear My Days
+  - 패키지 이름: `com.dearmydays.app`
+  - 카테고리: 라이프스타일 또는 생산성
 
-#### Android Studio Configuration
-- [ ] Open `android/` in Android Studio
-- [ ] Update `applicationId` in `build.gradle`: `com.dearmydays.app`
-- [ ] Update version code and version name
-- [ ] Replace app icon (res/mipmap)
-- [ ] Generate signing key:
+#### Android Studio 설정
+- [ ] Android Studio에서 `android/` 열기
+- [ ] `build.gradle`에서 `applicationId` 업데이트: `com.dearmydays.app`
+- [ ] 버전 코드 및 버전 이름 업데이트
+- [ ] 앱 아이콘 교체 (res/mipmap)
+- [ ] 서명 키 생성:
   ```bash
   keytool -genkey -v -keystore my-release-key.keystore \
     -alias my-key-alias -keyalg RSA -keysize 2048 -validity 10000
   ```
-- [ ] Configure signing in `build.gradle`
-- [ ] Test on Android Emulator
+- [ ] `build.gradle`에서 서명 설정
+- [ ] Android 에뮬레이터에서 테스트
 
-#### Firebase Setup (If Using Push Notifications)
-- [ ] Add `google-services.json` to `android/app/`
-- [ ] Update `build.gradle` with Firebase dependencies
-- [ ] Create `FirebaseMessagingService.java`
-- [ ] Update `AndroidManifest.xml` with service
+#### Firebase 설정 (푸시 알림 사용 시)
+- [ ] `android/app/`에 `google-services.json` 추가
+- [ ] Firebase 의존성으로 `build.gradle` 업데이트
+- [ ] `FirebaseMessagingService.java` 생성
+- [ ] 서비스로 `AndroidManifest.xml` 업데이트
 
-#### App Links Setup
-- [ ] Generate SHA-256 fingerprint:
+#### App Links 설정
+- [ ] SHA-256 지문 생성:
   ```bash
   keytool -list -v -keystore my-release-key.keystore -alias my-key-alias
   ```
-- [ ] Update `assetlinks.json` with fingerprint
-- [ ] Verify: https://digitalassetlinks.googleapis.com/v1/statements:list?source.web.site=https://dearmydays.com
+- [ ] 지문으로 `assetlinks.json` 업데이트
+- [ ] 확인: https://digitalassetlinks.googleapis.com/v1/statements:list?source.web.site=https://dear-my-days.com
 
-#### Internal Testing
-- [ ] Build signed APK/AAB:
+#### 내부 테스트
+- [ ] 서명된 APK/AAB 빌드:
   ```bash
   cd android
   ./gradlew bundleRelease
   ```
-- [ ] Upload to Internal Testing track
-- [ ] Add test users
-- [ ] Test on real devices
+- [ ] 내부 테스트 트랙에 업로드
+- [ ] 테스트 사용자 추가
+- [ ] 실제 기기에서 테스트
 
-#### Production Release
-- [ ] Create production release
-- [ ] Upload signed AAB
-- [ ] Fill out store listing:
-  - Screenshots (all required sizes)
-  - Feature graphic
-  - App description
-  - Privacy policy URL
-- [ ] Set content rating
-- [ ] Submit for review
+#### 프로덕션 출시
+- [ ] 프로덕션 릴리스 생성
+- [ ] 서명된 AAB 업로드
+- [ ] 스토어 목록 작성:
+  - 스크린샷 (모든 필수 크기)
+  - 기능 그래픽
+  - 앱 설명
+  - 개인정보 처리방침 URL
+- [ ] 콘텐츠 등급 설정
+- [ ] 검토 제출
 
-### 7. In-App Purchases Setup (If Implementing)
+### 7. 인앱 결제 설정 (구현 시)
 
 #### iOS (App Store Connect)
-- [ ] Create subscription group: "Premium Subscriptions"
-- [ ] Create products:
-  - `com.dearmydays.premium.monthly` - ₩4,900/month
-  - `com.dearmydays.premium.yearly` - ₩49,000/year
-- [ ] Generate App-Specific Shared Secret
-- [ ] Add to environment variables: `APPLE_SHARED_SECRET`
+- [ ] 구독 그룹 생성: "Premium Subscriptions"
+- [ ] 제품 생성:
+  - `com.dearmydays.premium.monthly` - ₩4,900/월
+  - `com.dearmydays.premium.yearly` - ₩49,000/년
+- [ ] App-Specific Shared Secret 생성
+- [ ] 환경 변수에 추가: `APPLE_SHARED_SECRET`
 
 #### Android (Google Play Console)
-- [ ] Create subscription products:
-  - `com.dearmydays.premium.monthly` - ₩4,900/month
-  - `com.dearmydays.premium.yearly` - ₩49,000/year
-- [ ] Set up billing period and pricing
-- [ ] Activate products
-- [ ] Set up service account for API access
-- [ ] Generate access token
-- [ ] Add to environment variables
+- [ ] 구독 제품 생성:
+  - `com.dearmydays.premium.monthly` - ₩4,900/월
+  - `com.dearmydays.premium.yearly` - ₩49,000/년
+- [ ] 결제 기간 및 가격 설정
+- [ ] 제품 활성화
+- [ ] API 액세스를 위한 서비스 계정 설정
+- [ ] 액세스 토큰 생성
+- [ ] 환경 변수에 추가
 
-#### Native Code
-- [ ] Implement iOS IAP (see IAP_SETUP.md)
-- [ ] Implement Android Billing (see IAP_SETUP.md)
-- [ ] Test with sandbox accounts
+#### 네이티브 코드
+- [ ] iOS IAP 구현 (IAP_SETUP.md 참조)
+- [ ] Android Billing 구현 (IAP_SETUP.md 참조)
+- [ ] 샌드박스 계정으로 테스트
 
-### 8. Push Notifications Setup (If Implementing)
+### 8. 푸시 알림 설정 (구현 시)
 
-#### Firebase Configuration
-- [ ] Create Firebase project
-- [ ] Add iOS app + download config
-- [ ] Add Android app + download config
-- [ ] Configure Cloud Messaging
-- [ ] Upload APNs key (iOS)
+#### Firebase 설정
+- [ ] Firebase 프로젝트 생성
+- [ ] iOS 앱 추가 + 설정 다운로드
+- [ ] Android 앱 추가 + 설정 다운로드
+- [ ] Cloud Messaging 설정
+- [ ] APNs 키 업로드 (iOS)
 
-#### Database Setup
-- [ ] Run notification migrations
-- [ ] Create `get_pending_notifications()` function
-- [ ] Set up pg_cron job
+#### 데이터베이스 설정
+- [ ] 알림 마이그레이션 실행
+- [ ] `get_pending_notifications()` 함수 생성
+- [ ] pg_cron 작업 설정
 
-#### Testing
-- [ ] Test token registration
-- [ ] Test manual notification send
-- [ ] Test scheduled notifications
-- [ ] Test notification click → deep link
+#### 테스트
+- [ ] 토큰 등록 테스트
+- [ ] 수동 알림 전송 테스트
+- [ ] 예약된 알림 테스트
+- [ ] 알림 클릭 → 딥링크 테스트
 
-### 9. Testing Checklist
+### 9. 테스트 체크리스트
 
-#### Web Testing
-- [ ] All pages load correctly
-- [ ] OAuth login works
-- [ ] Event CRUD works
-- [ ] Calendar view works
-- [ ] Lunar date conversion works
+#### 웹 테스트
+- [ ] 모든 페이지가 올바르게 로드됨
+- [ ] OAuth 로그인 작동
+- [ ] 이벤트 CRUD 작동
+- [ ] 캘린더 뷰 작동
+- [ ] 음력 날짜 변환 작동
 
-#### iOS Testing
-- [ ] App launches successfully
-- [ ] OAuth login works (all providers)
-- [ ] Deep links work (`dearmydays://`)
-- [ ] Universal Links work (`https://dearmydays.com/`)
-- [ ] Native back gesture works
-- [ ] Status bar styling correct
-- [ ] Push notifications work (if implemented)
-- [ ] IAP works (if implemented)
+#### iOS 테스트
+- [ ] 앱이 성공적으로 실행됨
+- [ ] OAuth 로그인 작동 (모든 제공자)
+- [ ] 딥링크 작동 (`dearmydays://`)
+- [ ] Universal Links 작동 (`https://dear-my-days.com/`)
+- [ ] 네이티브 뒤로 가기 제스처 작동
+- [ ] 상태 표시줄 스타일링 올바름
+- [ ] 푸시 알림 작동 (구현 시)
+- [ ] IAP 작동 (구현 시)
 
-#### Android Testing
-- [ ] App launches successfully
-- [ ] OAuth login works (all providers)
-- [ ] Deep links work
-- [ ] App Links work
-- [ ] Native back button works
-- [ ] Push notifications work (if implemented)
-- [ ] IAP works (if implemented)
+#### Android 테스트
+- [ ] 앱이 성공적으로 실행됨
+- [ ] OAuth 로그인 작동 (모든 제공자)
+- [ ] 딥링크 작동
+- [ ] App Links 작동
+- [ ] 네이티브 뒤로 가기 버튼 작동
+- [ ] 푸시 알림 작동 (구현 시)
+- [ ] IAP 작동 (구현 시)
 
-### 10. Monitoring & Analytics
+### 10. 모니터링 & 분석
 
-#### Error Tracking
-- [ ] Set up Sentry or similar
-- [ ] Configure error boundaries
-- [ ] Test error reporting
+#### 에러 추적
+- [ ] Sentry 또는 유사 도구 설정
+- [ ] Error Boundary 설정
+- [ ] 에러 리포팅 테스트
 
-#### Analytics (Optional)
-- [ ] Set up Google Analytics or similar
-- [ ] Track key events:
-  - User registration
-  - Event creation
-  - OAuth login
-  - Subscription purchase
-  - Notification interactions
+#### 분석 (선택)
+- [ ] Google Analytics 또는 유사 도구 설정
+- [ ] 주요 이벤트 추적:
+  - 사용자 등록
+  - 이벤트 생성
+  - OAuth 로그인
+  - 구독 구매
+  - 알림 상호작용
 
-#### Performance Monitoring
-- [ ] Monitor API response times
-- [ ] Monitor Supabase query performance
-- [ ] Monitor Edge Function execution
+#### 성능 모니터링
+- [ ] API 응답 시간 모니터링
+- [ ] Supabase 쿼리 성능 모니터링
+- [ ] Edge Function 실행 모니터링
 
-## Post-Deployment Checklist
+## 배포 후 체크리스트
 
-### Day 1
-- [ ] Monitor crash reports
-- [ ] Check user feedback
-- [ ] Verify analytics tracking
-- [ ] Monitor API errors
+### 1일차
+- [ ] 크래시 리포트 모니터링
+- [ ] 사용자 피드백 확인
+- [ ] 분석 추적 확인
+- [ ] API 에러 모니터링
 
-### Week 1
-- [ ] Review app store reviews
-- [ ] Fix critical bugs
-- [ ] Monitor subscription conversions (if applicable)
-- [ ] Check notification delivery rates (if applicable)
+### 1주차
+- [ ] 앱 스토어 리뷰 검토
+- [ ] 치명적인 버그 수정
+- [ ] 구독 전환율 모니터링 (해당 시)
+- [ ] 알림 전달률 확인 (해당 시)
 
-### Month 1
-- [ ] Analyze user retention
-- [ ] Optimize performance bottlenecks
-- [ ] Plan feature updates
-- [ ] Respond to user feedback
+### 1개월차
+- [ ] 사용자 유지율 분석
+- [ ] 성능 병목 최적화
+- [ ] 기능 업데이트 계획
+- [ ] 사용자 피드백 대응
 
-## Maintenance Checklist
+## 유지보수 체크리스트
 
-### Monthly
-- [ ] Review error logs
-- [ ] Check for Capacitor updates
-- [ ] Check for dependency updates
-- [ ] Review app store reviews
+### 매월
+- [ ] 에러 로그 검토
+- [ ] Capacitor 업데이트 확인
+- [ ] 의존성 업데이트 확인
+- [ ] 앱 스토어 리뷰 검토
 
-### Quarterly
-- [ ] Update privacy policy (if needed)
-- [ ] Review and optimize database queries
-- [ ] Audit security practices
-- [ ] Plan major feature releases
+### 분기별
+- [ ] 개인정보 처리방침 업데이트 (필요 시)
+- [ ] 데이터베이스 쿼리 검토 및 최적화
+- [ ] 보안 관행 감사
+- [ ] 주요 기능 릴리스 계획
 
-### Annually
-- [ ] Renew Apple Developer membership
-- [ ] Review and update app screenshots
-- [ ] Major version updates
-- [ ] Security audit
+### 연간
+- [ ] Apple Developer 멤버십 갱신
+- [ ] 앱 스크린샷 검토 및 업데이트
+- [ ] 주요 버전 업데이트
+- [ ] 보안 감사
 
-## Emergency Procedures
+## 긴급 절차
 
-### Critical Bug Found
-1. Identify severity (crashes, data loss, security)
-2. Fix in development
-3. Test thoroughly
-4. Deploy hotfix to production
-5. Submit emergency app update
+### 치명적인 버그 발견
+1. 심각도 식별 (크래시, 데이터 손실, 보안)
+2. 개발 환경에서 수정
+3. 철저한 테스트
+4. 프로덕션에 핫픽스 배포
+5. 긴급 앱 업데이트 제출
 
-### Server Outage
-1. Check Vercel status
-2. Check Supabase status
-3. Check third-party services (Firebase, etc.)
-4. Communicate with users (status page)
-5. Implement fallback if possible
+### 서버 장애
+1. Vercel 상태 확인
+2. Supabase 상태 확인
+3. 서드파티 서비스 확인 (Firebase 등)
+4. 사용자에게 공지 (상태 페이지)
+5. 가능하면 폴백 구현
 
-### Data Breach
-1. Identify scope of breach
-2. Notify affected users
-3. Reset credentials if needed
-4. Review security practices
-5. Report to authorities (if required)
+### 데이터 유출
+1. 유출 범위 식별
+2. 영향받은 사용자에게 알림
+3. 필요 시 자격 증명 재설정
+4. 보안 관행 검토
+5. 당국에 보고 (필요 시)
 
-## Rollback Procedures
+## 롤백 절차
 
-### Web (Vercel)
+### 웹 (Vercel)
 ```bash
-# Rollback to previous deployment
+# 이전 배포로 롤백
 vercel rollback
 ```
 
-### Mobile Apps
-- iOS: Cannot rollback (submit new version)
-- Android: Use release management in Play Console
-- Communicate with users about issues
+### 모바일 앱
+- iOS: 롤백 불가 (새 버전 제출)
+- Android: Play Console의 릴리스 관리 사용
+- 사용자에게 문제 공지
 
-## Resources
+## 리소스
 
 - [Capacitor Docs](https://capacitorjs.com/docs)
 - [Supabase Docs](https://supabase.com/docs)
@@ -389,13 +389,13 @@ vercel rollback
 - [Google Play Console](https://play.google.com/console)
 - [Vercel Docs](https://vercel.com/docs)
 
-## Support Contacts
+## 지원 연락처
 
-- Technical Support: support@dearmydays.com
-- Emergency Contact: emergency@dearmydays.com
-- Developer GitHub: https://github.com/dearmydays/app
+- 기술 지원: support@dear-my-days.com
+- 긴급 연락처: emergency@dear-my-days.com
+- 개발자 GitHub: https://github.com/dearmydays/app
 
 ---
 
-**Last Updated:** 2026-02-07
-**Version:** 1.0.0
+**마지막 업데이트:** 2026-02-07
+**버전:** 1.0.0

@@ -24,8 +24,8 @@ export function useDeepLinks() {
           router.push(path)
         }
 
-        // Universal Link: https://dearmydays.com/path
-        if (url.host === 'dearmydays.com') {
+        // Universal Link: https://dear-my-days.com/path
+        if (url.host === 'dear-my-days.com') {
           router.push(url.pathname + url.search)
         }
       },
@@ -35,7 +35,7 @@ export function useDeepLinks() {
     App.getLaunchUrl().then((result) => {
       if (result?.url) {
         const url = new URL(result.url)
-        if (url.protocol === 'dearmydays:' || url.host === 'dearmydays.com') {
+        if (url.protocol === 'dearmydays:' || url.host === 'dear-my-days.com') {
           router.push(url.pathname)
         }
       }

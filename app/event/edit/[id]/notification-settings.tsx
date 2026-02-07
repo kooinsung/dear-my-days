@@ -10,7 +10,6 @@ interface NotificationSchedule {
   days_before: number // 이벤트 며칠 전 (0 = 당일)
   hour: number // 0-23
   minute: number // 0-59
-  enabled: boolean
 }
 
 interface NotificationSettingsProps {
@@ -19,12 +18,7 @@ interface NotificationSettingsProps {
 
 export function NotificationSettings({ eventId }: NotificationSettingsProps) {
   const supabase = createSupabaseBrowser()
-  const [schedules, setSchedules] = useState<NotificationSchedule[]>([
-    { days_before: 7, hour: 9, minute: 0, enabled: true }, // D-7일 오전 9:00
-    { days_before: 3, hour: 9, minute: 0, enabled: true }, // D-3일 오전 9:00
-    { days_before: 1, hour: 9, minute: 0, enabled: true }, // D-1일 오전 9:00
-    { days_before: 0, hour: 9, minute: 0, enabled: true }, // 당일 오전 9:00
-  ])
+  const [schedules, setSchedules] = useState<NotificationSchedule[]>([])
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
 
@@ -42,26 +36,38 @@ export function NotificationSettings({ eventId }: NotificationSettingsProps) {
       }
 
       if (data && data.length > 0) {
-        // 기존 설정이 있으면 활성화
-        const loaded = schedules.map((schedule) => {
-          const found = data.find((d) => d.days_before === schedule.days_before)
-          if (found) {
-            return {
-              days_before: schedule.days_before,
-              hour: found.notification_hour,
-              minute: found.notification_minute,
-              enabled: true,
-            }
-          }
-          return { ...schedule, enabled: false }
-        })
+        const loaded = data.map((d) => ({
+          days_before: d.days_before,
+          hour: d.notification_hour,
+          minute: d.notification_minute,
+        }))
         setSchedules(loaded)
       }
     }
 
     loadSettings()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eventId, schedules.map, supabase.from])
+  }, [eventId, supabase])
+
+  const addSchedule = () => {
+    setSchedules([...schedules, { days_before: 1, hour: 9, minute: 0 }])
+  }
+
+  const removeSchedule = (index: number) => {
+    setSchedules(schedules.filter((_, i) => i !== index))
+  }
+
+  const updateSchedule = (
+    index: number,
+    field: keyof NotificationSchedule,
+    value: number,
+  ) => {
+    const newSchedules = [...schedules]
+    newSchedules[index] = {
+      ...newSchedules[index],
+      [field]: value,
+    }
+    setSchedules(newSchedules)
+  }
 
   const handleSave = async () => {
     setLoading(true)
@@ -88,13 +94,12 @@ export function NotificationSettings({ eventId }: NotificationSettingsProps) {
         return
       }
 
-      // 활성화된 알림만 저장
-      const activeSchedules = schedules.filter((s) => s.enabled)
-      if (activeSchedules.length > 0) {
+      // 모든 알림 스케줄 저장
+      if (schedules.length > 0) {
         const { error: insertError } = await supabase
           .from('event_notification_settings')
           .insert(
-            activeSchedules.map((schedule) => ({
+            schedules.map((schedule) => ({
               event_id: eventId,
               user_id: user.id,
               days_before: schedule.days_before,
@@ -117,19 +122,6 @@ export function NotificationSettings({ eventId }: NotificationSettingsProps) {
     } finally {
       setLoading(false)
     }
-  }
-
-  const updateSchedule = (
-    index: number,
-    field: keyof NotificationSchedule,
-    value: number | boolean,
-  ) => {
-    const newSchedules = [...schedules]
-    newSchedules[index] = {
-      ...newSchedules[index],
-      [field]: value,
-    }
-    setSchedules(newSchedules)
   }
 
   return (
@@ -167,79 +159,124 @@ export function NotificationSettings({ eventId }: NotificationSettingsProps) {
       )}
 
       <div className={vstack({ gap: '12px', marginBottom: '16px' })}>
-        {schedules.map((schedule, index) => (
+        {schedules.length === 0 ? (
           <div
-            key={`${schedule.days_before}-${schedule.hour}-${schedule.minute}`}
             className={css({
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              padding: '12px',
+              padding: '24px',
+              textAlign: 'center',
+              color: '#666',
+              fontSize: '14px',
               backgroundColor: 'white',
               borderRadius: '4px',
             })}
           >
-            <input
-              type="checkbox"
-              checked={schedule.enabled}
-              onChange={(e) =>
-                updateSchedule(index, 'enabled', e.target.checked)
-              }
+            설정된 알림이 없습니다. 알림을 추가해주세요.
+          </div>
+        ) : (
+          schedules.map((schedule, index) => (
+            <div
+              key={`${index}-${schedule.days_before}-${schedule.hour}-${schedule.minute}`}
               className={css({
-                width: '20px',
-                height: '20px',
-                cursor: 'pointer',
-              })}
-            />
-            <span
-              className={css({
-                minWidth: '60px',
-                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '12px',
+                backgroundColor: 'white',
+                borderRadius: '4px',
               })}
             >
-              {schedule.days_before === 0
-                ? '당일'
-                : `D-${schedule.days_before}일`}
-            </span>
-            <input
-              type="number"
-              min={0}
-              max={23}
-              value={schedule.hour}
-              onChange={(e) =>
-                updateSchedule(index, 'hour', Number(e.target.value))
-              }
-              disabled={!schedule.enabled}
-              className={css({
-                width: '60px',
-                padding: '4px 8px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '14px',
-              })}
-            />
-            <span className={css({ fontSize: '14px' })}>시</span>
-            <input
-              type="number"
-              min={0}
-              max={59}
-              value={schedule.minute}
-              onChange={(e) =>
-                updateSchedule(index, 'minute', Number(e.target.value))
-              }
-              disabled={!schedule.enabled}
-              className={css({
-                width: '60px',
-                padding: '4px 8px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '14px',
-              })}
-            />
-            <span className={css({ fontSize: '14px' })}>분</span>
-          </div>
-        ))}
+              <span className={css({ fontSize: '14px', minWidth: '30px' })}>
+                D-
+              </span>
+              <input
+                type="number"
+                min={0}
+                max={365}
+                value={schedule.days_before}
+                onChange={(e) =>
+                  updateSchedule(index, 'days_before', Number(e.target.value))
+                }
+                className={css({
+                  width: '70px',
+                  padding: '4px 8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                })}
+              />
+              <span className={css({ fontSize: '14px' })}>일</span>
+              <input
+                type="number"
+                min={0}
+                max={23}
+                value={schedule.hour}
+                onChange={(e) =>
+                  updateSchedule(index, 'hour', Number(e.target.value))
+                }
+                className={css({
+                  width: '60px',
+                  padding: '4px 8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                })}
+              />
+              <span className={css({ fontSize: '14px' })}>시</span>
+              <input
+                type="number"
+                min={0}
+                max={59}
+                value={schedule.minute}
+                onChange={(e) =>
+                  updateSchedule(index, 'minute', Number(e.target.value))
+                }
+                className={css({
+                  width: '60px',
+                  padding: '4px 8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                })}
+              />
+              <span className={css({ fontSize: '14px' })}>분</span>
+              <button
+                type="button"
+                onClick={() => removeSchedule(index)}
+                className={css({
+                  marginLeft: 'auto',
+                  padding: '4px 12px',
+                  fontSize: '14px',
+                  color: '#dc3545',
+                  backgroundColor: 'white',
+                  border: '1px solid #dc3545',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    backgroundColor: '#dc3545',
+                    color: 'white',
+                  },
+                })}
+              >
+                삭제
+              </button>
+            </div>
+          ))
+        )}
       </div>
+
+      <button
+        type="button"
+        onClick={addSchedule}
+        className={cx(
+          button({ variant: 'secondary' }),
+          css({
+            width: '100%',
+            marginBottom: '12px',
+          }),
+        )}
+      >
+        + 알림 추가
+      </button>
 
       <button
         type="button"

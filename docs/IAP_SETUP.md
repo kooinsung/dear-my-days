@@ -1,62 +1,62 @@
-# In-App Purchases (IAP) Setup Guide
+# 인앱 결제(IAP) 설정 가이드
 
-## Overview
+## 개요
 
-This guide explains how to implement in-app purchases for iOS (Apple) and Android (Google Play) in the Capacitor app.
+이 가이드는 Capacitor 앱에서 iOS(Apple)와 Android(Google Play) 인앱 결제를 구현하는 방법을 설명합니다.
 
-## Architecture
+## 아키텍처
 
-**Current Implementation Status:**
-- ✅ API routes for receipt verification (`/api/iap/verify`, `/api/iap/restore`)
-- ✅ Subscription status endpoint (`/api/iap/subscription`)
-- ✅ Subscription UI page (`/settings/subscription`)
-- ✅ IAP utilities and helpers (`libs/capacitor/iap.ts`)
-- ⚠️ **Native implementation required** (see below)
+**현재 구현 상태:**
+- ✅ 영수증 검증을 위한 API 라우트 (`/api/iap/verify`, `/api/iap/restore`)
+- ✅ 구독 상태 엔드포인트 (`/api/iap/subscription`)
+- ✅ 구독 UI 페이지 (`/settings/subscription`)
+- ✅ IAP 유틸리티 및 헬퍼 (`libs/capacitor/iap.ts`)
+- ⚠️ **네이티브 구현 필요** (아래 참조)
 
-## Product IDs
+## 상품 ID
 
-Configure these product IDs in App Store Connect and Google Play Console:
+App Store Connect와 Google Play Console에서 다음 상품 ID를 설정하세요:
 
 ```typescript
 {
-  PREMIUM_MONTHLY: 'com.dearmydays.premium.monthly',  // ₩4,900/month
-  PREMIUM_YEARLY: 'com.dearmydays.premium.yearly',    // ₩49,000/year
-  ENTERPRISE: 'com.dearmydays.enterprise',            // ₩99,000/year
+  PREMIUM_MONTHLY: 'com.dearmydays.premium.monthly',  // ₩4,900/월
+  PREMIUM_YEARLY: 'com.dearmydays.premium.yearly',    // ₩49,000/년
+  ENTERPRISE: 'com.dearmydays.enterprise',            // ₩99,000/년
 }
 ```
 
-## 1. iOS Setup (Apple)
+## 1. iOS 설정 (Apple)
 
-### Step 1: App Store Connect Configuration
+### 1단계: App Store Connect 구성
 
-1. Go to [App Store Connect](https://appstoreconnect.apple.com)
-2. Select your app → **In-App Purchases**
-3. Click **+** to create new subscription
+1. [App Store Connect](https://appstoreconnect.apple.com) 접속
+2. 앱 선택 → **In-App Purchases**
+3. **+** 클릭하여 새 구독 생성
 
-**For each product:**
+**각 상품별 설정:**
 - Product ID: `com.dearmydays.premium.monthly`
 - Type: **Auto-Renewable Subscription**
-- Subscription Group: Create "Premium Subscriptions"
-- Duration: 1 month (or 1 year for yearly)
-- Price: ₩4,900 (or ₩49,000 for yearly)
-- Localization: Add Korean and English descriptions
+- Subscription Group: "Premium Subscriptions" 생성
+- Duration: 1개월 (또는 연간의 경우 1년)
+- Price: ₩4,900 (또는 연간의 경우 ₩49,000)
+- Localization: 한국어 및 영어 설명 추가
 
-4. Create **Shared Secret** for receipt verification:
+4. 영수증 검증을 위한 **Shared Secret** 생성:
    - App Store Connect → App → In-App Purchases → App-Specific Shared Secret
-   - Generate and save the secret
+   - 생성하여 저장
 
-### Step 2: Environment Variables
+### 2단계: 환경 변수
 
-Add to `.env.local`:
+`.env.local`에 추가:
 ```env
 APPLE_SHARED_SECRET=your_shared_secret_here
 ```
 
-### Step 3: Native iOS Implementation
+### 3단계: 네이티브 iOS 구현
 
-The current implementation requires native StoreKit 2 code. Add to your iOS project:
+현재 구현은 네이티브 StoreKit 2 코드가 필요합니다. iOS 프로젝트에 추가하세요:
 
-**Create `IAPManager.swift`:**
+**`IAPManager.swift` 생성:**
 ```swift
 import StoreKit
 import Capacitor
@@ -187,7 +187,7 @@ enum StoreError: Error {
 }
 ```
 
-**Register plugin in `Capacitor.config.ts`:**
+**`Capacitor.config.ts`에 플러그인 등록:**
 ```typescript
 plugins: {
   IAPManager: {
@@ -196,69 +196,69 @@ plugins: {
 }
 ```
 
-### Step 4: Testing
+### 4단계: 테스트
 
-1. **Sandbox Testing:**
-   - Create sandbox tester in App Store Connect
-   - Sign out of real Apple ID on device
-   - Use sandbox account when prompted during purchase
+1. **샌드박스 테스트:**
+   - App Store Connect에서 샌드박스 테스터 생성
+   - 기기에서 실제 Apple ID 로그아웃
+   - 결제 시 프롬프트가 표시되면 샌드박스 계정 사용
 
-2. **Test Flow:**
+2. **테스트 플로우:**
    ```bash
    pnpm dev:ios
-   # Navigate to /settings/subscription
-   # Click "구독하기"
-   # Should show StoreKit payment sheet
+   # /settings/subscription으로 이동
+   # "구독하기" 클릭
+   # StoreKit 결제 시트 표시되어야 함
    ```
 
-## 2. Android Setup (Google Play)
+## 2. Android 설정 (Google Play)
 
-### Step 1: Google Play Console Configuration
+### 1단계: Google Play Console 구성
 
-1. Go to [Google Play Console](https://play.google.com/console)
-2. Select your app → **Monetization setup** → **Products** → **Subscriptions**
-3. Create subscription products
+1. [Google Play Console](https://play.google.com/console) 접속
+2. 앱 선택 → **Monetization setup** → **Products** → **Subscriptions**
+3. 구독 상품 생성
 
-**For each product:**
+**각 상품별 설정:**
 - Product ID: `com.dearmydays.premium.monthly`
 - Name: Premium Monthly
 - Description: Monthly premium subscription
-- Billing period: Monthly (or Yearly)
-- Base price: ₩4,900 (or ₩49,000)
+- Billing period: Monthly (또는 Yearly)
+- Base price: ₩4,900 (또는 ₩49,000)
 
-### Step 2: Service Account Setup
+### 2단계: 서비스 계정 설정
 
 1. **Google Cloud Console:**
-   - Go to IAM & Admin → Service Accounts
-   - Create service account for your app
-   - Grant "Owner" or "Editor" role
-   - Create JSON key and download
+   - IAM & Admin → Service Accounts로 이동
+   - 앱용 서비스 계정 생성
+   - "Owner" 또는 "Editor" 역할 부여
+   - JSON 키 생성 및 다운로드
 
-2. **Link to Play Console:**
+2. **Play Console에 연결:**
    - Play Console → Settings → API access
-   - Link the service account
-   - Grant "View financial data" permission
+   - 서비스 계정 연결
+   - "View financial data" 권한 부여
 
-3. **Generate Access Token:**
+3. **액세스 토큰 생성:**
    ```bash
-   # Install gcloud CLI
+   # gcloud CLI 설치
    gcloud auth activate-service-account --key-file=service-account-key.json
    gcloud auth print-access-token
    ```
 
-### Step 3: Environment Variables
+### 3단계: 환경 변수
 
-Add to `.env.local`:
+`.env.local`에 추가:
 ```env
 GOOGLE_PACKAGE_NAME=com.dearmydays.app
 GOOGLE_SERVICE_ACCOUNT_TOKEN=your_access_token_here
 ```
 
-**Note:** The access token expires after 1 hour. For production, implement automatic token refresh using the service account key.
+**참고:** 액세스 토큰은 1시간 후 만료됩니다. 프로덕션에서는 서비스 계정 키를 사용한 자동 토큰 갱신을 구현하세요.
 
-### Step 4: Native Android Implementation
+### 4단계: 네이티브 Android 구현
 
-Add Google Play Billing Library to `android/app/build.gradle`:
+`android/app/build.gradle`에 Google Play Billing Library 추가:
 
 ```gradle
 dependencies {
@@ -266,7 +266,7 @@ dependencies {
 }
 ```
 
-**Create `IAPManager.java`:**
+**`IAPManager.java` 생성:**
 ```java
 package com.dearmydays.app;
 
@@ -379,131 +379,131 @@ public class IAPManager extends Plugin {
 }
 ```
 
-### Step 5: Testing
+### 5단계: 테스트
 
-1. **Test with License Testers:**
+1. **라이선스 테스터로 테스트:**
    - Play Console → Settings → License Testing
-   - Add test Google accounts
-   - These accounts can make test purchases without being charged
+   - 테스트 Google 계정 추가
+   - 이 계정들은 실제 청구 없이 테스트 결제 가능
 
-2. **Test Flow:**
+2. **테스트 플로우:**
    ```bash
    pnpm dev:android
-   # Navigate to /settings/subscription
-   # Click "구독하기"
-   # Should show Google Play billing dialog
+   # /settings/subscription으로 이동
+   # "구독하기" 클릭
+   # Google Play 결제 대화상자가 표시되어야 함
    ```
 
-## 3. Testing the Complete Flow
+## 3. 전체 플로우 테스트
 
-### Web Testing (Mock)
+### 웹 테스트 (Mock)
 ```bash
 pnpm dev
-# Open http://localhost:3000/settings/subscription
-# Should see product list with mock prices
-# Clicking "구독하기" shows error (IAP not available in web)
+# http://localhost:3000/settings/subscription 열기
+# 모의 가격이 포함된 상품 목록이 표시되어야 함
+# "구독하기" 클릭 시 오류 표시 (웹에서는 IAP 사용 불가)
 ```
 
-### iOS Testing
+### iOS 테스트
 ```bash
 pnpm dev:ios
-# Use sandbox Apple ID
-# Complete purchase
-# Check logs for receipt verification
+# 샌드박스 Apple ID 사용
+# 결제 완료
+# 영수증 검증 로그 확인
 ```
 
-### Android Testing
+### Android 테스트
 ```bash
 pnpm dev:android
-# Use license tester account
-# Complete purchase
-# Check logs for token verification
+# 라이선스 테스터 계정 사용
+# 결제 완료
+# 토큰 검증 로그 확인
 ```
 
-## 4. Production Deployment
+## 4. 프로덕션 배포
 
 ### iOS
-1. Submit app for review with IAP configured
-2. Ensure all product IDs are approved
-3. Test with TestFlight before release
-4. Monitor subscriptions in App Store Connect
+1. IAP가 구성된 상태로 앱 심사 제출
+2. 모든 상품 ID가 승인되었는지 확인
+3. 출시 전 TestFlight로 테스트
+4. App Store Connect에서 구독 모니터링
 
 ### Android
-1. Activate subscription products in Play Console
-2. Test with internal/closed testing track
-3. Submit for production release
-4. Monitor subscriptions in Play Console
+1. Play Console에서 구독 상품 활성화
+2. 내부/비공개 테스트 트랙으로 테스트
+3. 프로덕션 출시 제출
+4. Play Console에서 구독 모니터링
 
-## 5. Subscription Management
+## 5. 구독 관리
 
-### User Cancellation
+### 사용자 취소
 
 **iOS:**
-- Users cancel via Settings app → Apple ID → Subscriptions
-- App cannot cancel subscriptions programmatically
-- Implement UI to direct users to Settings
+- 사용자는 설정 앱 → Apple ID → 구독을 통해 취소
+- 앱에서 프로그래밍 방식으로 구독 취소 불가
+- 사용자를 설정으로 안내하는 UI 구현
 
 **Android:**
-- Users cancel via Google Play Store → Subscriptions
-- Can deep link to subscription management:
+- 사용자는 Google Play 스토어 → 구독을 통해 취소
+- 구독 관리로 딥링크 가능:
   ```kotlin
   val intent = Intent(Intent.ACTION_VIEW)
   intent.data = Uri.parse("https://play.google.com/store/account/subscriptions")
   startActivity(intent)
   ```
 
-### Subscription Status
+### 구독 상태
 
-- Poll `/api/iap/subscription` periodically
-- Show expiry date to users
-- Handle grace periods (payment retry)
-- Show renewal date
+- `/api/iap/subscription`을 주기적으로 폴링
+- 사용자에게 만료 날짜 표시
+- 유예 기간 처리 (결제 재시도)
+- 갱신 날짜 표시
 
-### Receipt Validation
+### 영수증 검증
 
-- **Always validate receipts on the server**
-- Never trust client-side validation
-- Store transaction IDs to prevent replay attacks
-- Handle expired subscriptions gracefully
+- **항상 서버에서 영수증 검증**
+- 클라이언트 측 검증을 신뢰하지 말 것
+- 재사용 공격을 방지하기 위해 거래 ID 저장
+- 만료된 구독을 적절하게 처리
 
-## 6. Security Best Practices
+## 6. 보안 모범 사례
 
-- ✅ Store secrets in environment variables (not in code)
-- ✅ Validate all receipts server-side
-- ✅ Use HTTPS for all API calls
-- ✅ Implement idempotency (check for duplicate transactions)
-- ✅ Log all purchase attempts for fraud detection
-- ❌ Never expose Apple Shared Secret to client
-- ❌ Never expose Google Service Account credentials to client
-- ❌ Never skip server-side validation
+- ✅ 비밀 정보는 환경 변수에 저장 (코드에 저장 금지)
+- ✅ 모든 영수증을 서버 측에서 검증
+- ✅ 모든 API 호출에 HTTPS 사용
+- ✅ 멱등성 구현 (중복 거래 확인)
+- ✅ 사기 탐지를 위해 모든 결제 시도 로그 기록
+- ❌ Apple Shared Secret을 클라이언트에 노출 금지
+- ❌ Google Service Account 자격 증명을 클라이언트에 노출 금지
+- ❌ 서버 측 검증 건너뛰기 금지
 
-## 7. Common Issues
+## 7. 일반적인 문제
 
 ### iOS: "Cannot connect to iTunes Store"
-- Check sandbox environment configuration
-- Verify sandbox tester account
-- Ensure app is signed with development certificate
+- 샌드박스 환경 구성 확인
+- 샌드박스 테스터 계정 확인
+- 앱이 개발 인증서로 서명되었는지 확인
 
 ### iOS: "Receipt verification failed"
-- Check `APPLE_SHARED_SECRET` is correct
-- Try sandbox URL if status code is 21007
-- Ensure receipt data is base64 encoded
+- `APPLE_SHARED_SECRET`이 올바른지 확인
+- 상태 코드가 21007이면 샌드박스 URL 시도
+- 영수증 데이터가 base64로 인코딩되었는지 확인
 
 ### Android: "Item unavailable"
-- Activate products in Play Console
-- Wait 24 hours after activation
-- Ensure app version matches Play Console
+- Play Console에서 상품 활성화
+- 활성화 후 24시간 대기
+- 앱 버전이 Play Console과 일치하는지 확인
 
 ### Android: "Unable to query purchases"
-- Check Play Console API access
-- Verify service account permissions
-- Ensure billing library is properly initialized
+- Play Console API 액세스 확인
+- 서비스 계정 권한 확인
+- 결제 라이브러리가 올바르게 초기화되었는지 확인
 
-### General: "Transaction already processed"
-- This is expected behavior (prevents double-charging)
-- If legitimate restore, update user_plans only
+### 일반: "Transaction already processed"
+- 예상되는 동작입니다 (이중 청구 방지)
+- 정당한 복원인 경우 user_plans만 업데이트
 
-## 8. Resources
+## 8. 참고 자료
 
 - [Apple StoreKit 2](https://developer.apple.com/storekit/)
 - [Google Play Billing](https://developer.android.com/google/play/billing)
@@ -511,16 +511,16 @@ pnpm dev:android
 - [Google Play Developer API](https://developers.google.com/android-publisher)
 - [Capacitor Docs](https://capacitorjs.com/docs)
 
-## 9. Next Steps
+## 9. 다음 단계
 
-To complete IAP implementation:
+IAP 구현을 완료하려면:
 
-1. Implement native code (iOS Swift + Android Java)
-2. Register native plugins with Capacitor
-3. Update `libs/capacitor/iap.ts` to call native methods
-4. Test with sandbox/test accounts
-5. Configure products in App Store Connect / Play Console
-6. Add environment variables
-7. Deploy and test in production
+1. 네이티브 코드 구현 (iOS Swift + Android Java)
+2. Capacitor에 네이티브 플러그인 등록
+3. `libs/capacitor/iap.ts` 업데이트하여 네이티브 메서드 호출
+4. 샌드박스/테스트 계정으로 테스트
+5. App Store Connect / Play Console에서 상품 구성
+6. 환경 변수 추가
+7. 프로덕션에 배포 및 테스트
 
-**Estimated time:** 8-12 hours (as per Phase 4 plan)
+**예상 소요 시간:** 8-12시간 (Phase 4 계획 참조)
