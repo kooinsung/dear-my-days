@@ -5,15 +5,21 @@
 -- 기존: FREE | PRO
 -- 변경: FREE | PREMIUM_MONTHLY | PREMIUM_YEARLY
 
+-- Step 1: DEFAULT 제거 (자동 캐스팅 에러 방지)
+ALTER TABLE user_plans
+  ALTER COLUMN plan_type DROP DEFAULT;
+
+-- Step 2: 기존 타입 이름 변경
 ALTER TYPE plan_type RENAME TO plan_type_old;
 
+-- Step 3: 새로운 enum 타입 생성
 CREATE TYPE plan_type AS ENUM (
   'FREE',
   'PREMIUM_MONTHLY',
   'PREMIUM_YEARLY'
 );
 
--- 기존 데이터 마이그레이션 (PRO -> PREMIUM_MONTHLY)
+-- Step 4: 컬럼 타입 변경 및 데이터 마이그레이션 (PRO -> PREMIUM_MONTHLY)
 ALTER TABLE user_plans
   ALTER COLUMN plan_type TYPE plan_type
   USING (
@@ -23,6 +29,11 @@ ALTER TABLE user_plans
     END
   );
 
+-- Step 5: DEFAULT 값 다시 설정
+ALTER TABLE user_plans
+  ALTER COLUMN plan_type SET DEFAULT 'FREE'::plan_type;
+
+-- Step 6: 이전 타입 삭제
 DROP TYPE plan_type_old;
 
 -- 2. user_plans 테이블에 추가 이벤트 슬롯 컬럼 추가
