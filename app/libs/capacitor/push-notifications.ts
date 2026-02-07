@@ -142,7 +142,12 @@ export async function checkPushPermissions(): Promise<
 
   try {
     const result = await PushNotifications.checkPermissions()
-    return result.receive
+    // 'prompt-with-rationale'을 'prompt'로 매핑
+    const state = result.receive
+    if (state === 'prompt-with-rationale') {
+      return 'prompt'
+    }
+    return state as 'granted' | 'denied' | 'prompt'
   } catch (error) {
     console.error('Failed to check push permissions:', error)
     return 'denied'

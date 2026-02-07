@@ -7,6 +7,7 @@ import {
   getProducts,
   isIAPAvailable,
   type Product,
+  type ProductId,
   purchaseSubscription,
   restorePurchases,
 } from '@/libs/capacitor/iap'
@@ -85,7 +86,7 @@ export default function SubscriptionPage() {
     initialize()
   }, [supabase, router])
 
-  const handlePurchase = async (productId: string) => {
+  const handlePurchase = async (productId: ProductId) => {
     setPurchasing(true)
     setMessage('')
 
