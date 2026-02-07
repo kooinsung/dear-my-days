@@ -13,18 +13,18 @@ interface ProviderTestProps {
 }
 
 export default function ProviderTestForm({ initialUser }: ProviderTestProps) {
-  const supabase = createSupabaseBrowser()
   const [user, setUser] = useState<User | null>(initialUser)
   const [message, setMessage] = useState('')
 
   useEffect(() => {
+    const supabase = createSupabaseBrowser()
     const { data: listener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setUser(session?.user ?? null)
       },
     )
     return () => listener.subscription.unsubscribe()
-  }, [supabase])
+  }, [])
 
   const linkProvider = async (provider: TestProvider) => {
     setMessage('')
@@ -42,6 +42,7 @@ export default function ProviderTestForm({ initialUser }: ProviderTestProps) {
       return
     }
     if (provider === 'google' || provider === 'kakao') {
+      const supabase = createSupabaseBrowser()
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: { redirectTo: `${window.location.origin}/auth-provider` },
@@ -88,6 +89,7 @@ export default function ProviderTestForm({ initialUser }: ProviderTestProps) {
       return setMessage('이메일 또는 비밀번호 필요')
     }
 
+    const supabase = createSupabaseBrowser()
     const { error } = await supabase.auth.updateUser({ email, password })
     if (error) {
       setMessage(`이메일 연결 실패: ${error.message}`)

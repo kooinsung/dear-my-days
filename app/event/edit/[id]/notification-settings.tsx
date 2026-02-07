@@ -17,7 +17,6 @@ interface NotificationSettingsProps {
 }
 
 export function NotificationSettings({ eventId }: NotificationSettingsProps) {
-  const supabase = createSupabaseBrowser()
   const [schedules, setSchedules] = useState<NotificationSchedule[]>([])
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
@@ -25,6 +24,7 @@ export function NotificationSettings({ eventId }: NotificationSettingsProps) {
   // 기존 설정 불러오기
   useEffect(() => {
     async function loadSettings() {
+      const supabase = createSupabaseBrowser()
       const { data, error } = await supabase
         .from('event_notification_settings')
         .select('days_before, notification_hour, notification_minute')
@@ -46,7 +46,7 @@ export function NotificationSettings({ eventId }: NotificationSettingsProps) {
     }
 
     loadSettings()
-  }, [eventId, supabase])
+  }, [eventId])
 
   const addSchedule = () => {
     setSchedules([...schedules, { days_before: 1, hour: 9, minute: 0 }])
@@ -74,6 +74,7 @@ export function NotificationSettings({ eventId }: NotificationSettingsProps) {
     setMessage('')
 
     try {
+      const supabase = createSupabaseBrowser()
       const {
         data: { user },
       } = await supabase.auth.getUser()

@@ -19,7 +19,6 @@ interface LoginFormProps {
 }
 
 export default function LoginForm({ initialUser }: LoginFormProps) {
-  const supabase = createSupabaseBrowser()
   const router = useRouter()
 
   const [user, setUser] = useState<User | null>(initialUser)
@@ -36,11 +35,12 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
 
   // 세션 변화 감지
   useEffect(() => {
+    const supabase = createSupabaseBrowser()
     const { data } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ?? null)
     })
     return () => data.subscription.unsubscribe()
-  }, [supabase])
+  }, [])
 
   // 인증 완료 후 리다이렉트(/login?verified=1)
   useEffect(() => {
@@ -78,6 +78,7 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
 
       // 로그인 성공 시 네이티브 앱에서 푸시 알림 등록
       if (await isNative()) {
+        const supabase = createSupabaseBrowser()
         const {
           data: { user },
         } = await supabase.auth.getUser()
@@ -119,6 +120,7 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
 
   // OAuth
   const oauthLogin = async (provider: 'google' | 'kakao' | 'apple') => {
+    const supabase = createSupabaseBrowser()
     await supabase.auth.signInWithOAuth({
       provider,
       options: {

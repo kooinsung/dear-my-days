@@ -34,8 +34,6 @@ function getIdentityLabel(identity: UserIdentity): string {
 export function LinkedProvidersClient({
   initialUser,
 }: LinkedProvidersClientProps) {
-  const supabase = createSupabaseBrowser()
-
   const [user, setUser] = useState<User>(initialUser)
   const [error, setError] = useState<string>('')
   const [loading, setLoading] = useState(false)
@@ -48,6 +46,7 @@ export function LinkedProvidersClient({
   const canUnlink = identities.length >= 2
 
   const refreshUser = useCallback(async () => {
+    const supabase = createSupabaseBrowser()
     const {
       data: { user: freshUser },
       error,
@@ -64,7 +63,7 @@ export function LinkedProvidersClient({
     }
 
     setUser(freshUser)
-  }, [supabase])
+  }, [])
 
   useEffect(() => {
     // identities 포함 user를 다시 동기화
@@ -76,6 +75,7 @@ export function LinkedProvidersClient({
     setLoading(true)
 
     try {
+      const supabase = createSupabaseBrowser()
       const { error } = await supabase.auth.unlinkIdentity(identity)
 
       if (error) {
