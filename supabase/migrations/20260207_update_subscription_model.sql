@@ -5,36 +5,68 @@
 -- 기존: FREE | PRO
 -- 변경: FREE | PREMIUM_MONTHLY | PREMIUM_YEARLY
 
--- Step 1: DEFAULT 제거 (자동 캐스팅 에러 방지)
-ALTER TABLE user_plans
-  ALTER COLUMN plan_type DROP DEFAULT;
+DO $$
+BEGIN
+  -- plan_type_old가 이미 존재하는지 확인 (중복 실행 방지)
+  IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'plan_type_old') THEN
+    RAISE NOTICE 'Migration already in progress or completed. Skipping enum rename.';
+  ELSE
+    -- Step 1: DEFAULT 제거 (자동 캐스팅 에러 방지)
+    ALTER TABLE user_plans
+      ALTER COLUMN plan_type DROP DEFAULT;
 
--- Step 2: 기존 타입 이름 변경
-ALTER TYPE plan_type RENAME TO plan_type_old;
+    -- Step 2: 기존 타입 이름 변경
+    ALTER TYPE plan_type RENAME TO plan_type_old;
 
--- Step 3: 새로운 enum 타입 생성
-CREATE TYPE plan_type AS ENUM (
-  'FREE',
-  'PREMIUM_MONTHLY',
-  'PREMIUM_YEARLY'
-);
+    RAISE NOTICE 'Renamed plan_type to plan_type_old';
+  END IF;
 
--- Step 4: 컬럼 타입 변경 및 데이터 마이그레이션 (PRO -> PREMIUM_MONTHLY)
-ALTER TABLE user_plans
-  ALTER COLUMN plan_type TYPE plan_type
-  USING (
-    CASE
-      WHEN plan_type::text = 'PRO' THEN 'PREMIUM_MONTHLY'::plan_type
-      ELSE plan_type::text::plan_type
-    END
-  );
+  -- Step 3: 새로운 enum 타입 생성 (존재하지 않는 경우만)
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_type
+    WHERE typname = 'plan_type'
+    AND typtype = 'e'
+    AND typelem = 0
+  ) THEN
+    CREATE TYPE plan_type AS ENUM (
+      'FREE',
+      'PREMIUM_MONTHLY',
+      'PREMIUM_YEARLY'
+    );
 
--- Step 5: DEFAULT 값 다시 설정
-ALTER TABLE user_plans
-  ALTER COLUMN plan_type SET DEFAULT 'FREE'::plan_type;
+    RAISE NOTICE 'Created new plan_type enum';
+  END IF;
 
--- Step 6: 이전 타입 삭제
-DROP TYPE plan_type_old;
+  -- Step 4: 컬럼 타입 변경 및 데이터 마이그레이션 (PRO -> PREMIUM_MONTHLY)
+  -- user_plans의 plan_type 컬럼이 아직 plan_type_old 타입인 경우만 실행
+  IF EXISTS (
+    SELECT 1 FROM pg_type WHERE typname = 'plan_type_old'
+  ) THEN
+    ALTER TABLE user_plans
+      ALTER COLUMN plan_type TYPE plan_type
+      USING (
+        CASE
+          WHEN plan_type::text = 'PRO' THEN 'PREMIUM_MONTHLY'::plan_type
+          WHEN plan_type::text = 'PREMIUM' THEN 'PREMIUM_MONTHLY'::plan_type
+          WHEN plan_type::text = 'ENTERPRISE' THEN 'PREMIUM_YEARLY'::plan_type
+          ELSE plan_type::text::plan_type
+        END
+      );
+
+    RAISE NOTICE 'Migrated user_plans.plan_type to new enum type';
+
+    -- Step 5: DEFAULT 값 다시 설정
+    ALTER TABLE user_plans
+      ALTER COLUMN plan_type SET DEFAULT 'FREE'::plan_type;
+
+    -- Step 6: 이전 타입 삭제
+    DROP TYPE plan_type_old;
+
+    RAISE NOTICE 'Dropped plan_type_old and restored DEFAULT';
+  ELSE
+    RAISE NOTICE 'Migration already completed, skipping type conversion';
+  END IF;
+END $$;
 
 -- 2. user_plans 테이블에 추가 이벤트 슬롯 컬럼 추가
 ALTER TABLE user_plans
