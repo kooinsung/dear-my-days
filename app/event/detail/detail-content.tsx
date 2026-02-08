@@ -1,14 +1,22 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { useDeleteEvent } from '@/hooks/use-events'
 import { getCategoryIcon, getCategoryLabel } from '@/libs/helpers'
 import { SmartLink, useRouter } from '@/libs/native-bridge'
+import { createSupabaseBrowser } from '@/libs/supabase/browser'
 import type { Event } from '@/libs/supabase/database.types'
 import { calculateDday, formatDday, toThisYearDate } from '@/libs/utils'
 import { useUIStore } from '@/stores/ui-store'
 import { css, cx } from '@/styled-system/css'
 import { flex, grid } from '@/styled-system/patterns'
 import { button, card } from '@/styled-system/recipes'
+
+interface NotificationSchedule {
+  days_before: number
+  notification_hour: number
+  notification_minute: number
+}
 
 interface EventDetailContentProps {
   event: Event
@@ -22,6 +30,29 @@ export function EventDetailContent({
   const router = useRouter()
   const showToast = useUIStore((state) => state.showToast)
   const deleteEvent = useDeleteEvent()
+  const [notifications, setNotifications] = useState<NotificationSchedule[]>([])
+  const [loadingNotifications, setLoadingNotifications] = useState(true)
+
+  // 알림 설정 불러오기
+  useEffect(() => {
+    async function loadNotifications() {
+      const supabase = createSupabaseBrowser()
+      const { data, error } = await supabase
+        .from('event_notification_settings')
+        .select('days_before, notification_hour, notification_minute')
+        .eq('event_id', eventId)
+        .order('days_before', { ascending: false })
+
+      if (error) {
+        console.error('Failed to load notifications:', error)
+      } else if (data) {
+        setNotifications(data)
+      }
+      setLoadingNotifications(false)
+    }
+
+    loadNotifications()
+  }, [eventId])
 
   const handleDelete = async () => {
     if (!confirm('정말 삭제하시겠습니까?')) {
@@ -298,6 +329,96 @@ export function EventDetailContent({
               >
                 {event.note}
               </p>
+            </div>
+          )}
+        </div>
+
+        {/* 알림 설정 */}
+        <div className={cx(card(), css({ marginBottom: '24px' }))}>
+          <div
+            className={flex({
+              justify: 'space-between',
+              align: 'center',
+              marginBottom: '16px',
+            })}
+          >
+            <h3
+              className={css({
+                fontSize: '18px',
+                fontWeight: '600',
+                margin: 0,
+              })}
+            >
+              알림 설정
+            </h3>
+            <SmartLink
+              href={`/event/edit/${eventId}`}
+              className={button({ variant: 'secondary', size: 'sm' })}
+            >
+              설정하기
+            </SmartLink>
+          </div>
+
+          {loadingNotifications ? (
+            <p className={css({ color: '#666', margin: 0, fontSize: '14px' })}>
+              로딩 중...
+            </p>
+          ) : notifications.length === 0 ? (
+            <div
+              className={css({
+                padding: '16px',
+                backgroundColor: '#f8f9fa',
+                borderRadius: '8px',
+                textAlign: 'center',
+              })}
+            >
+              <p
+                className={css({
+                  margin: 0,
+                  fontSize: '14px',
+                  color: '#666',
+                  marginBottom: '4px',
+                })}
+              >
+                설정된 알림이 없습니다
+              </p>
+              <p
+                className={css({
+                  margin: 0,
+                  fontSize: '12px',
+                  color: '#999',
+                })}
+              >
+                이벤트 편집에서 알림을 추가할 수 있어요
+              </p>
+            </div>
+          ) : (
+            <div
+              className={css({
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+              })}
+            >
+              {notifications.map((notif, index) => (
+                <div
+                  key={`${index}-${notif.days_before}-${notif.notification_hour}-${notif.notification_minute}`}
+                  className={css({
+                    padding: '12px',
+                    backgroundColor: '#f0f9f4',
+                    border: '1px solid #c3e6cb',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                  })}
+                >
+                  🔔{' '}
+                  {notif.days_before === 0
+                    ? '당일'
+                    : `${notif.days_before}일 전`}{' '}
+                  {String(notif.notification_hour).padStart(2, '0')}:
+                  {String(notif.notification_minute).padStart(2, '0')}
+                </div>
+              ))}
             </div>
           )}
         </div>

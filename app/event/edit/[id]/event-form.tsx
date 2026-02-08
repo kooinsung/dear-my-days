@@ -3,10 +3,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useCreateEvent, useEvent, useUpdateEvent } from '@/hooks/use-events'
 import { useRouter } from '@/libs/native-bridge'
+import { createSupabaseBrowser } from '@/libs/supabase/browser'
 import type { CalendarType, CategoryType } from '@/libs/supabase/database.types'
 import { useUIStore } from '@/stores/ui-store'
 import { css, cx } from '@/styled-system/css'
-import { flex, grid, hstack } from '@/styled-system/patterns'
+import { flex, grid, hstack, vstack } from '@/styled-system/patterns'
 import {
   button,
   categoryButton,
@@ -16,8 +17,15 @@ import {
   textarea,
 } from '@/styled-system/recipes'
 
+interface NotificationSchedule {
+  days_before: number
+  hour: number
+  minute: number
+}
+
 interface EventFormProps {
   eventId?: string
+  showNotifications?: boolean
 }
 
 type LunarToSolarCandidateDto = {
@@ -41,7 +49,10 @@ function fmtYmdLocal(parts: {
   return `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`
 }
 
-export default function EventForm({ eventId }: EventFormProps) {
+export default function EventForm({
+  eventId,
+  showNotifications = false,
+}: EventFormProps) {
   const router = useRouter()
   const showToast = useUIStore((state) => state.showToast)
 
@@ -55,6 +66,7 @@ export default function EventForm({ eventId }: EventFormProps) {
   const [lunarDate, setLunarDate] = useState('')
   const [calendarType, setCalendarType] = useState<CalendarType>('SOLAR')
   const [note, setNote] = useState('')
+  const [notifications, setNotifications] = useState<NotificationSchedule[]>([])
 
   useEffect(() => {
     if (existingEvent) {
@@ -122,12 +134,43 @@ export default function EventForm({ eventId }: EventFormProps) {
     return data.candidates ?? []
   }
 
+  async function saveNotifications(createdEventId: string) {
+    if (notifications.length === 0) {
+      return
+    }
+
+    const supabase = createSupabaseBrowser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) {
+      return
+    }
+
+    const { error } = await supabase.from('event_notification_settings').insert(
+      notifications.map((notif) => ({
+        event_id: createdEventId,
+        user_id: user.id,
+        days_before: notif.days_before,
+        notification_hour: notif.hour,
+        notification_minute: notif.minute,
+      })),
+    )
+
+    if (error) {
+      console.error('Failed to save notifications:', error)
+      showToast('알림 설정 저장에 실패했습니다', 'error')
+    }
+  }
+
   async function saveWithChoice(choiceIsLeapMonth: boolean) {
     const basePayload = {
       title,
       category,
       note: note || null,
     }
+
+    let createdEventId: string | undefined
 
     if (eventId) {
       if (calendarType === 'LUNAR') {
@@ -152,25 +195,54 @@ export default function EventForm({ eventId }: EventFormProps) {
       }
       showToast('이벤트가 수정되었습니다', 'success')
     } else {
+      let result: { id: string }
       if (calendarType === 'LUNAR') {
-        await createEvent.mutateAsync({
+        result = await createEvent.mutateAsync({
           ...basePayload,
           calendar_type: 'LUNAR',
           lunar_date: lunarDate || null,
           is_leap_month: choiceIsLeapMonth,
         })
       } else {
-        await createEvent.mutateAsync({
+        result = await createEvent.mutateAsync({
           ...basePayload,
           calendar_type: 'SOLAR',
           solar_date: solarDate,
         })
       }
+      createdEventId = result.id
+
+      // 새 이벤트 생성 시 알림 설정 저장
+      if (createdEventId && showNotifications) {
+        await saveNotifications(createdEventId)
+      }
+
       showToast('이벤트가 생성되었습니다', 'success')
     }
 
     router.push('/')
     router.refresh()
+  }
+
+  const addNotification = () => {
+    setNotifications([...notifications, { days_before: 1, hour: 9, minute: 0 }])
+  }
+
+  const removeNotification = (index: number) => {
+    setNotifications(notifications.filter((_, i) => i !== index))
+  }
+
+  const updateNotification = (
+    index: number,
+    field: keyof NotificationSchedule,
+    value: number,
+  ) => {
+    const newNotifications = [...notifications]
+    newNotifications[index] = {
+      ...newNotifications[index],
+      [field]: value,
+    }
+    setNotifications(newNotifications)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -368,6 +440,172 @@ export default function EventForm({ eventId }: EventFormProps) {
             className={textarea()}
           />
         </div>
+
+        {/* 알림 설정 (새 이벤트 생성 시에만 표시) */}
+        {showNotifications && (
+          <div
+            className={css({
+              padding: '20px',
+              backgroundColor: '#f8f9fa',
+              borderRadius: '8px',
+              marginTop: '20px',
+            })}
+          >
+            <h3
+              className={css({
+                fontSize: '16px',
+                fontWeight: 'bold',
+                marginBottom: '12px',
+              })}
+            >
+              알림 설정 (선택)
+            </h3>
+
+            <div className={vstack({ gap: '12px', marginBottom: '16px' })}>
+              {notifications.length === 0 ? (
+                <div
+                  className={css({
+                    padding: '16px',
+                    textAlign: 'center',
+                    color: '#666',
+                    fontSize: '14px',
+                    backgroundColor: 'white',
+                    borderRadius: '4px',
+                  })}
+                >
+                  알림을 추가하면 이벤트 전에 자동으로 알려드려요
+                </div>
+              ) : (
+                notifications.map((notif, index) => (
+                  <div
+                    key={`${index}-${notif.days_before}-${notif.hour}-${notif.minute}`}
+                    className={css({
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '12px',
+                      backgroundColor: 'white',
+                      borderRadius: '4px',
+                    })}
+                  >
+                    <span
+                      className={css({ fontSize: '14px', minWidth: '30px' })}
+                    >
+                      D-
+                    </span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={365}
+                      value={notif.days_before}
+                      onChange={(e) =>
+                        updateNotification(
+                          index,
+                          'days_before',
+                          Number(e.target.value),
+                        )
+                      }
+                      className={css({
+                        width: '70px',
+                        padding: '4px 8px',
+                        border: '1px solid #ddd',
+                        borderRadius: '4px',
+                        fontSize: '14px',
+                      })}
+                    />
+                    <span className={css({ fontSize: '14px' })}>일</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={23}
+                      value={notif.hour}
+                      onChange={(e) =>
+                        updateNotification(
+                          index,
+                          'hour',
+                          Number(e.target.value),
+                        )
+                      }
+                      className={css({
+                        width: '60px',
+                        padding: '4px 8px',
+                        border: '1px solid #ddd',
+                        borderRadius: '4px',
+                        fontSize: '14px',
+                      })}
+                    />
+                    <span className={css({ fontSize: '14px' })}>시</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={59}
+                      value={notif.minute}
+                      onChange={(e) =>
+                        updateNotification(
+                          index,
+                          'minute',
+                          Number(e.target.value),
+                        )
+                      }
+                      className={css({
+                        width: '60px',
+                        padding: '4px 8px',
+                        border: '1px solid #ddd',
+                        borderRadius: '4px',
+                        fontSize: '14px',
+                      })}
+                    />
+                    <span className={css({ fontSize: '14px' })}>분</span>
+                    <button
+                      type="button"
+                      onClick={() => removeNotification(index)}
+                      className={css({
+                        marginLeft: 'auto',
+                        padding: '4px 12px',
+                        fontSize: '14px',
+                        color: '#dc3545',
+                        backgroundColor: 'white',
+                        border: '1px solid #dc3545',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        '&:hover': {
+                          backgroundColor: '#dc3545',
+                          color: 'white',
+                        },
+                      })}
+                    >
+                      삭제
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={addNotification}
+              className={cx(
+                button({ variant: 'secondary' }),
+                css({
+                  width: '100%',
+                  marginBottom: '8px',
+                }),
+              )}
+            >
+              + 알림 추가
+            </button>
+
+            <p
+              className={css({
+                marginTop: '8px',
+                fontSize: '12px',
+                color: '#666',
+              })}
+            >
+              ※ 알림은 매년 해당 날짜에 자동으로 발송됩니다.
+            </p>
+          </div>
+        )}
 
         {/* 제출 버튼 */}
         <button
