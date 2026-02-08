@@ -1,10 +1,10 @@
-# Dear Days - 프로젝트 가이드
+# Dear My Days - 프로젝트 가이드
 
 > 한국 음력 달력을 지원하는 크로스 플랫폼 기념일 관리 애플리케이션
 
 ## 프로젝트 개요
 
-Dear Days는 생일, 기념일, 기일 등의 특별한 날을 관리하는 **웹 및 모바일 애플리케이션**입니다.
+Dear My Days는 생일, 기념일, 기일 등의 특별한 날을 관리하는 **웹 및 모바일 애플리케이션**입니다.
 Next.js 웹앱을 Capacitor로 래핑하여 iOS/Android 네이티브 앱으로 제공하며, 한국 음력 달력을 완벽하게 지원합니다.
 
 ### 핵심 기능
@@ -699,15 +699,19 @@ pnpm cap:ios              # Xcode 열기
 pnpm cap:android          # Android Studio 열기
 pnpm dev:ios              # iOS 앱 개발 모드 실행
 pnpm dev:android          # Android 앱 개발 모드 실행
+
+# 📖 Capacitor 명령어 상세 가이드: docs/CAPACITOR_COMMANDS.md
 ```
 
 ---
 
 ## Capacitor 모바일 앱
 
+> **📖 상세 가이드**: 모든 Capacitor 명령어에 대한 자세한 설명은 [docs/CAPACITOR_COMMANDS.md](./docs/CAPACITOR_COMMANDS.md)를 참고하세요.
+
 ### 아키텍처 개요
 
-Dear Days는 **웹 URL 로드 방식**의 Capacitor 앱으로 구현되어 있습니다:
+Dear My Days는 **웹 URL 로드 방식**의 Capacitor 앱으로 구현되어 있습니다:
 
 - **웹앱**: Vercel에 배포된 Next.js 앱 (Server Actions/API Routes 유지)
 - **모바일 앱**: WebView에서 프로덕션 웹 URL을 로드
