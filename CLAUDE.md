@@ -5,17 +5,14 @@
 ## 프로젝트 개요
 
 Dear My Days는 생일, 기념일, 기일 등의 특별한 날을 관리하는 **웹 및 모바일 애플리케이션**입니다.
-Next.js 웹앱을 Capacitor로 래핑하여 iOS/Android 네이티브 앱으로 제공하며, 한국 음력 달력을 완벽하게 지원합니다.
+React Native WebView 기반 모바일 앱으로 웹과 동일한 기능을 제공하며, 한국 음력 달력을 완벽하게 지원합니다.
 
 ### 핵심 기능
 - 🎂 **이벤트 관리**: 생일, 기념일, 기일, 공휴일, 기타 이벤트 CRUD
 - 🌙 **음력 지원**: KASI API를 활용한 양력↔음력 변환, 윤달 처리
 - 📅 **달력 뷰**: 월별 이벤트 캘린더, 과거 이벤트 조회
 - 🔐 **다중 인증**: 이메일, Google, Kakao, Naver, Apple OAuth
-- 🔔 **푸시 알림**: 이벤트 리마인더 (사용자 설정 가능)
-- 💳 **인앱결제**: 프리미엄 구독 (Apple/Google IAP)
-- 📱 **네이티브 앱**: iOS/Android (Capacitor 6)
-- ⚙️ **설정**: 계정 관리, 데이터 내보내기, 알림 설정
+- ⚙️ **설정**: 계정 관리, 데이터 내보내기
 
 ---
 
@@ -31,7 +28,7 @@ Next.js 웹앱을 Capacitor로 래핑하여 iOS/Android 네이티브 앱으로 �
 - **Validation**: Zod (런타임 타입 검증)
 - **Environment**: @t3-oss/env-nextjs (타입 안전한 환경 변수)
 - **Linting**: Biome (빠른 린터/포맷터)
-- **Mobile**: Capacitor 6 (iOS/Android 네이티브 앱)
+- **Mobile**: React Native CLI + WebView (순수 네이티브)
 
 ### 백엔드
 - **Database**: Supabase (PostgreSQL)
@@ -44,8 +41,7 @@ Next.js 웹앱을 Capacitor로 래핑하여 iOS/Android 네이티브 앱으로 �
 
 ### 배포
 - **Web Hosting**: Vercel
-- **Mobile**: App Store (iOS), Google Play (Android)
-- **Edge Functions**: Supabase (알림 스케줄링)
+- **Edge Functions**: Supabase
 - **Environment**: `.env` (@t3-oss/env-nextjs로 타입 안전하게 검증)
 
 ---
@@ -54,7 +50,7 @@ Next.js 웹앱을 Capacitor로 래핑하여 iOS/Android 네이티브 앱으로 �
 
 ```
 프로젝트 루트/
-├── app/                      # Next.js 앱 (웹 및 모바일 공통 코드)
+├── app/                      # Next.js 앱
 │   ├── api/                  # API 라우트 (Route Handlers)
 │   │   ├── auth/            # 인증 관련 API
 │   │   ├── events/          # 이벤트 CRUD API
@@ -76,11 +72,11 @@ Next.js 웹앱을 Capacitor로 래핑하여 iOS/Android 네이티브 앱으로 �
 │   ├── libs/                # 유틸리티 및 라이브러리
 │   │   ├── api/            # API 헬퍼
 │   │   ├── auth/           # 인증 유틸리티
-│   │   ├── capacitor/      # Capacitor 네이티브 플러그인 (IAP, 푸시 알림, 딥링크)
 │   │   ├── config/         # 환경 변수 검증
 │   │   ├── constants/      # 상수 (카테고리, 메시지)
 │   │   ├── iap/            # 인앱결제 영수증 검증
 │   │   ├── kasi/           # KASI API 클라이언트
+│   │   ├── native-bridge/  # 웹-네이티브 통신 모듈
 │   │   ├── naver/          # Naver OAuth 클라이언트
 │   │   ├── oauth/          # OAuth URL 헬퍼
 │   │   ├── resend/         # Resend 이메일 클라이언트
@@ -91,68 +87,41 @@ Next.js 웹앱을 Capacitor로 래핑하여 iOS/Android 네이티브 앱으로 �
 │   ├── stores/             # Zustand 스토어
 │   └── layout.tsx          # 루트 레이아웃
 │
-├── ios/                     # iOS 네이티브 프로젝트 (Capacitor 자동 생성)
-│   ├── App/                # Xcode 프로젝트
-│   │   ├── App/           # iOS 앱 소스
-│   │   │   ├── Info.plist # iOS 앱 설정 (권한, URL Scheme 등)
-│   │   │   └── ...
-│   │   └── Podfile        # CocoaPods 의존성
-│   └── ...
-│
-├── android/                 # Android 네이티브 프로젝트 (Capacitor 자동 생성)
-│   ├── app/                # Android Studio 프로젝트
-│   │   ├── src/main/
-│   │   │   ├── AndroidManifest.xml  # Android 앱 설정 (권한, Intent Filter 등)
-│   │   │   └── ...
-│   │   └── build.gradle   # Gradle 빌드 설정
-│   └── ...
+├── mobile/                 # React Native 모바일 앱
+│   ├── src/
+│   │   ├── App.tsx        # 앱 진입점
+│   │   ├── components/    # WebView 컴포넌트
+│   │   │   ├── AppWebView.tsx     # 메인 WebView
+│   │   │   └── WebViewStack.tsx   # 스택 관리
+│   │   ├── modules/       # 네이티브 모듈
+│   │   │   ├── PlatformModule.ts  # 플랫폼 감지
+│   │   │   └── DeepLinkModule.ts  # 딥링크 처리
+│   │   └── constants/     # 환경 설정
+│   ├── ios/               # iOS 네이티브 프로젝트
+│   ├── android/           # Android 네이티브 프로젝트
+│   └── package.json       # 모바일 의존성
 │
 ├── supabase/               # Supabase 설정 및 마이그레이션
-│   ├── functions/         # Edge Functions (알림 스케줄링)
+│   ├── functions/         # Edge Functions
 │   └── migrations/        # DB 마이그레이션 SQL 파일
 │
 ├── docs/                   # 프로젝트 문서
-│   ├── SCHEMA.md          # 데이터베이스 스키마 문서
-│   └── TESTING_GUIDE.md   # iOS/Android 테스트 가이드
+│   └── SCHEMA.md          # 데이터베이스 스키마 문서
 │
 ├── middleware.ts           # Next.js 미들웨어 (인증 체크)
 ├── proxy.ts                # 인증 프록시
-├── capacitor.config.ts     # Capacitor 설정 (네이티브 앱 설정)
 └── package.json            # 프로젝트 의존성 및 스크립트
 ```
 
 ### 주요 디렉토리 설명
 
 **`app/`** - Next.js 앱 디렉토리
-- 웹과 모바일이 공유하는 코드베이스
 - Server Actions, API Routes, React 컴포넌트
-- Capacitor WebView에서 이 코드를 로드
-
-**`app/libs/capacitor/`** - Capacitor 네이티브 플러그인 래퍼
-- `iap.ts` - 인앱결제 (Apple/Google)
-- `push-notifications.ts` - 푸시 알림 (FCM)
-- `deep-link.ts` - 딥링크 핸들러
-- `platform.ts` - 플랫폼 감지 유틸리티
-- `use-native-navigation.ts` - 네이티브 뒤로가기 버튼 처리
-
-**`ios/`** - iOS 네이티브 프로젝트
-- Xcode에서 열어서 iOS 앱 빌드
-- `Info.plist`에서 권한, URL Scheme 설정
-- TestFlight/App Store 배포용 아카이브 생성
-
-**`android/`** - Android 네이티브 프로젝트
-- Android Studio에서 열어서 Android 앱 빌드
-- `AndroidManifest.xml`에서 권한, Intent Filter 설정
-- Google Play 배포용 AAB/APK 생성
+- 웹 애플리케이션의 모든 프론트엔드 코드
 
 **`supabase/`** - Supabase 백엔드
 - `migrations/` - PostgreSQL 마이그레이션 스크립트
 - `functions/` - Edge Functions (서버리스 함수)
-
-**`capacitor.config.ts`** - Capacitor 설정
-- 앱 ID, 앱 이름
-- 네이티브 플러그인 설정
-- 웹 URL 또는 로컬 웹 디렉토리 지정
 
 ---
 
@@ -331,6 +300,53 @@ const { mutate } = useMutation({
 - Custom hooks로 상태 관리 분리 (useEventFormState, useEventFormSubmit)
 - Presentational/Container 패턴 지향
 - 516줄 → 150줄로 리팩토링 완료 (EventForm)
+
+### 8. 웹-네이티브 통신 (Native Bridge)
+
+**아키텍처**:
+```
+웹앱 (Next.js) → NativeBridge API → window.ReactNativeWebView.postMessage()
+→ React Native (App.tsx) → 네이티브 모듈 (iOS/Android)
+```
+
+**기본 사용법**:
+```typescript
+'use client'
+
+import { NativeBridge, useIsNativeApp } from '@/libs/native-bridge'
+
+export default function MyComponent() {
+  const isNative = useIsNativeApp()
+
+  const handleEdit = () => {
+    if (isNative) {
+      NativeBridge.openWebView('/event/edit/123', '이벤트 수정')
+    } else {
+      router.push('/event/edit/123')
+    }
+  }
+
+  return <button onClick={handleEdit}>수정</button>
+}
+```
+
+**주요 API**:
+- `NativeBridge.openWebView(url, title)` - 새 WebView 스택에 페이지 열기
+- `NativeBridge.closeWebView()` - 최상단 WebView 닫기
+- `NativeBridge.openExternalUrl(url)` - 외부 브라우저/앱 열기 (전화, 이메일 등)
+- `useIsNativeApp()` - 네이티브 앱 여부 확인 훅
+- `usePlatformInfo()` - 플랫폼 정보 ('ios' | 'android' | 'web')
+- `useNativeMessage(callback)` - 네이티브 → 웹 메시지 수신 훅
+
+**자세한 API 문서**: [docs/NATIVE_BRIDGE_API.md](docs/NATIVE_BRIDGE_API.md)
+
+**구현 현황**:
+- ✅ WebView 스택 네비게이션
+- ✅ 플랫폼 감지
+- ✅ 딥링크 (dearmydays://)
+- ✅ 외부 URL 열기
+- ⏳ 푸시 알림 (Phase 3 예정)
+- ⏳ 인앱결제 (Phase 4 예정)
 
 ---
 
@@ -693,140 +709,14 @@ pnpm add <package>         # 패키지 추가
 pnpm add -D <package>      # 개발 의존성 추가
 pnpm remove <package>      # 패키지 제거
 
-# Capacitor 모바일 앱
-pnpm cap:sync             # 네이티브 프로젝트 동기화
-pnpm cap:ios              # Xcode 열기
-pnpm cap:android          # Android Studio 열기
-pnpm dev:ios              # iOS 앱 개발 모드 실행
-pnpm dev:android          # Android 앱 개발 모드 실행
+# 모바일 앱 (React Native CLI)
+pnpm mobile                # Metro 번들러 시작
+pnpm mobile:ios            # iOS 시뮬레이터 실행
+pnpm mobile:android        # Android 에뮬레이터 실행
 
-# 📖 Capacitor 명령어 상세 가이드: docs/CAPACITOR_COMMANDS.md
+# 📖 모바일 앱 상세 가이드: mobile/README.md
+# 📖 초기 설정 필수: iOS/Android 네이티브 프로젝트 생성 필요
 ```
-
----
-
-## Capacitor 모바일 앱
-
-> **📖 상세 가이드**: 모든 Capacitor 명령어에 대한 자세한 설명은 [docs/CAPACITOR_COMMANDS.md](./docs/CAPACITOR_COMMANDS.md)를 참고하세요.
-
-### 아키텍처 개요
-
-Dear My Days는 **웹 URL 로드 방식**의 Capacitor 앱으로 구현되어 있습니다:
-
-- **웹앱**: Vercel에 배포된 Next.js 앱 (Server Actions/API Routes 유지)
-- **모바일 앱**: WebView에서 프로덕션 웹 URL을 로드
-- **네이티브 기능**: Capacitor 플러그인으로 IAP, 푸시 알림, 딥링크 등 추가
-
-### 핵심 특징
-
-✅ **장점**:
-- 단일 코드베이스 (웹과 앱 100% 동일)
-- Server Actions 및 API Routes 그대로 사용
-- 웹 배포 시 앱도 자동 업데이트
-- 빠른 개발 및 유지보수
-
-⚠️ **제약사항**:
-- 네트워크 연결 필수 (오프라인 불가)
-- 초기 로딩 시간 약간 증가 (Splash Screen으로 커버)
-
-### 네이티브 기능
-
-| 기능 | 구현 상태 | 위치 |
-|-----|----------|------|
-| **플랫폼 감지** | ✅ 완료 | `app/libs/capacitor/platform.ts` |
-| **네이티브 Navigation** | ✅ 완료 | `app/libs/capacitor/use-native-navigation.ts` |
-| **딥링크** | ✅ 완료 | `app/libs/capacitor/deep-link.ts` |
-| **OAuth 인증** | ✅ 완료 | 기존 로직 재사용 (변경 없음) |
-| **푸시 알림** | ✅ 완료 | `app/libs/capacitor/push-notifications.ts` |
-| **알림 스케줄링** | ✅ 완료 | `supabase/functions/send-scheduled-notifications` |
-| **인앱결제 (IAP)** | ✅ 인프라 완료 | `app/libs/capacitor/iap.ts` |
-
-### 프로젝트 구조 (모바일 추가 부분)
-
-```
-dear-my-days/
-├── app/
-│   └── libs/
-│       └── capacitor/           # Capacitor 유틸리티
-│           ├── platform.ts      # 플랫폼 감지
-│           ├── use-native-navigation.ts  # 네이티브 뒤로가기
-│           ├── deep-link.ts     # 딥링크 핸들러
-│           ├── iap.ts           # 인앱결제
-│           ├── push-notifications.ts  # 푸시 알림
-│           └── native-app-provider.tsx  # 통합 Provider
-├── ios/                         # iOS 네이티브 프로젝트
-│   └── App/
-│       └── App/
-│           ├── Info.plist       # iOS 설정 (권한, URL 스킴)
-│           └── capacitor.config.json
-├── android/                     # Android 네이티브 프로젝트
-│   └── app/
-│       └── src/main/
-│           ├── AndroidManifest.xml  # Android 설정
-│           └── assets/capacitor.config.json
-├── public/.well-known/          # Universal/App Links
-│   ├── apple-app-site-association
-│   └── assetlinks.json
-├── supabase/functions/          # Supabase Edge Functions
-│   └── send-scheduled-notifications/  # 알림 발송
-├── docs/                        # 상세 문서
-│   ├── OAUTH_SETUP.md           # OAuth 및 딥링크 설정
-│   ├── IAP_SETUP.md             # 인앱결제 구현 가이드
-│   ├── PUSH_NOTIFICATIONS_SETUP.md  # 푸시 알림 설정
-│   └── DEPLOYMENT_CHECKLIST.md  # 배포 체크리스트
-└── capacitor.config.ts          # Capacitor 메인 설정
-```
-
-### 개발 워크플로우
-
-**웹 개발 (기존과 동일)**:
-```bash
-pnpm dev              # localhost:3000
-```
-
-**모바일 개발**:
-```bash
-# iOS 시뮬레이터 (localhost:3000 자동 로드)
-pnpm dev:ios
-
-# Android 에뮬레이터
-pnpm dev:android
-
-# 네이티브 IDE 열기
-pnpm cap:ios          # Xcode
-pnpm cap:android      # Android Studio
-```
-
-**코드 변경 후 동기화**:
-```bash
-pnpm cap:sync         # TypeScript 변경 시 네이티브 프로젝트 동기화
-```
-
-### 환경 변수 (모바일 추가)
-
-```env
-# Firebase (Push Notifications)
-FIREBASE_PROJECT_ID=your-project
-FIREBASE_CLIENT_EMAIL=xxx@xxx.iam.gserviceaccount.com
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nxxx\n-----END PRIVATE KEY-----\n"
-
-# Apple IAP
-APPLE_SHARED_SECRET=xxx
-
-# Google IAP
-GOOGLE_PACKAGE_NAME=com.dearmydays.app
-GOOGLE_SERVICE_ACCOUNT_TOKEN=xxx
-```
-
-### 상세 문서
-
-Capacitor 구현의 자세한 내용은 다음 문서를 참고하세요:
-
-- **[구현 계획](.claude/plans/)**: 6단계 Capacitor 구현 계획 (아키텍처, 설계 결정)
-- **[OAuth 설정](./docs/OAUTH_SETUP.md)**: OAuth 딥링크 및 Universal Links 설정
-- **[IAP 설정](./docs/IAP_SETUP.md)**: Apple/Google 인앱결제 구현
-- **[푸시 알림 설정](./docs/PUSH_NOTIFICATIONS_SETUP.md)**: Firebase 푸시 알림 및 스케줄링
-- **[배포 체크리스트](./docs/DEPLOYMENT_CHECKLIST.md)**: 전체 배포 가이드
 
 ---
 
@@ -843,26 +733,24 @@ Capacitor 구현의 자세한 내용은 다음 문서를 참고하세요:
 - [KASI API 문서](https://www.kasi.re.kr)
 
 ### 모바일 개발
-- [Capacitor 문서](https://capacitorjs.com/docs)
-- [Capacitor 플러그인](https://capacitorjs.com/docs/plugins)
-- [iOS Developer](https://developer.apple.com)
-- [Android Developer](https://developer.android.com)
-- [Firebase Cloud Messaging](https://firebase.google.com/docs/cloud-messaging)
-- [Apple In-App Purchase](https://developer.apple.com/in-app-purchase/)
-- [Google Play Billing](https://developer.android.com/google/play/billing)
+- [React Native 문서](https://reactnative.dev/)
+- [React Native WebView](https://github.com/react-native-webview/react-native-webview)
+- [Metro 번들러](https://metrobundler.dev/)
+- [iOS 개발 가이드](https://reactnative.dev/docs/running-on-device)
+- [Android 개발 가이드](https://reactnative.dev/docs/signed-apk-android)
 
 ---
 
 ## 프로젝트 상태
 
-**최근 구현 완료** (2026-02-07):
-- ✅ **Capacitor 모바일 앱 구현** (iOS/Android)
-- ✅ 네이티브 Navigation 처리 (뒤로가기, 앱 상태)
-- ✅ OAuth 딥링크 및 Universal Links
-- ✅ 푸시 알림 인프라 및 스케줄링 시스템
-- ✅ 인앱결제 (IAP) 인프라
-- ✅ 알림 스케줄 사용자 설정 기능
-- ✅ 도메인 변경 (dearmydays.com → dear-my-days.com)
+**최근 작업** (2026-02-08):
+- ✅ Capacitor 완전 제거
+- ✅ React Native CLI + WebView로 마이그레이션
+- ✅ 순수 네이티브 프로젝트 구조로 전환 (Expo 제거)
+- ✅ Native Bridge 시스템 구축 (웹-네이티브 통신)
+- ✅ WebView 스택 네비게이션 구현
+- ✅ 딥링크 지원 (OAuth 콜백)
+- ✅ 플랫폼 감지 및 외부 URL 처리
 
 **이전 리팩토링** (2026-02-06):
 - ✅ 환경 변수 검증 시스템 구축
@@ -876,14 +764,15 @@ Capacitor 구현의 자세한 내용은 다음 문서를 참고하세요:
 - ✅ Biome 린팅 100% 통과
 
 **다음 단계 권장사항**:
-1. iOS/Android 네이티브 코드 구현 (StoreKit, Billing Library)
-2. 앱스토어 배포 준비 (스크린샷, 설명, 심사)
-3. 유닛 테스트 추가 (Jest + React Testing Library)
-4. E2E 테스트 추가 (Playwright)
-5. 에러 모니터링 도구 통합 (Sentry)
+1. 실제 디바이스에서 모바일 앱 테스트
+2. Universal Links (iOS) / App Links (Android) 설정
+3. 푸시 알림 구현 (react-native-firebase - Phase 3)
+4. 인앱결제 구현 (react-native-iap - Phase 4)
+5. 유닛 테스트 추가 (Jest + React Testing Library)
+6. 에러 모니터링 도구 통합 (Sentry)
 
 ---
 
-**마지막 업데이트**: 2026-02-07 (Capacitor 모바일 앱 구현 완료)
+**마지막 업데이트**: 2026-02-08 (React Native CLI 마이그레이션 완료)
 **메인테이너**: @a17050
 **Co-Author**: Claude Sonnet 4.5

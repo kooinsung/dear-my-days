@@ -1,5 +1,5 @@
-import Link from 'next/link'
 import { Suspense } from 'react'
+import { SmartLink } from '@/libs/native-bridge'
 import ResetPasswordForm from './reset-password-form'
 
 export default function ResetPasswordPage() {
@@ -18,7 +18,7 @@ export default function ResetPasswordPage() {
       </Suspense>
 
       <div style={{ marginTop: 16 }}>
-        <Link href="/login">로그인으로 이동</Link>
+        <SmartLink href="/login">로그인으로 이동</SmartLink>
       </div>
     </div>
   )

@@ -1,8 +1,8 @@
 'use client'
 
 import type { User } from '@supabase/supabase-js'
-import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { SmartLink } from '@/libs/native-bridge'
 import { createSupabaseBrowser } from '@/libs/supabase/browser'
 import { css, cx } from '@/styled-system/css'
 import { flex, vstack } from '@/styled-system/patterns'
@@ -125,9 +125,12 @@ export function LinkedProvidersClient({
           >
             연결된 로그인 수단
           </h1>
-          <Link href="/settings" className={button({ variant: 'secondary' })}>
+          <SmartLink
+            href="/settings"
+            className={button({ variant: 'secondary' })}
+          >
             설정으로
-          </Link>
+          </SmartLink>
         </div>
       </header>
 

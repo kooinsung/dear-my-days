@@ -1,7 +1,7 @@
 'use client'
 
 import type { User } from '@supabase/supabase-js'
-import Link from 'next/link'
+import { SmartLink } from '@/libs/native-bridge'
 import { css, cx } from '@/styled-system/css'
 import { flex, vstack } from '@/styled-system/patterns'
 import { button, card } from '@/styled-system/recipes'
@@ -20,7 +20,7 @@ function SettingsMenuItem({
   href: string
 }) {
   return (
-    <Link
+    <SmartLink
       href={href}
       className={cx(
         card(),
@@ -38,7 +38,7 @@ function SettingsMenuItem({
       >
         {description}
       </div>
-    </Link>
+    </SmartLink>
   )
 }
 
@@ -76,9 +76,9 @@ export function SettingsHomeClient({ user }: SettingsHomeClientProps) {
           >
             설정
           </h1>
-          <Link href="/" className={button({ variant: 'secondary' })}>
+          <SmartLink href="/" className={button({ variant: 'secondary' })}>
             홈으로
-          </Link>
+          </SmartLink>
         </div>
       </header>
 
@@ -116,6 +116,11 @@ export function SettingsHomeClient({ user }: SettingsHomeClientProps) {
             title="알림 설정"
             description="푸시 알림 설정(추후) 및 알림 규칙을 관리할 수 있어요."
             href="/settings/notifications"
+          />
+          <SettingsMenuItem
+            title="웹뷰 테스트"
+            description="모바일 웹뷰 스택 동작을 테스트하고 다양한 URL을 미리 확인할 수 있어요."
+            href="/settings/webview-test"
           />
           <SettingsMenuItem
             title="계정"

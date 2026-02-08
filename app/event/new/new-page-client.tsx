@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import { SmartLink } from '@/libs/native-bridge'
 import { css } from '@/styled-system/css'
 import { flex } from '@/styled-system/patterns'
 import { card } from '@/styled-system/recipes'
@@ -27,7 +27,7 @@ export function EventNewPageClient() {
             gap: '16px',
           })}
         >
-          <Link
+          <SmartLink
             href="/"
             className={css({
               color: 'primary',
@@ -36,7 +36,7 @@ export function EventNewPageClient() {
             })}
           >
             ← 뒤로
-          </Link>
+          </SmartLink>
           <h1
             className={css({
               fontSize: '20px',

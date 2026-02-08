@@ -1,7 +1,7 @@
 'use client'
 
-import Link from 'next/link'
 import { getCategoryIcon, getCategoryLabel } from '@/libs/helpers'
+import { SmartLink } from '@/libs/native-bridge'
 import type { CategoryType, Event } from '@/libs/supabase/database.types'
 import { css, cx } from '@/styled-system/css'
 import { flex, grid, hstack } from '@/styled-system/patterns'
@@ -44,7 +44,7 @@ export function PastPageClient({
             gap: '16px',
           })}
         >
-          <Link
+          <SmartLink
             href="/"
             className={css({
               color: 'primary',
@@ -53,7 +53,7 @@ export function PastPageClient({
             })}
           >
             ← 뒤로
-          </Link>
+          </SmartLink>
           <h1
             className={css({
               fontSize: '20px',
@@ -92,7 +92,7 @@ export function PastPageClient({
                 cat.value === filterCategory
 
               return (
-                <Link
+                <SmartLink
                   key={cat.value}
                   href={
                     cat.value === 'ALL'
@@ -111,7 +111,7 @@ export function PastPageClient({
                   })}
                 >
                   {cat.label}
-                </Link>
+                </SmartLink>
               )
             })}
           </div>
@@ -165,7 +165,7 @@ export function PastPageClient({
                 >
                   {monthEvents.map((event) => {
                     return (
-                      <Link
+                      <SmartLink
                         key={event.id}
                         href={`/event/detail?id=${event.id}`}
                         className={css({
@@ -227,7 +227,7 @@ export function PastPageClient({
                             {event.note}
                           </p>
                         )}
-                      </Link>
+                      </SmartLink>
                     )
                   })}
                 </div>

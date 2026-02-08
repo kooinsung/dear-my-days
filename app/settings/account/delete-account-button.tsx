@@ -1,7 +1,7 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
+import { useRouter } from '@/libs/native-bridge'
 import { css, cx } from '@/styled-system/css'
 import { button } from '@/styled-system/recipes'
 import { deleteAccount } from './actions'

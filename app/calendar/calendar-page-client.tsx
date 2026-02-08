@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import { SmartLink } from '@/libs/native-bridge'
 import type { CategoryType } from '@/libs/supabase/database.types'
 import { css } from '@/styled-system/css'
 import { flex } from '@/styled-system/patterns'
@@ -57,7 +57,7 @@ export function CalendarPageClient({
             alignItems: 'center',
           }}
         >
-          <Link
+          <SmartLink
             href="/"
             style={{
               color: '#007bff',
@@ -66,9 +66,9 @@ export function CalendarPageClient({
             }}
           >
             ← 홈
-          </Link>
+          </SmartLink>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <Link
+            <SmartLink
               href={`/calendar?year=${currentYear - 1}`}
               style={{
                 padding: '8px 12px',
@@ -78,11 +78,11 @@ export function CalendarPageClient({
               }}
             >
               ◀
-            </Link>
+            </SmartLink>
             <h1 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>
               {currentYear}년
             </h1>
-            <Link
+            <SmartLink
               href={`/calendar?year=${currentYear + 1}`}
               style={{
                 padding: '8px 12px',
@@ -92,7 +92,7 @@ export function CalendarPageClient({
               }}
             >
               ▶
-            </Link>
+            </SmartLink>
           </div>
           <div style={{ width: '60px' }} />
         </div>
