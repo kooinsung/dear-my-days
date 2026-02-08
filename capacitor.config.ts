@@ -1,6 +1,21 @@
 import type { CapacitorConfig } from '@capacitor/cli'
 
-const isDev = process.env.NODE_ENV === 'development'
+// CAPACITOR_ENV 환경 변수로 명시적 환경 구분
+// 기본값: 개발 환경 (production이 아닌 모든 경우)
+const isDev = process.env.CAPACITOR_ENV !== 'production'
+
+// 플랫폼별 개발 서버 URL
+const getDevServerUrl = () => {
+  const platform = process.env.CAPACITOR_PLATFORM || 'android'
+
+  if (platform === 'ios') {
+    // iOS 시뮬레이터는 localhost 사용 가능
+    return 'http://localhost:3000'
+  } else {
+    // Android 에뮬레이터는 10.0.2.2 필수 (localhost = 에뮬레이터 자체)
+    return 'http://10.0.2.2:3000'
+  }
+}
 
 const config: CapacitorConfig = {
   appId: 'com.dearmydays.app',
@@ -12,16 +27,14 @@ const config: CapacitorConfig = {
   // Load web URL in WebView
   server: isDev
     ? {
-        // Development: Local Next.js server
-        url: 'http://localhost:3000',
+        url: getDevServerUrl(),
         cleartext: true,
       }
     : {
         // Production: Vercel deployed web app
-        url: 'https://dear-my-days.com', // Replace with actual web app URL
+        url: 'https://dearmydays.com',
         cleartext: false,
       },
-
   plugins: {
     SplashScreen: {
       launchShowDuration: 500,
