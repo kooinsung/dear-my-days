@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { NativeBridge, useIsNativeApp } from '@/libs/native-bridge'
 import { css, cx } from '@/styled-system/css'
 import { flex, vstack } from '@/styled-system/patterns'
@@ -55,19 +55,22 @@ export default function WebViewTestPage() {
     }
   }
 
-  const presetUrls = [
-    { url: 'https://www.google.com', title: 'Google' },
-    { url: 'https://www.naver.com', title: 'Naver' },
-    { url: 'https://www.github.com', title: 'GitHub' },
-    { url: 'https://reactnative.dev', title: 'React Native Docs' },
-    { url: `${window.location.origin}/`, title: '홈 (내부)' },
-    { url: `${window.location.origin}/calendar`, title: '캘린더 (내부)' },
-    { url: `${window.location.origin}/settings`, title: '설정 (내부)' },
-    {
-      url: `${window.location.origin}/settings/account`,
-      title: '계정 설정 (내부)',
-    },
-  ]
+  const presetUrls = useMemo(() => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    return [
+      { url: 'https://www.google.com', title: 'Google' },
+      { url: 'https://www.naver.com', title: 'Naver' },
+      { url: 'https://www.github.com', title: 'GitHub' },
+      { url: 'https://reactnative.dev', title: 'React Native Docs' },
+      { url: `${origin}/`, title: '홈 (내부)' },
+      { url: `${origin}/calendar`, title: '캘린더 (내부)' },
+      { url: `${origin}/settings`, title: '설정 (내부)' },
+      {
+        url: `${origin}/settings/account`,
+        title: '계정 설정 (내부)',
+      },
+    ]
+  }, [])
 
   return (
     <div
