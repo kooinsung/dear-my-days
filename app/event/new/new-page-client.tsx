@@ -60,7 +60,7 @@ export function EventNewPageClient() {
         })}
       >
         <div className={card()}>
-          <EventForm />
+          <EventForm showNotifications={true} />
         </div>
       </div>
     </div>
