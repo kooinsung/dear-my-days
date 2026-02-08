@@ -12,12 +12,13 @@
     "prepare": "panda codegen && husky",
     "cap:init": "npx cap init 'Dear My Days' 'com.dearmydays.app'",
     "cap:sync": "npx cap sync",
+    "cap:sync:prod": "CAPACITOR_ENV=production npx cap sync",
     "cap:ios": "npx cap open ios",
     "cap:android": "npx cap open android",
-    "cap:run:ios": "npx cap run ios",
-    "cap:run:android": "npx cap run android",
-    "dev:ios": "npx cap run ios --livereload --external",
-    "dev:android": "npx cap run android --livereload --external"
+    "cap:run:ios": "CAPACITOR_PLATFORM=ios npx cap run ios",
+    "cap:run:android": "CAPACITOR_PLATFORM=android npx cap run android",
+    "dev:ios": "CAPACITOR_PLATFORM=ios npx cap run ios --livereload --external",
+    "dev:android": "CAPACITOR_PLATFORM=android npx cap run android --livereload --external"
   },
   "dependencies": {
     "@capacitor/app": "6",
