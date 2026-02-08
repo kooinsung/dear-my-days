@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from 'next'
-import { NativeAppProvider } from '@/libs/capacitor/native-app-provider'
 import { QueryProvider } from '@/libs/providers/query-provider'
 import '@/common/styles/global.css'
 
@@ -24,9 +23,7 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body>
-        <NativeAppProvider>
-          <QueryProvider>{children}</QueryProvider>
-        </NativeAppProvider>
+        <QueryProvider>{children}</QueryProvider>
       </body>
     </html>
   )

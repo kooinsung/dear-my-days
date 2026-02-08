@@ -1,9 +1,8 @@
 'use client'
 
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useDeleteEvent } from '@/hooks/use-events'
 import { getCategoryIcon, getCategoryLabel } from '@/libs/helpers'
+import { SmartLink, useRouter } from '@/libs/native-bridge'
 import type { Event } from '@/libs/supabase/database.types'
 import { calculateDday, formatDday, toThisYearDate } from '@/libs/utils'
 import { useUIStore } from '@/stores/ui-store'
@@ -63,7 +62,7 @@ export function EventDetailContent({
             align: 'center',
           })}
         >
-          <Link
+          <SmartLink
             href="/"
             className={css({
               color: 'primary',
@@ -72,13 +71,13 @@ export function EventDetailContent({
             })}
           >
             ← 뒤로
-          </Link>
-          <Link
+          </SmartLink>
+          <SmartLink
             href={`/event/edit/${eventId}`}
             className={button({ variant: 'primary', size: 'sm' })}
           >
             편집
-          </Link>
+          </SmartLink>
         </div>
       </header>
 

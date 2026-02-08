@@ -1,6 +1,8 @@
 # Dear My Days - 로컬 & Dev 환경 테스트 가이드
 
-> Capacitor 앱을 로컬 및 개발 환경에서 iOS/Android 테스트하는 단계별 가이드
+> React Native CLI + WebView 앱을 로컬 및 개발 환경에서 iOS/Android 테스트하는 단계별 가이드
+
+**📱 모바일 앱 상세 가이드:** [mobile/README.md](../mobile/README.md)에서 React Native CLI 프로젝트 초기화 및 개발 방법을 확인하세요.
 
 ## 목차
 
@@ -19,6 +21,7 @@
 ### 필수 도구 설치
 
 #### 1. Node.js 및 pnpm
+
 ```bash
 # Node.js 20+ 설치 (Homebrew 사용)
 brew install node
@@ -32,20 +35,28 @@ pnpm --version   # 8.0.0 이상
 ```
 
 #### 2. iOS 개발 도구 (macOS 전용)
+
 ```bash
 # Xcode 설치 (App Store에서)
 # 설치 후 Command Line Tools 설정
 xcode-select --install
 
-# CocoaPods 설치 (iOS 의존성 관리)
+# 버전 확인
+xcodebuild -version   # Xcode 15.0 이상
+```
+
+**Note**: CocoaPods 설치 필수 (iOS 의존성 관리)
+
+```bash
+# CocoaPods 설치
 sudo gem install cocoapods
 
 # 버전 확인
-xcodebuild -version   # Xcode 15.0 이상
-pod --version         # 1.15.0 이상
+pod --version   # 1.15.0 이상
 ```
 
 #### 3. Android 개발 도구
+
 ```bash
 # Android Studio 설치
 # https://developer.android.com/studio 에서 다운로드
@@ -57,8 +68,6 @@ pod --version         # 1.15.0 이상
 export ANDROID_HOME=$HOME/Library/Android/sdk
 export PATH=$PATH:$ANDROID_HOME/emulator
 export PATH=$PATH:$ANDROID_HOME/platform-tools
-export PATH=$PATH:$ANDROID_HOME/tools
-export PATH=$PATH:$ANDROID_HOME/tools/bin
 
 # 적용
 source ~/.zshrc
@@ -68,10 +77,12 @@ adb --version         # Android Debug Bridge
 emulator -version     # Android Emulator
 ```
 
-#### 4. Capacitor CLI
+#### 4. React Native CLI
+
 ```bash
-# Capacitor CLI는 프로젝트 의존성으로 이미 설치됨
 # 전역 설치 불필요
+# npx로 사용
+npx react-native --version
 ```
 
 ---
@@ -84,11 +95,13 @@ emulator -version     # Android Emulator
 # 프로젝트 디렉토리로 이동
 cd /Users/a17050/side-project/dear-my-days
 
-# 의존성 설치
+# 웹 앱 의존성 설치
 pnpm install
 
-# Capacitor 동기화 (네이티브 프로젝트 생성)
-pnpm cap:sync
+# 모바일 앱 의존성 설치
+cd mobile
+npm install
+cd ..
 ```
 
 ### 2. 환경 변수 설정
@@ -128,16 +141,6 @@ KASI_SERVICE_KEY=xxx
 # OAuth (선택)
 NEXT_PUBLIC_NAVER_CLIENT_ID=xxx
 NAVER_CLIENT_SECRET=xxx
-
-# IAP (실제 디바이스 테스트 시 필요)
-APPLE_SHARED_SECRET=xxx
-GOOGLE_PACKAGE_NAME=com.dearmydays.app
-GOOGLE_SERVICE_ACCOUNT_TOKEN=xxx
-
-# Firebase (푸시 알림 테스트 시 필요)
-FIREBASE_PROJECT_ID=your-project
-FIREBASE_CLIENT_EMAIL=xxx@xxx.iam.gserviceaccount.com
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nxxx\n-----END PRIVATE KEY-----\n"
 ```
 
 ### 3. 데이터베이스 마이그레이션
@@ -213,111 +216,139 @@ pnpm start
 
 ### 1. 시뮬레이터 테스트
 
-#### Step 1: Capacitor 동기화
+#### Step 1: 개발 서버 실행 (터미널 1)
 
 ```bash
-# iOS 프로젝트 동기화 (최초 1회 또는 설정 변경 시)
-pnpm cap:sync ios
+# Next.js 개발 서버 시작
+pnpm dev
+```
 
-# 또는 전체 동기화
-pnpm cap:sync
+**중요**: iOS 시뮬레이터는 `localhost:3000`에 직접 접근할 수 있으므로 별도 설정 불필요
+
+#### Step 2: Metro 번들러 시작 (터미널 2)
+
+```bash
+# 모바일 앱 디렉토리로 이동
+cd mobile
+
+# Metro 번들러 시작
+npm start
 ```
 
 **결과:**
 ```
-✔ Copying web assets from out to ios/App/App/public in 50.00ms
-✔ Creating capacitor.config.json in ios/App/App in 1.00ms
-✔ copy ios in 51.00ms
-✔ Updating iOS plugins in 10.00ms
+› Metro waiting on exp://192.168.1.100:8081
+› Scan the QR code above with Expo Go (Android) or the Camera app (iOS)
+
+› Press a │ open Android
+› Press i │ open iOS simulator
+› Press w │ open web
+
+› Press j │ open debugger
+› Press r │ reload app
+› Press m │ toggle menu
+› Press o │ open Expo Go
 ```
 
-#### Step 2: 개발 서버 실행 (별도 터미널)
+#### Step 3A: iOS 시뮬레이터 실행 (방법 1 - 추천)
+
+Metro 번들러 화면에서:
+```
+Press i
+```
+
+또는 별도 터미널에서:
+```bash
+cd mobile
+npm run ios
+```
+
+**Expo가 자동으로:**
+1. iOS 시뮬레이터 실행
+2. Expo Go 앱 빌드 및 설치
+3. 앱 실행
+
+#### Step 3B: Xcode에서 실행 (방법 2 - 커스텀 빌드)
 
 ```bash
-# 터미널 1: Next.js 개발 서버
-pnpm dev
+# 네이티브 iOS 프로젝트 생성 (최초 1회)
+cd mobile
+npx expo prebuild --platform ios
+
+# Xcode 열기
+open ios/dearmydays.xcworkspace
 ```
 
-#### Step 3: iOS 시뮬레이터 실행
-
-```bash
-# 터미널 2: iOS 앱 실행
-pnpm cap:run:ios
-
-# 또는 Xcode에서 직접 실행
-pnpm cap:ios
-```
-
-**Xcode가 열리면:**
+**Xcode에서:**
 1. 상단에서 시뮬레이터 선택 (예: iPhone 15 Pro)
 2. ▶️ 버튼 클릭 또는 `Cmd + R`
 3. 시뮬레이터가 부팅되고 앱 실행
 
-#### Step 4: Live Reload 테스트 (선택)
+#### Step 4: 앱 동작 확인
+
+시뮬레이터에서 앱이 실행되면:
+- WebView가 `http://localhost:3000` 로드
+- 웹 앱의 모든 기능 사용 가능
+- 로그인, 이벤트 CRUD 등 정상 동작 확인
+
+### 2. 실제 디바이스 테스트
+
+#### 방법 1: Expo Go 앱 사용 (빠른 테스트)
 
 ```bash
-# Live Reload로 실행 (코드 변경 시 자동 새로고침)
-pnpm cap:run:ios --livereload --external
+# Metro 번들러 실행
+cd mobile
+npm start
 
-# 네트워크 IP 확인
-ifconfig | grep "inet "
-# 예: 192.168.1.100
+# 결과로 나온 QR 코드를:
+# 1. App Store에서 "Expo Go" 앱 설치
+# 2. 카메라 앱으로 QR 코드 스캔
+# 3. Expo Go에서 앱 열림
 ```
 
-**주의사항:**
-- 시뮬레이터와 개발 머신이 같은 네트워크에 있어야 함
-- 방화벽에서 포트 3000 허용 필요
+**장점:**
+- 가장 빠른 테스트 방법
+- Apple Developer 계정 불필요
+- 코드 변경 시 즉시 핫 리로드
 
-### 2. 실제 디바이스 테스트 (TestFlight)
+**단점:**
+- 커스텀 네이티브 코드 사용 불가
+- 일부 네이티브 API 제한
 
-#### Step 1: Apple Developer 계정 설정
+#### 방법 2: Development Build (실제 앱 빌드)
 
 ```bash
-# Apple Developer Program 가입 필요 ($99/년)
-# https://developer.apple.com/programs/
+# EAS CLI 설치
+npm install -g eas-cli
+
+# EAS 로그인
+eas login
+
+# 개발 빌드 생성
+eas build --profile development --platform ios
+
+# 빌드 완료 후 디바이스에 설치
+# QR 코드를 카메라로 스캔하여 다운로드
 ```
 
-#### Step 2: Xcode 서명 설정
-
-1. Xcode에서 `ios/App/App.xcworkspace` 열기
-2. 프로젝트 Navigator에서 "App" 선택
-3. **Signing & Capabilities** 탭:
-   - Team: 개발자 계정 선택
-   - Bundle Identifier: `com.dearmydays.app`
-   - Automatically manage signing 체크
-
-#### Step 3: 아카이브 빌드
+#### 방법 3: TestFlight (프로덕션 테스트)
 
 ```bash
-# Xcode에서:
-# 1. 상단 타겟을 "Any iOS Device (arm64)"로 선택
-# 2. Product → Archive
-# 3. Archives 창에서 "Distribute App" 클릭
-# 4. "App Store Connect" 선택
-# 5. "Upload" 선택
-# 6. 서명 옵션 선택 (Automatic)
-# 7. "Upload" 완료 대기
+# 프로덕션 빌드
+eas build --platform ios --profile production
+
+# App Store Connect 자동 제출
+eas submit --platform ios
+
+# TestFlight에서 앱 다운로드
 ```
 
-#### Step 4: TestFlight 설정
-
+**TestFlight 설정:**
 1. [App Store Connect](https://appstoreconnect.apple.com) 접속
 2. "My Apps" → 앱 선택 → "TestFlight" 탭
 3. "Internal Testing" → 테스터 추가
-4. 빌드가 처리되면 (보통 5-10분) 테스터에게 초대 발송
+4. 빌드가 처리되면 테스터에게 초대 발송
 5. 테스터는 TestFlight 앱에서 앱 다운로드
-
-#### Step 5: 실제 디바이스에서 테스트
-
-**테스트 항목:**
-- [ ] 앱 설치 및 실행
-- [ ] OAuth 로그인 (실제 인증 플로우)
-- [ ] 푸시 알림 권한 요청
-- [ ] 푸시 알림 수신
-- [ ] 딥링크 (`dearmydays://`, Universal Links)
-- [ ] IAP 구매 (Sandbox 계정)
-- [ ] 네이티브 뒤로가기 제스처
-- [ ] 캘린더 연동 (권한 요청)
 
 ---
 
@@ -352,136 +383,106 @@ avdmanager create avd -n Pixel_5_API_33 \
 emulator -avd Pixel_5_API_33
 ```
 
-#### Step 2: Capacitor 동기화
+#### Step 2: 개발 서버 실행 (터미널 1)
 
 ```bash
-# Android 프로젝트 동기화
-pnpm cap:sync android
-
-# 또는 전체 동기화
-pnpm cap:sync
+# Next.js 개발 서버
+pnpm dev
 ```
 
-#### Step 3: 개발 서버 실행 (별도 터미널)
+**중요**: Android 에뮬레이터는 `localhost:3000`에 직접 접근할 수 없습니다.
+`mobile/constants/Config.ts`에서 로컬 IP를 설정해야 합니다.
+
+```typescript
+// mobile/constants/Config.ts
+const getDevUrl = () => {
+  const localIP = '192.168.1.100' // 실제 IP로 변경
+  return `http://${localIP}:3000`
+}
+```
+
+**로컬 IP 확인:**
+```bash
+# macOS
+ifconfig | grep "inet "
+# 예: inet 192.168.1.100
+
+# Windows
+ipconfig
+```
+
+#### Step 3: Metro 번들러 시작 (터미널 2)
 
 ```bash
-# 터미널 1: Next.js 개발 서버
-pnpm dev
+cd mobile
+npm start
 ```
 
 #### Step 4: Android 앱 실행
 
-```bash
-# 터미널 2: Android 앱 실행
-pnpm cap:run:android
-
-# 또는 Android Studio에서 직접 실행
-pnpm cap:android
+Metro 번들러 화면에서:
+```
+Press a
 ```
 
-**Android Studio가 열리면:**
-1. 상단에서 AVD 선택
-2. ▶️ 버튼 클릭 또는 `Shift + F10`
-3. 에뮬레이터에서 앱 실행
-
-#### Step 5: Live Reload 테스트 (선택)
-
+또는 별도 터미널에서:
 ```bash
-# Live Reload로 실행
-pnpm cap:run:android --livereload --external
+cd mobile
+npm run android
 ```
 
-### 2. 실제 디바이스 테스트 (Internal Testing)
+**Expo가 자동으로:**
+1. Android 에뮬레이터 감지
+2. Expo Go 앱 빌드 및 설치
+3. 앱 실행
 
-#### Step 1: Google Play Console 계정 설정
+#### Step 5: 앱 동작 확인
 
-```bash
-# Google Play Developer 계정 필요 ($25 일회성)
-# https://play.google.com/console/signup
-```
+에뮬레이터에서 앱이 실행되면:
+- WebView가 `http://192.168.1.100:3000` 로드
+- 웹 앱의 모든 기능 사용 가능
 
-#### Step 2: 서명 키 생성
+### 2. 실제 디바이스 테스트
+
+#### 방법 1: Expo Go 앱 사용
 
 ```bash
-# Release 키 생성
-cd android
-keytool -genkey -v -keystore my-release-key.keystore \
-  -alias my-key-alias \
-  -keyalg RSA \
-  -keysize 2048 \
-  -validity 10000
+# Metro 번들러 실행
+cd mobile
+npm start
 
-# 키 정보 입력 (비밀번호, 이름 등)
-# 키는 안전한 곳에 보관!
+# QR 코드를:
+# 1. Google Play에서 "Expo Go" 앱 설치
+# 2. Expo Go 앱 내 스캔 기능으로 QR 코드 스캔
+# 3. 앱 열림
 ```
 
-#### Step 3: 서명 설정
-
-`android/app/build.gradle` 수정:
-
-```gradle
-android {
-    ...
-    signingConfigs {
-        release {
-            storeFile file('my-release-key.keystore')
-            storePassword 'your-store-password'
-            keyAlias 'my-key-alias'
-            keyPassword 'your-key-password'
-        }
-    }
-    buildTypes {
-        release {
-            signingConfig signingConfigs.release
-            ...
-        }
-    }
-}
-```
-
-**보안 주의:**
-- 키스토어 파일은 절대 Git에 커밋하지 않기
-- `.gitignore`에 `*.keystore` 추가
-- 비밀번호는 환경 변수로 관리
-
-#### Step 4: 서명된 AAB 빌드
+#### 방법 2: Development Build
 
 ```bash
-# Android App Bundle 빌드
-cd android
-./gradlew bundleRelease
+# 개발 빌드 생성
+eas build --profile development --platform android
 
-# 빌드 결과 위치:
-# android/app/build/outputs/bundle/release/app-release.aab
+# APK 다운로드 후 디바이스에 설치
+adb install app-development.apk
 ```
 
-#### Step 5: Google Play Console 업로드
+#### 방법 3: Internal Testing (Play Store)
 
+```bash
+# 프로덕션 빌드
+eas build --platform android --profile production
+
+# Google Play Console 자동 제출
+eas submit --platform android
+```
+
+**Internal Testing 설정:**
 1. [Google Play Console](https://play.google.com/console) 접속
 2. 앱 선택 → "Testing" → "Internal testing"
 3. "Create new release" 클릭
-4. AAB 파일 업로드
-5. Release name 및 notes 입력
-6. "Save" → "Review release" → "Start rollout to Internal testing"
-
-#### Step 6: 테스터 추가
-
-1. "Internal testing" → "Testers" 탭
-2. 이메일 목록 생성 및 추가
-3. 테스터에게 초대 링크 전송
-4. 테스터는 링크를 통해 앱 다운로드
-
-#### Step 7: 실제 디바이스에서 테스트
-
-**테스트 항목:**
-- [ ] 앱 설치 및 실행
-- [ ] OAuth 로그인
-- [ ] 푸시 알림 권한 요청
-- [ ] 푸시 알림 수신
-- [ ] 딥링크 (App Links)
-- [ ] IAP 구매 (테스트 계정)
-- [ ] 네이티브 뒤로가기 버튼
-- [ ] 캘린더 연동
+4. AAB 파일 업로드 (EAS가 자동 생성)
+5. 테스터 추가 및 초대 링크 전송
 
 ---
 
@@ -502,14 +503,13 @@ cd android
 - [ ] 이메일 로그인
 - [ ] Google OAuth (Safari로 리다이렉트)
 - [ ] Kakao OAuth
-- [ ] Apple Sign In
-- [ ] 딥링크 콜백 (`dearmydays://auth/callback`)
+- [ ] Naver OAuth
 
 #### Android 에뮬레이터
 - [ ] 이메일 로그인
 - [ ] Google OAuth (Chrome으로 리다이렉트)
 - [ ] Kakao OAuth
-- [ ] App Links 콜백 (`https://dear-my-days.com/auth/callback`)
+- [ ] Naver OAuth
 
 ### 이벤트 관리
 
@@ -527,79 +527,23 @@ cd android
 #### 이벤트 제한
 - [ ] FREE 플랜 (3개 제한) 테스트
 - [ ] 제한 초과 시 에러 메시지 확인
-- [ ] 추가 슬롯 구매 후 제한 증가 확인
 
-### 알림 (Push Notifications)
-
-#### 설정
-- [ ] 알림 권한 요청 (iOS/Android)
-- [ ] 알림 스케줄 추가 (D-7, D-3, D-1, 당일)
-- [ ] 알림 스케줄 삭제
-- [ ] 알림 시간 설정 (시, 분)
-
-#### 발송 (실제 디바이스 필요)
-- [ ] 디바이스 토큰 등록 확인 (device_tokens 테이블)
-- [ ] 예약 알림 발송 (Edge Function)
-- [ ] 알림 수신 (Foreground)
-- [ ] 알림 수신 (Background)
-- [ ] 알림 클릭 시 이벤트 상세 페이지 이동
-- [ ] 알림 로그 확인 (notification_logs 테이블)
-
-### 인앱결제 (IAP)
-
-#### 웹 (Mock)
-- [ ] 구독 상품 목록 표시
-- [ ] 현재 플랜 표시
-- [ ] 이벤트 제한 표시
-- [ ] "모바일 앱에서만 가능" 메시지
-
-#### iOS (Sandbox)
-- [ ] Sandbox 테스트 계정 생성 및 로그인
-- [ ] 월간 구독 구매 (₩4,900)
-- [ ] 연간 구독 구매 (₩49,000)
-- [ ] 이벤트 슬롯 구매 (₩990)
-- [ ] 구매 후 플랜 업데이트 확인
-- [ ] event_purchases 테이블 기록 확인
-- [ ] 구독 복원 기능
-
-#### Android (Test)
-- [ ] 테스트 계정 생성 및 설정
-- [ ] 월간 구독 구매
-- [ ] 연간 구독 구매
-- [ ] 이벤트 슬롯 구매
-- [ ] 구매 후 플랜 업데이트 확인
-- [ ] 구독 복원 기능
-
-### 딥링크 (Deep Links)
+### WebView 기능
 
 #### iOS
-- [ ] Custom URL Scheme: `dearmydays://calendar`
-- [ ] Custom URL Scheme: `dearmydays://settings`
-- [ ] Universal Links: `https://dear-my-days.com/calendar`
-- [ ] Universal Links: `https://dear-my-days.com/auth/callback?code=xxx`
-
-#### Android
-- [ ] Custom URL Scheme: `dearmydays://calendar`
-- [ ] App Links: `https://dear-my-days.com/calendar`
-- [ ] App Links: `https://dear-my-days.com/auth/callback?code=xxx`
-
-### Native 기능
-
-#### iOS
-- [ ] Status Bar 스타일 (Light/Dark)
-- [ ] Safe Area 처리
+- [ ] WebView 로딩 (localhost:3000)
+- [ ] 로딩 인디케이터 표시
+- [ ] 네트워크 에러 시 에러 메시지
+- [ ] 재시도 기능
 - [ ] Swipe Back 제스처
-- [ ] 키보드 처리 (Resize/Pan)
-- [ ] Haptic Feedback
-- [ ] Share Sheet (네이티브 공유)
+- [ ] Safe Area 처리
 
 #### Android
-- [ ] Status Bar 색상
-- [ ] Navigation Bar 처리
+- [ ] WebView 로딩 (로컬 IP:3000)
+- [ ] 로딩 인디케이터 표시
+- [ ] 네트워크 에러 시 에러 메시지
+- [ ] 재시도 기능
 - [ ] 뒤로가기 버튼
-- [ ] 키보드 처리
-- [ ] Vibration
-- [ ] Share Intent
 
 ---
 
@@ -621,44 +565,23 @@ cat .env.local
 # @t3-oss/env-nextjs가 자동으로 검증함
 ```
 
-#### 문제: Capacitor 동기화 실패
+#### 문제: Metro 번들러 시작 실패
 ```
-Error: capacitor.config.ts not found
+Error: EADDRINUSE: address already in use :::8081
 ```
 
 **해결:**
 ```bash
-# 프로젝트 루트에서 실행했는지 확인
-pwd
-# → /Users/a17050/side-project/dear-my-days
+# 8081 포트를 사용 중인 프로세스 종료
+lsof -ti:8081 | xargs kill -9
 
-# Capacitor 초기화 (최초 1회)
-npx cap init "Dear My Days" "com.dearmydays.app"
-
-# 동기화 재시도
-pnpm cap:sync
+# Metro 재시작
+npm start
 ```
 
 ### iOS
 
-#### 문제: Xcode 빌드 에러 "No such module 'Capacitor'"
-```
-Module 'Capacitor' not found
-```
-
-**해결:**
-```bash
-# CocoaPods 의존성 재설치
-cd ios/App
-pod install
-pod update
-
-# Xcode 클린 빌드
-# Xcode → Product → Clean Build Folder (Cmd + Shift + K)
-# 다시 빌드 (Cmd + R)
-```
-
-#### 문제: 시뮬레이터에서 네트워크 연결 안 됨
+#### 문제: 시뮬레이터에서 WebView가 로드되지 않음
 ```
 Failed to load: localhost:3000
 ```
@@ -668,28 +591,47 @@ Failed to load: localhost:3000
 # 1. 개발 서버가 실행 중인지 확인
 lsof -i :3000
 
-# 2. capacitor.config.ts 확인
-# server.url이 올바른지 확인
-
-# 3. 시뮬레이터 재시작
+# 2. 시뮬레이터 재시작
 # Hardware → Restart
+
+# 3. 앱 재실행
+npm run ios
 ```
 
-#### 문제: TestFlight 업로드 실패
+#### 문제: Expo Go 빌드 실패
 ```
-Asset validation failed
+Build failed with error: No profile named 'development' found
 ```
 
 **해결:**
 ```bash
-# 1. 번들 ID 확인 (com.dearmydays.app)
-# 2. 버전 번호 증가 (CFBundleShortVersionString)
-# 3. 빌드 번호 증가 (CFBundleVersion)
-# 4. Provisioning Profile 갱신
-# 5. 아카이브 재시도
+# eas.json 생성
+cd mobile
+eas build:configure
+
+# 다시 빌드
+eas build --profile development --platform ios
 ```
 
 ### Android
+
+#### 문제: 에뮬레이터에서 네트워크 연결 안 됨
+```
+Failed to load: http://localhost:3000
+```
+
+**해결:**
+```bash
+# 1. Config.ts에서 localhost를 로컬 IP로 변경
+# mobile/constants/Config.ts
+const localIP = '192.168.1.100' // 실제 IP
+
+# 2. 로컬 IP 확인
+ifconfig | grep "inet "
+
+# 3. 웹 서버가 외부 접근 가능한지 확인
+# Next.js는 기본적으로 0.0.0.0 바인딩 (외부 접근 가능)
+```
 
 #### 문제: Gradle 빌드 실패
 ```
@@ -699,7 +641,7 @@ FAILURE: Build failed with an exception
 **해결:**
 ```bash
 # Gradle 캐시 클리어
-cd android
+cd mobile/android
 ./gradlew clean
 
 # 캐시 완전 삭제
@@ -707,7 +649,7 @@ rm -rf .gradle
 rm -rf app/build
 
 # 재빌드
-./gradlew assembleDebug
+npm run android
 ```
 
 #### 문제: 에뮬레이터 실행 안 됨
@@ -717,125 +659,87 @@ Emulator: ERROR: x86 emulation currently requires hardware acceleration
 
 **해결:**
 ```bash
-# Intel HAXM 설치 확인 (Intel Mac)
-# Android Studio → SDK Manager → SDK Tools → Intel HAXM
-
 # M1/M2 Mac: ARM 이미지 사용
 # System Image: ARM 64 (arm64-v8a)
+
+# AVD Manager에서 ARM 이미지 선택하여 새 AVD 생성
 ```
 
-#### 문제: AAB 업로드 실패 (Google Play)
-```
-This release is not compliant with Google Play 64-bit requirement
-```
+### WebView
+
+#### 문제: WebView에서 이미지가 로드되지 않음
 
 **해결:**
-```gradle
-// android/app/build.gradle
-android {
-    defaultConfig {
-        ndk {
-            abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'
-        }
-    }
-    splits {
-        abi {
-            enable true
-            reset()
-            include 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'
-            universalApk true
-        }
-    }
-}
+```typescript
+// mobile/components/AppWebView.tsx
+// mixedContentMode 확인
+mixedContentMode="compatibility"  // HTTP 콘텐츠 허용
 ```
+
+#### 문제: WebView에서 OAuth 리다이렉트 안 됨
+
+**원인**: OAuth는 WebView에서 제한될 수 있음
+
+**해결**: 현재 구현에서는 WebView 내에서 OAuth가 정상 동작합니다.
+문제 발생 시 `expo-web-browser` 또는 `expo-auth-session` 사용 고려
+
+---
+
+## 향후 기능 (현재 미구현)
 
 ### 푸시 알림
+- Expo Notifications 플러그인 추가 예정
+- FCM 토큰 등록 및 알림 수신
+- 로컬 스케줄 알림
 
-#### 문제: iOS에서 푸시 토큰을 받지 못함
-```
-APNs registration failed
-```
+### 인앱결제 (IAP)
+- Expo In-App Purchases 플러그인 추가 예정
+- Apple StoreKit / Google Play Billing 연동
+- 구독 관리
 
-**해결:**
-```bash
-# 1. APNs 키가 Firebase에 업로드되었는지 확인
-# Firebase Console → Project Settings → Cloud Messaging → APNs
+### 딥링크
+- Expo Linking 플러그인 추가 예정
+- Universal Links (iOS) / App Links (Android)
+- OAuth 콜백 처리
 
-# 2. Bundle ID가 일치하는지 확인
-# 3. 실제 디바이스에서 테스트 (시뮬레이터는 푸시 미지원)
-# 4. Capabilities에서 Push Notifications 활성화
-```
-
-#### 문제: Android에서 알림이 수신되지 않음
-```
-FCM token not registered
-```
-
-**해결:**
-```bash
-# 1. google-services.json 위치 확인
-# android/app/google-services.json
-
-# 2. 패키지 이름 일치 확인
-# google-services.json의 package_name === com.dearmydays.app
-
-# 3. Google Services 플러그인 확인
-# android/app/build.gradle: apply plugin: 'com.google.gms.google-services'
-
-# 4. Firebase Console에서 직접 테스트
-# Cloud Messaging → Send test message
-```
-
-### IAP
-
-#### 문제: "Unable to complete purchase"
-```
-Purchase failed: Product not found
-```
-
-**해결:**
-```bash
-# iOS:
-# 1. App Store Connect에서 상품 생성 확인
-# 2. 상품 ID 일치 확인 (com.dearmydays.premium.monthly)
-# 3. Sandbox 계정으로 로그인했는지 확인
-# 4. 앱이 "Waiting for Review" 또는 "Ready to Submit" 상태인지 확인
-
-# Android:
-# 1. Google Play Console에서 상품 활성화 확인
-# 2. 상품 ID 일치 확인
-# 3. 테스트 계정이 Internal Testing 그룹에 추가되었는지 확인
-# 4. 최소 1회 Internal Testing 버전이 배포되었는지 확인
-```
+### 네이티브 기능
+- 파일 공유 (expo-sharing)
+- 카메라 접근 (expo-camera)
+- 캘린더 연동 (expo-calendar)
 
 ---
 
 ## 추가 리소스
 
 ### 공식 문서
-- [Capacitor Docs](https://capacitorjs.com/docs)
+- [Expo Documentation](https://docs.expo.dev/)
+- [React Native Documentation](https://reactnative.dev/)
+- [React Native WebView](https://github.com/react-native-webview/react-native-webview)
+- [EAS Build](https://docs.expo.dev/build/introduction/)
 - [Next.js Testing](https://nextjs.org/docs/testing)
-- [Xcode Documentation](https://developer.apple.com/documentation/xcode)
-- [Android Studio User Guide](https://developer.android.com/studio/intro)
 
 ### 테스트 도구
-- [Xcode Instruments](https://developer.apple.com/xcode/features/) - 성능 프로파일링
-- [Android Profiler](https://developer.android.com/studio/profile) - 성능 분석
-- [React Developer Tools](https://react.dev/learn/react-developer-tools) - 디버깅
+- [Expo DevTools](https://docs.expo.dev/workflow/debugging/) - 디버깅
+- [React Developer Tools](https://react.dev/learn/react-developer-tools) - 컴포넌트 검사
+- [Flipper](https://fbflipper.com/) - 네이티브 디버깅
 
 ### 디버깅
+
 ```bash
-# iOS 로그 확인
-# Xcode → Window → Devices and Simulators → 디바이스 선택 → Open Console
+# Metro 번들러 로그
+npm start
 
-# Android 로그 확인
-adb logcat | grep "Capacitor"
+# iOS 시뮬레이터 로그
+# 앱 실행 중 터미널에 자동 출력
 
-# Chrome DevTools로 디버깅 (Android)
-chrome://inspect/#devices
+# Android 에뮬레이터 로그
+adb logcat
+
+# Chrome DevTools로 디버깅
+# Metro 번들러에서 'j' 누르면 Debugger 열림
 ```
 
 ---
 
-**마지막 업데이트:** 2026-02-07
-**버전:** 1.0.0
+**마지막 업데이트:** 2026-02-08
+**버전:** 2.0.0 (React Native WebView)

@@ -1,7 +1,7 @@
 'use client'
 
-import Link from 'next/link'
 import { getCategoryIcon, getCategoryLabel } from '@/libs/helpers'
+import { SmartLink } from '@/libs/native-bridge'
 import type { Event } from '@/libs/supabase/database.types'
 import { calculateDday, formatDday } from '@/libs/utils'
 import { css, cx } from '@/styled-system/css'
@@ -29,12 +29,12 @@ export function HomeContent({ upcomingEvents }: HomeContentProps) {
         >
           다가오는 이벤트
         </h2>
-        <Link
+        <SmartLink
           href="/event/past"
           className={css({ color: 'primary', textDecoration: 'none' })}
         >
           지난 이벤트 보기 →
-        </Link>
+        </SmartLink>
       </div>
 
       {upcomingEvents.length === 0 ? (
@@ -73,7 +73,7 @@ export function HomeContent({ upcomingEvents }: HomeContentProps) {
             const isToday = dday === 0
 
             return (
-              <Link
+              <SmartLink
                 key={event.id}
                 href={`/event/detail?id=${event.id}`}
                 className={eventCard()}
@@ -148,7 +148,7 @@ export function HomeContent({ upcomingEvents }: HomeContentProps) {
                 >
                   {getCategoryLabel(event.category)}
                 </div>
-              </Link>
+              </SmartLink>
             )
           })}
         </div>
