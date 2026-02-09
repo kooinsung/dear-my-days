@@ -378,7 +378,15 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
               </button>
             </div>
 
-            <div className={css({ marginTop: '16px', textAlign: 'center' })}>
+            <div
+              className={css({
+                marginTop: '16px',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+              })}
+            >
               <button
                 type="button"
                 onClick={() => setIsResetModalOpen(true)}
@@ -393,6 +401,21 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
                 })}
               >
                 비밀번호를 잊으셨나요?
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push('/test')}
+                className={css({
+                  backgroundColor: 'transparent',
+                  color: '#666',
+                  border: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  textDecoration: 'underline',
+                })}
+              >
+                테스트 페이지로 이동
               </button>
             </div>
 
