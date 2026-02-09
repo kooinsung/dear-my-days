@@ -9,40 +9,40 @@ importers:
   .:
     dependencies:
       '@capacitor/app':
-        specifier: '6'
+        specifier: ^6.0.3
         version: 6.0.3(@capacitor/core@6.2.1)
       '@capacitor/browser':
-        specifier: '6'
+        specifier: ^6.0.6
         version: 6.0.6(@capacitor/core@6.2.1)
       '@capacitor/cli':
-        specifier: '6'
+        specifier: ^6.2.1
         version: 6.2.1
       '@capacitor/core':
-        specifier: '6'
+        specifier: ^6.2.1
         version: 6.2.1
       '@capacitor/device':
-        specifier: '6'
+        specifier: ^6.0.3
         version: 6.0.3(@capacitor/core@6.2.1)
       '@capacitor/haptics':
-        specifier: '6'
+        specifier: ^6.0.3
         version: 6.0.3(@capacitor/core@6.2.1)
       '@capacitor/keyboard':
-        specifier: '6'
+        specifier: ^6.0.4
         version: 6.0.4(@capacitor/core@6.2.1)
       '@capacitor/network':
-        specifier: '6'
+        specifier: ^6.0.4
         version: 6.0.4(@capacitor/core@6.2.1)
       '@capacitor/push-notifications':
-        specifier: '6'
+        specifier: ^6.0.5
         version: 6.0.5(@capacitor/core@6.2.1)
       '@capacitor/share':
-        specifier: '6'
+        specifier: ^6.0.4
         version: 6.0.4(@capacitor/core@6.2.1)
       '@capacitor/splash-screen':
-        specifier: '6'
+        specifier: ^6.0.4
         version: 6.0.4(@capacitor/core@6.2.1)
       '@capacitor/status-bar':
-        specifier: '6'
+        specifier: ^6.0.3
         version: 6.0.3(@capacitor/core@6.2.1)
       '@supabase/ssr':
         specifier: ^0.8.0
@@ -88,10 +88,10 @@ importers:
         specifier: 2.3.11
         version: 2.3.11
       '@capacitor/android':
-        specifier: '6'
+        specifier: ^6.2.1
         version: 6.2.1(@capacitor/core@6.2.1)
       '@capacitor/ios':
-        specifier: '6'
+        specifier: ^6.2.1
         version: 6.2.1(@capacitor/core@6.2.1)
       '@pandacss/dev':
         specifier: ^1.8.1
@@ -4859,6 +4859,11 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
+  semver@7.7.4:
+    resolution: {integrity: sha512-vFKC2IEtQnVhpT78h1Yp8wzwrf8CM+MzKMHGJZfBtzhZNycRFnXsHk6E5TxIkkMsgNS7mdX3AGB7x2QM2di4lA==}
+    engines: {node: '>=10'}
+    hasBin: true
+
   send@0.19.2:
     resolution: {integrity: sha512-VMbMxbDeehAxpOtWJXlcUS5E8iXh6QmN+BkRX1GARS3wRaXEEgzCcB10gTQazO42tpNIya8xIyNx8fll1OFPrg==}
     engines: {node: '>= 0.8.0'}
@@ -6536,7 +6541,7 @@ snapshots:
       plist: 3.1.0
       prompts: 2.4.2
       rimraf: 4.4.1
-      semver: 7.7.3
+      semver: 7.7.4
       tar: 6.2.1
       tslib: 2.8.1
       xml2js: 0.5.0
@@ -11335,6 +11340,8 @@ snapshots:
   semver@6.3.1: {}
 
   semver@7.7.3: {}
+
+  semver@7.7.4: {}
 
   send@0.19.2:
     dependencies:
