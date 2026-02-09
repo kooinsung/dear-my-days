@@ -1,5 +1,6 @@
 import { createSupabaseServer } from '@/libs/supabase/server'
 import { EventEditPageClient } from './edit-page-client'
+import { EditPageWrapper } from './edit-page-wrapper'
 
 export default async function EditPage({
   params,
@@ -11,5 +12,9 @@ export default async function EditPage({
   const supabase = await createSupabaseServer()
   void supabase
 
-  return <EventEditPageClient eventId={id} />
+  return (
+    <EditPageWrapper eventId={id}>
+      <EventEditPageClient eventId={id} />
+    </EditPageWrapper>
+  )
 }
