@@ -58,6 +58,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(`${origin}/login?${params.toString()}`)
     }
 
+    // Capacitor handles deep links automatically
     return NextResponse.redirect(`${origin}${next}`)
   }
 

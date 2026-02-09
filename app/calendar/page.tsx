@@ -1,4 +1,4 @@
-import { SmartLink } from '@/libs/native-bridge'
+import Link from 'next/link'
 import type { CategoryType, Event } from '@/libs/supabase/database.types'
 import { createSupabaseServer } from '@/libs/supabase/server'
 
@@ -86,7 +86,7 @@ export default async function CalendarPage({
             alignItems: 'center',
           }}
         >
-          <SmartLink
+          <Link
             href="/"
             style={{
               fontSize: '14px',
@@ -95,9 +95,9 @@ export default async function CalendarPage({
             }}
           >
             ← 홈
-          </SmartLink>
+          </Link>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <SmartLink
+            <Link
               href={`/calendar?year=${currentYear - 1}`}
               style={{
                 padding: '6px 12px',
@@ -109,11 +109,11 @@ export default async function CalendarPage({
               }}
             >
               ◀
-            </SmartLink>
+            </Link>
             <h1 style={{ fontSize: '18px', fontWeight: 'bold' }}>
               {currentYear}년
             </h1>
-            <SmartLink
+            <Link
               href={`/calendar?year=${currentYear + 1}`}
               style={{
                 padding: '6px 12px',
@@ -125,7 +125,7 @@ export default async function CalendarPage({
               }}
             >
               ▶
-            </SmartLink>
+            </Link>
           </div>
           <div style={{ width: '60px' }} />
         </div>

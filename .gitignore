@@ -46,7 +46,8 @@ next-env.d.ts
 styled-system
 styled-system-studio
 
-## React Native / Expo
-/mobile/node_modules
-/mobile/.expo
-/mobile/dist
+# Capacitor
+ios/App/
+android/app/
+*.mobileprovision
+*.p12

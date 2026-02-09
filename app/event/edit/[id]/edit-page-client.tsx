@@ -1,6 +1,6 @@
 'use client'
 
-import { SmartLink } from '@/libs/native-bridge'
+import Link from 'next/link'
 import { css } from '@/styled-system/css'
 import { flex, vstack } from '@/styled-system/patterns'
 import { card } from '@/styled-system/recipes'
@@ -28,7 +28,7 @@ export function EventEditPageClient({ eventId }: { eventId: string }) {
             gap: '16px',
           })}
         >
-          <SmartLink
+          <Link
             href={`/event/detail/${eventId}`}
             className={css({
               color: 'primary',
@@ -37,7 +37,7 @@ export function EventEditPageClient({ eventId }: { eventId: string }) {
             })}
           >
             ← 뒤로
-          </SmartLink>
+          </Link>
           <h1
             className={css({
               fontSize: '20px',

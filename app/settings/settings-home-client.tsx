@@ -1,7 +1,7 @@
 'use client'
 
 import type { User } from '@supabase/supabase-js'
-import { SmartLink } from '@/libs/native-bridge'
+import Link from 'next/link'
 import { css, cx } from '@/styled-system/css'
 import { flex, vstack } from '@/styled-system/patterns'
 import { button, card } from '@/styled-system/recipes'
@@ -20,7 +20,7 @@ function SettingsMenuItem({
   href: string
 }) {
   return (
-    <SmartLink
+    <Link
       href={href}
       className={cx(
         card(),
@@ -38,7 +38,7 @@ function SettingsMenuItem({
       >
         {description}
       </div>
-    </SmartLink>
+    </Link>
   )
 }
 
@@ -76,9 +76,9 @@ export function SettingsHomeClient({ user }: SettingsHomeClientProps) {
           >
             설정
           </h1>
-          <SmartLink href="/" className={button({ variant: 'secondary' })}>
+          <Link href="/" className={button({ variant: 'secondary' })}>
             홈으로
-          </SmartLink>
+          </Link>
         </div>
       </header>
 

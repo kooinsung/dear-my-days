@@ -1,8 +1,10 @@
 'use client'
 
+import { Browser } from '@capacitor/browser'
 import type { User } from '@supabase/supabase-js'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { useRouter } from '@/libs/native-bridge'
+import { isNative } from '@/libs/capacitor/platform'
 import { generateNaverAuthUrl } from '@/libs/naver/oauth'
 import { getOAuthCallbackUrl } from '@/libs/oauth/urls'
 import { createSupabaseBrowser } from '@/libs/supabase/browser'
@@ -18,6 +20,7 @@ interface LoginFormProps {
 
 export default function LoginForm({ initialUser }: LoginFormProps) {
   const router = useRouter()
+  const [isNativeApp, setIsNativeApp] = useState(false)
 
   const [user, setUser] = useState<User | null>(initialUser)
   const [email, setEmail] = useState('')
@@ -30,6 +33,15 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
   const [isSignupPending, setIsSignupPending] = useState(false)
   const [isLogoutPending, setIsLogoutPending] = useState(false)
   const [isResetModalOpen, setIsResetModalOpen] = useState(false)
+
+  // 플랫폼 감지
+  useEffect(() => {
+    const checkNative = async () => {
+      const native = await isNative()
+      setIsNativeApp(native)
+    }
+    checkNative()
+  }, [])
 
   // 세션 변화 감지
   useEffect(() => {
@@ -108,18 +120,57 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
   // OAuth
   const oauthLogin = async (provider: 'google' | 'kakao' | 'apple') => {
     const supabase = createSupabaseBrowser()
-    await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: getOAuthCallbackUrl(window.location.origin),
-      },
-    })
+
+    if (isNativeApp) {
+      // 네이티브 앱: 딥링크를 콜백으로 사용
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: 'dearmydays://auth/callback',
+          skipBrowserRedirect: true,
+        },
+      })
+
+      if (error) {
+        console.error('OAuth error:', error)
+        setMessage('로그인에 실패했습니다. 다시 시도해주세요.')
+        return
+      }
+
+      if (data?.url) {
+        // Capacitor Browser로 OAuth URL 열기
+        await Browser.open({ url: data.url })
+      }
+    } else {
+      // 웹: 일반 OAuth 플로우
+      await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: getOAuthCallbackUrl(window.location.origin),
+        },
+      })
+    }
   }
 
-  const naverLogin = () => {
+  const naverLogin = async () => {
     const state = crypto.randomUUID()
     sessionStorage.setItem('naver_state', state)
-    window.location.href = generateNaverAuthUrl(state)
+
+    if (isNativeApp) {
+      // 네이티브 앱: 딥링크 콜백 URL 사용
+      const params = new URLSearchParams({
+        response_type: 'code',
+        client_id: process.env.NEXT_PUBLIC_NAVER_CLIENT_ID || '',
+        redirect_uri: 'dearmydays://auth/callback/naver',
+        state,
+      })
+      const naverUrl = `https://nid.naver.com/oauth2.0/authorize?${params}`
+      await Browser.open({ url: naverUrl })
+    } else {
+      // 웹: 일반 리다이렉트
+      const naverUrl = generateNaverAuthUrl(state)
+      window.location.href = naverUrl
+    }
   }
 
   const handleLogout = async () => {

@@ -1,6 +1,6 @@
 'use client'
 
-import { SmartLink } from '@/libs/native-bridge'
+import Link from 'next/link'
 import type { Event } from '@/libs/supabase/database.types'
 import { css, cx } from '@/styled-system/css'
 import { HStack } from '@/styled-system/jsx'
@@ -44,13 +44,10 @@ export function HomePageClient({ upcomingEvents }: HomePageClientProps) {
             Dear Days
           </h1>
           <HStack gap={12}>
-            <SmartLink
-              href="/event/new"
-              className={button({ variant: 'primary' })}
-            >
+            <Link href="/event/new" className={button({ variant: 'primary' })}>
               + 새 이벤트
-            </SmartLink>
-            <SmartLink
+            </Link>
+            <Link
               href="/calendar"
               className={cx(
                 button({ variant: 'secondary' }),
@@ -58,13 +55,10 @@ export function HomePageClient({ upcomingEvents }: HomePageClientProps) {
               )}
             >
               📅 캘린더
-            </SmartLink>
-            <SmartLink
-              href="/settings"
-              className={button({ variant: 'secondary' })}
-            >
+            </Link>
+            <Link href="/settings" className={button({ variant: 'secondary' })}>
               설정
-            </SmartLink>
+            </Link>
           </HStack>
         </div>
       </header>

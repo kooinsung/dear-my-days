@@ -1,4 +1,4 @@
-import { SmartLink } from '@/libs/native-bridge'
+import Link from 'next/link'
 import { css, cx } from '@/styled-system/css'
 import { flex, vstack } from '@/styled-system/patterns'
 import { button, card } from '@/styled-system/recipes'
@@ -28,12 +28,9 @@ export default async function SettingsNotificationsPage() {
           >
             알림 설정
           </h1>
-          <SmartLink
-            href="/settings"
-            className={button({ variant: 'secondary' })}
-          >
+          <Link href="/settings" className={button({ variant: 'secondary' })}>
             설정으로
-          </SmartLink>
+          </Link>
         </div>
       </header>
 

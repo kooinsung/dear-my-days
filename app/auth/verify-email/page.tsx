@@ -1,4 +1,4 @@
-import { SmartLink } from '@/libs/native-bridge'
+import Link from 'next/link'
 
 export default function VerifyEmailPage({
   searchParams,
@@ -22,7 +22,7 @@ export default function VerifyEmailPage({
         </p>
       )}
 
-      <SmartLink href="/login">로그인으로 이동</SmartLink>
+      <Link href="/login">로그인으로 이동</Link>
     </div>
   )
 }
