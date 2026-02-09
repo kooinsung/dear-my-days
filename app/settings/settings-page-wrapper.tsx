@@ -1,5 +1,7 @@
 'use client'
 
+import { SsgoiTransition } from '@ssgoi/react'
+
 export function SettingsPageWrapper({
   pageId,
   children,
@@ -7,5 +9,5 @@ export function SettingsPageWrapper({
   pageId: string
   children: React.ReactNode
 }) {
-  return <>{children}</>
+  return <SsgoiTransition id={pageId}>{children}</SsgoiTransition>
 }
