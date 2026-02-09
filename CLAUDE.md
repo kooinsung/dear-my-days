@@ -5,7 +5,7 @@
 ## 프로젝트 개요
 
 Dear My Days는 생일, 기념일, 기일 등의 특별한 날을 관리하는 **웹 및 모바일 애플리케이션**입니다.
-React Native WebView 기반 모바일 앱으로 웹과 동일한 기능을 제공하며, 한국 음력 달력을 완벽하게 지원합니다.
+Capacitor 기반 모바일 앱으로 웹과 동일한 기능을 제공하며, 한국 음력 달력을 완벽하게 지원합니다.
 
 ### 핵심 기능
 - 🎂 **이벤트 관리**: 생일, 기념일, 기일, 공휴일, 기타 이벤트 CRUD
@@ -28,7 +28,7 @@ React Native WebView 기반 모바일 앱으로 웹과 동일한 기능을 제�
 - **Validation**: Zod (런타임 타입 검증)
 - **Environment**: @t3-oss/env-nextjs (타입 안전한 환경 변수)
 - **Linting**: Biome (빠른 린터/포맷터)
-- **Mobile**: React Native CLI + WebView (순수 네이티브)
+- **Mobile**: Capacitor (WebView 기반 하이브리드)
 
 ### 백엔드
 - **Database**: Supabase (PostgreSQL)
@@ -72,11 +72,11 @@ React Native WebView 기반 모바일 앱으로 웹과 동일한 기능을 제�
 │   ├── libs/                # 유틸리티 및 라이브러리
 │   │   ├── api/            # API 헬퍼
 │   │   ├── auth/           # 인증 유틸리티
+│   │   ├── capacitor/      # Capacitor 네이티브 통합
 │   │   ├── config/         # 환경 변수 검증
 │   │   ├── constants/      # 상수 (카테고리, 메시지)
 │   │   ├── iap/            # 인앱결제 영수증 검증
 │   │   ├── kasi/           # KASI API 클라이언트
-│   │   ├── native-bridge/  # 웹-네이티브 통신 모듈
 │   │   ├── naver/          # Naver OAuth 클라이언트
 │   │   ├── oauth/          # OAuth URL 헬퍼
 │   │   ├── resend/         # Resend 이메일 클라이언트
@@ -87,19 +87,8 @@ React Native WebView 기반 모바일 앱으로 웹과 동일한 기능을 제�
 │   ├── stores/             # Zustand 스토어
 │   └── layout.tsx          # 루트 레이아웃
 │
-├── mobile/                 # React Native 모바일 앱
-│   ├── src/
-│   │   ├── App.tsx        # 앱 진입점
-│   │   ├── components/    # WebView 컴포넌트
-│   │   │   ├── AppWebView.tsx     # 메인 WebView
-│   │   │   └── WebViewStack.tsx   # 스택 관리
-│   │   ├── modules/       # 네이티브 모듈
-│   │   │   ├── PlatformModule.ts  # 플랫폼 감지
-│   │   │   └── DeepLinkModule.ts  # 딥링크 처리
-│   │   └── constants/     # 환경 설정
-│   ├── ios/               # iOS 네이티브 프로젝트
-│   ├── android/           # Android 네이티브 프로젝트
-│   └── package.json       # 모바일 의존성
+├── ios/                    # iOS Capacitor 프로젝트 (생성 후)
+├── android/                # Android Capacitor 프로젝트 (생성 후)
 │
 ├── supabase/               # Supabase 설정 및 마이그레이션
 │   ├── functions/         # Edge Functions
@@ -301,52 +290,70 @@ const { mutate } = useMutation({
 - Presentational/Container 패턴 지향
 - 516줄 → 150줄로 리팩토링 완료 (EventForm)
 
-### 8. 웹-네이티브 통신 (Native Bridge)
+### 8. Capacitor 네이티브 통합
 
 **아키텍처**:
 ```
-웹앱 (Next.js) → NativeBridge API → window.ReactNativeWebView.postMessage()
-→ React Native (App.tsx) → 네이티브 모듈 (iOS/Android)
+웹앱 (Next.js) ↔ Capacitor APIs → 네이티브 플러그인 (iOS/Android)
 ```
 
-**기본 사용법**:
+**플랫폼 감지**:
 ```typescript
 'use client'
 
-import { NativeBridge, useIsNativeApp } from '@/libs/native-bridge'
+import { useEffect, useState } from 'react'
+import { isNative } from '@/libs/capacitor/platform'
 
 export default function MyComponent() {
-  const isNative = useIsNativeApp()
+  const [isNativeApp, setIsNativeApp] = useState(false)
 
-  const handleEdit = () => {
-    if (isNative) {
-      NativeBridge.openWebView('/event/edit/123', '이벤트 수정')
-    } else {
-      router.push('/event/edit/123')
+  useEffect(() => {
+    const checkPlatform = async () => {
+      setIsNativeApp(await isNative())
     }
-  }
+    checkPlatform()
+  }, [])
 
-  return <button onClick={handleEdit}>수정</button>
+  return <div>{isNativeApp ? 'Mobile App' : 'Web Browser'}</div>
 }
 ```
 
-**주요 API**:
-- `NativeBridge.openWebView(url, title)` - 새 WebView 스택에 페이지 열기
-- `NativeBridge.closeWebView()` - 최상단 WebView 닫기
-- `NativeBridge.openExternalUrl(url)` - 외부 브라우저/앱 열기 (전화, 이메일 등)
-- `useIsNativeApp()` - 네이티브 앱 여부 확인 훅
-- `usePlatformInfo()` - 플랫폼 정보 ('ios' | 'android' | 'web')
-- `useNativeMessage(callback)` - 네이티브 → 웹 메시지 수신 훅
+**OAuth 브라우저 열기**:
+```typescript
+import { Browser } from '@capacitor/browser'
 
-**자세한 API 문서**: [docs/NATIVE_BRIDGE_API.md](docs/NATIVE_BRIDGE_API.md)
+// OAuth 인증 시 시스템 브라우저에서 열기
+await Browser.open({ url: oauthUrl })
+```
 
-**구현 현황**:
-- ✅ WebView 스택 네비게이션
-- ✅ 플랫폼 감지
-- ✅ 딥링크 (dearmydays://)
-- ✅ 외부 URL 열기
-- ⏳ 푸시 알림 (Phase 3 예정)
-- ⏳ 인앱결제 (Phase 4 예정)
+**네비게이션**:
+```typescript
+import { useNativeNavigation } from '@/libs/capacitor/use-native-navigation'
+
+const { openPage, goBack } = useNativeNavigation()
+
+// 페이지 열기 (웹/앱 모두 자동 처리)
+openPage('/event/detail/123')
+
+// 뒤로 가기 (웹/앱 모두 자동 처리)
+goBack()
+```
+
+**사용 가능한 기능**:
+- ✅ 플랫폼 감지 (`@capacitor/device`)
+- ✅ 딥링크 (`@capacitor/app`)
+- ✅ 브라우저 API (`@capacitor/browser`)
+- ✅ 공유 기능 (`@capacitor/share`)
+- ✅ 햅틱 피드백 (`@capacitor/haptics`)
+- ✅ 상태바 제어 (`@capacitor/status-bar`)
+- ✅ 스플래시 화면 (`@capacitor/splash-screen`)
+- 📦 푸시 알림 (`@capacitor/push-notifications`) - 설정 필요
+- 📦 인앱결제 (서드파티 플러그인) - 설정 필요
+
+**자세한 문서**:
+- Capacitor 명령어: [docs/CAPACITOR_COMMANDS.md](docs/CAPACITOR_COMMANDS.md)
+- 푸시 알림 설정: [docs/PUSH_NOTIFICATIONS_SETUP.md](docs/PUSH_NOTIFICATIONS_SETUP.md)
+- 인앱결제 설정: [docs/IAP_SETUP.md](docs/IAP_SETUP.md)
 
 ---
 
@@ -709,13 +716,17 @@ pnpm add <package>         # 패키지 추가
 pnpm add -D <package>      # 개발 의존성 추가
 pnpm remove <package>      # 패키지 제거
 
-# 모바일 앱 (React Native CLI)
-pnpm mobile                # Metro 번들러 시작
-pnpm mobile:ios            # iOS 시뮬레이터 실행
-pnpm mobile:android        # Android 에뮬레이터 실행
+# Capacitor (모바일 앱)
+pnpm cap:sync              # 웹 변경사항을 네이티브 프로젝트에 동기화
+pnpm cap:sync:prod         # 프로덕션 환경으로 동기화
+pnpm cap:ios               # Xcode에서 iOS 프로젝트 열기
+pnpm cap:android           # Android Studio에서 Android 프로젝트 열기
+pnpm cap:run:ios           # iOS 시뮬레이터 실행
+pnpm cap:run:android       # Android 에뮬레이터 실행
+pnpm dev:ios               # iOS 라이브 리로드 개발
+pnpm dev:android           # Android 라이브 리로드 개발
 
-# 📖 모바일 앱 상세 가이드: mobile/README.md
-# 📖 초기 설정 필수: iOS/Android 네이티브 프로젝트 생성 필요
+# 📖 Capacitor 가이드: docs/CAPACITOR_COMMANDS.md
 ```
 
 ---
@@ -733,46 +744,43 @@ pnpm mobile:android        # Android 에뮬레이터 실행
 - [KASI API 문서](https://www.kasi.re.kr)
 
 ### 모바일 개발
-- [React Native 문서](https://reactnative.dev/)
-- [React Native WebView](https://github.com/react-native-webview/react-native-webview)
-- [Metro 번들러](https://metrobundler.dev/)
-- [iOS 개발 가이드](https://reactnative.dev/docs/running-on-device)
-- [Android 개발 가이드](https://reactnative.dev/docs/signed-apk-android)
+- [Capacitor 문서](https://capacitorjs.com/docs)
+- [Capacitor iOS 가이드](https://capacitorjs.com/docs/ios)
+- [Capacitor Android 가이드](https://capacitorjs.com/docs/android)
+- [Capacitor 플러그인](https://capacitorjs.com/docs/plugins)
+- [Capacitor CLI](https://capacitorjs.com/docs/cli)
 
 ---
 
 ## 프로젝트 상태
 
-**최근 작업** (2026-02-08):
-- ✅ Capacitor 완전 제거
-- ✅ React Native CLI + WebView로 마이그레이션
-- ✅ 순수 네이티브 프로젝트 구조로 전환 (Expo 제거)
-- ✅ Native Bridge 시스템 구축 (웹-네이티브 통신)
-- ✅ WebView 스택 네비게이션 구현
-- ✅ 딥링크 지원 (OAuth 콜백)
-- ✅ 플랫폼 감지 및 외부 URL 처리
+**최근 작업** (2026-02-09):
+- ✅ React Native에서 Capacitor로 롤백
+- ✅ 웹 코드 23개 파일 마이그레이션 (SmartLink → Link, useRouter 전환)
+- ✅ app/libs/capacitor/ 복원 (6개 파일)
+- ✅ OAuth 플로우 Capacitor Browser API로 변경
+- ✅ mobile/ 디렉토리 제거 (14,000줄 코드 감소)
+- ✅ Capacitor 의존성 13개 패키지 설치
+- ✅ 타입 체크 및 빌드 검증 완료
 
-**이전 리팩토링** (2026-02-06):
-- ✅ 환경 변수 검증 시스템 구축
-- ✅ @t3-oss/env-nextjs 마이그레이션 (Zod 기반 타입 안전 환경 변수)
-- ✅ Admin 클라이언트 서버 전용 보호
+**이전 작업** (2026-02-06 ~ 2026-02-08):
+- ✅ 환경 변수 검증 시스템 구축 (@t3-oss/env-nextjs)
 - ✅ Zod 입력 검증 전면 적용
 - ✅ 통합 에러 처리 시스템
-- ✅ 코드 중복 제거 (~250줄 감소)
 - ✅ UI 컴포넌트 라이브러리 구축
-- ✅ 에러 메시지 한글 통일
 - ✅ Biome 린팅 100% 통과
 
 **다음 단계 권장사항**:
-1. 실제 디바이스에서 모바일 앱 테스트
-2. Universal Links (iOS) / App Links (Android) 설정
-3. 푸시 알림 구현 (react-native-firebase - Phase 3)
-4. 인앱결제 구현 (react-native-iap - Phase 4)
-5. 유닛 테스트 추가 (Jest + React Testing Library)
-6. 에러 모니터링 도구 통합 (Sentry)
+1. iOS/Android 네이티브 프로젝트 생성 (`pnpm cap:add ios/android`)
+2. 실제 디바이스에서 모바일 앱 테스트
+3. Universal Links (iOS) / App Links (Android) 설정
+4. 푸시 알림 구현 (Capacitor Push Notifications)
+5. 인앱결제 구현 (Capacitor 플러그인)
+6. 유닛 테스트 추가 (Vitest + React Testing Library)
+7. 에러 모니터링 도구 통합 (Sentry)
 
 ---
 
-**마지막 업데이트**: 2026-02-08 (React Native CLI 마이그레이션 완료)
+**마지막 업데이트**: 2026-02-09 (Capacitor 롤백 완료)
 **메인테이너**: @a17050
 **Co-Author**: Claude Sonnet 4.5
