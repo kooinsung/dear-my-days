@@ -1,7 +1,5 @@
 'use client'
 
-import { SsgoiTransition } from '@ssgoi/react'
-
 export function EditPageWrapper({
   eventId,
   children,
@@ -9,7 +7,5 @@ export function EditPageWrapper({
   eventId: string
   children: React.ReactNode
 }) {
-  return (
-    <SsgoiTransition id={`/event/edit/${eventId}`}>{children}</SsgoiTransition>
-  )
+  return <>{children}</>
 }
