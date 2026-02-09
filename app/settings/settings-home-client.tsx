@@ -1,5 +1,6 @@
 'use client'
 
+import { SsgoiTransition } from '@ssgoi/react'
 import type { User } from '@supabase/supabase-js'
 import Link from 'next/link'
 import { css, cx } from '@/styled-system/css'
@@ -44,101 +45,103 @@ function SettingsMenuItem({
 
 export function SettingsHomeClient({ user }: SettingsHomeClientProps) {
   return (
-    <div
-      className={css({
-        minHeight: '100vh',
-        backgroundColor: 'background',
-      })}
-    >
-      <header
+    <SsgoiTransition id="/settings">
+      <div
         className={css({
-          backgroundColor: 'white',
-          borderBottom: '1px solid',
-          borderColor: 'border',
-          padding: '16px 0',
+          minHeight: '100vh',
+          backgroundColor: 'background',
         })}
       >
-        <div
-          className={flex({
-            maxWidth: 'container',
-            margin: '0 auto',
-            padding: '0 24px',
-            justify: 'space-between',
-            align: 'center',
+        <header
+          className={css({
+            backgroundColor: 'white',
+            borderBottom: '1px solid',
+            borderColor: 'border',
+            padding: '16px 0',
           })}
         >
-          <h1
-            className={css({
-              fontSize: '20px',
-              fontWeight: 'bold',
-              margin: 0,
+          <div
+            className={flex({
+              maxWidth: 'container',
+              margin: '0 auto',
+              padding: '0 24px',
+              justify: 'space-between',
+              align: 'center',
             })}
           >
-            설정
-          </h1>
-          <Link href="/" className={button({ variant: 'secondary' })}>
-            홈으로
-          </Link>
-        </div>
-      </header>
+            <h1
+              className={css({
+                fontSize: '20px',
+                fontWeight: 'bold',
+                margin: 0,
+              })}
+            >
+              설정
+            </h1>
+            <Link href="/" className={button({ variant: 'secondary' })}>
+              홈으로
+            </Link>
+          </div>
+        </header>
 
-      <main
-        className={css({
-          maxWidth: '800px',
-          margin: '0 auto',
-          padding: '24px',
-        })}
-      >
-        <section className={cx(card(), css({ marginBottom: '16px' }))}>
-          <h2 className={css({ fontSize: '18px', marginTop: 0 })}>계정</h2>
-          <p className={css({ margin: 0, color: '#666' })}>
-            {user ? (user.email ?? user.id) : '불러오는 중...'}
-          </p>
-        </section>
-
-        <section className={vstack({ gap: '12px', alignItems: 'stretch' })}>
-          <SettingsMenuItem
-            title="구독 관리"
-            description="프리미엄 구독을 관리하거나 추가 이벤트 슬롯을 구매할 수 있어요."
-            href="/settings/subscription"
-          />
-          <SettingsMenuItem
-            title="연결된 로그인 수단"
-            description="Google/Kakao/Naver/Email 연결 상태를 확인하고 연결을 해제할 수 있어요."
-            href="/settings/link"
-          />
-          <SettingsMenuItem
-            title="데이터 관리"
-            description="내 이벤트 데이터를 내보내거나(추후), 계정 데이터를 정리할 수 있어요."
-            href="/settings/data"
-          />
-          <SettingsMenuItem
-            title="알림 설정"
-            description="푸시 알림 설정(추후) 및 알림 규칙을 관리할 수 있어요."
-            href="/settings/notifications"
-          />
-          <SettingsMenuItem
-            title="웹뷰 테스트"
-            description="모바일 웹뷰 스택 동작을 테스트하고 다양한 URL을 미리 확인할 수 있어요."
-            href="/settings/webview-test"
-          />
-          <SettingsMenuItem
-            title="계정"
-            description="로그아웃/계정 삭제(추후) 등 보안 관련 작업을 할 수 있어요."
-            href="/settings/account"
-          />
-        </section>
-
-        <div
+        <main
           className={css({
-            marginTop: '16px',
-            color: '#666',
-            fontSize: '12px',
+            maxWidth: '800px',
+            margin: '0 auto',
+            padding: '24px',
           })}
         >
-          * 일부 메뉴는 추후 기능을 추가하면서 활성화할 예정입니다.
-        </div>
-      </main>
-    </div>
+          <section className={cx(card(), css({ marginBottom: '16px' }))}>
+            <h2 className={css({ fontSize: '18px', marginTop: 0 })}>계정</h2>
+            <p className={css({ margin: 0, color: '#666' })}>
+              {user ? (user.email ?? user.id) : '불러오는 중...'}
+            </p>
+          </section>
+
+          <section className={vstack({ gap: '12px', alignItems: 'stretch' })}>
+            <SettingsMenuItem
+              title="구독 관리"
+              description="프리미엄 구독을 관리하거나 추가 이벤트 슬롯을 구매할 수 있어요."
+              href="/settings/subscription"
+            />
+            <SettingsMenuItem
+              title="연결된 로그인 수단"
+              description="Google/Kakao/Naver/Email 연결 상태를 확인하고 연결을 해제할 수 있어요."
+              href="/settings/link"
+            />
+            <SettingsMenuItem
+              title="데이터 관리"
+              description="내 이벤트 데이터를 내보내거나(추후), 계정 데이터를 정리할 수 있어요."
+              href="/settings/data"
+            />
+            <SettingsMenuItem
+              title="알림 설정"
+              description="푸시 알림 설정(추후) 및 알림 규칙을 관리할 수 있어요."
+              href="/settings/notifications"
+            />
+            <SettingsMenuItem
+              title="웹뷰 테스트"
+              description="모바일 웹뷰 스택 동작을 테스트하고 다양한 URL을 미리 확인할 수 있어요."
+              href="/settings/webview-test"
+            />
+            <SettingsMenuItem
+              title="계정"
+              description="로그아웃/계정 삭제(추후) 등 보안 관련 작업을 할 수 있어요."
+              href="/settings/account"
+            />
+          </section>
+
+          <div
+            className={css({
+              marginTop: '16px',
+              color: '#666',
+              fontSize: '12px',
+            })}
+          >
+            * 일부 메뉴는 추후 기능을 추가하면서 활성화할 예정입니다.
+          </div>
+        </main>
+      </div>
+    </SsgoiTransition>
   )
 }
