@@ -1,2 +1,33 @@
 /* https://panda-css.com/docs/installation/nextjs#configure-the-entry-css-with-layers */
 @layer reset, base, tokens, recipes, utilities;
+
+/* View Transitions - iOS-style drill animation */
+::view-transition-old(root) {
+  animation: 250ms ease-out forwards drill-out;
+}
+
+::view-transition-new(root) {
+  animation: 250ms ease-out forwards drill-in;
+}
+
+@keyframes drill-out {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+}
+
+@keyframes drill-in {
+  from {
+    transform: scale(1.05);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
