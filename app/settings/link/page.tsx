@@ -1,5 +1,6 @@
 import type { User } from '@supabase/supabase-js'
 import { createSupabaseServer } from '@/libs/supabase/server'
+import { SettingsPageWrapper } from '../settings-page-wrapper'
 import { LinkedProvidersClient } from './linked-providers-client'
 
 export default async function LinkedProvidersPage() {
@@ -8,5 +9,9 @@ export default async function LinkedProvidersPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  return <LinkedProvidersClient initialUser={user as User} />
+  return (
+    <SettingsPageWrapper pageId="/settings/link">
+      <LinkedProvidersClient initialUser={user as User} />
+    </SettingsPageWrapper>
+  )
 }

@@ -1,4 +1,5 @@
 import { createSupabaseServer } from '@/libs/supabase/server'
+import { SettingsPageWrapper } from '../../settings/settings-page-wrapper'
 import ProviderTestForm from './provider-form'
 
 export default async function ProviderTestPage() {
@@ -7,5 +8,9 @@ export default async function ProviderTestPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  return <ProviderTestForm initialUser={user} />
+  return (
+    <SettingsPageWrapper pageId="/auth/provider">
+      <ProviderTestForm initialUser={user} />
+    </SettingsPageWrapper>
+  )
 }

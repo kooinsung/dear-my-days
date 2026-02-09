@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { NativeAppProvider } from '@/libs/capacitor/native-app-provider'
 import { QueryProvider } from '@/libs/providers/query-provider'
+import { SsgoiProvider } from '@/libs/transitions/ssgoi-provider'
 import '@/common/styles/global.css'
 
 export const viewport: Viewport = {
@@ -22,10 +23,12 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="ko">
+    <html lang="ko" suppressHydrationWarning>
       <body>
         <NativeAppProvider>
-          <QueryProvider>{children}</QueryProvider>
+          <QueryProvider>
+            <SsgoiProvider>{children}</SsgoiProvider>
+          </QueryProvider>
         </NativeAppProvider>
       </body>
     </html>

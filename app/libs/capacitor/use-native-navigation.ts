@@ -20,15 +20,22 @@ export function useNativeBackButton() {
     let listenerHandle: PluginListenerHandle | null = null
 
     const setupListener = async () => {
-      // Android 뒤로가기 버튼 감지
-      listenerHandle = await App.addListener('backButton', ({ canGoBack }) => {
-        if (canGoBack) {
-          router.back()
-        } else {
-          // 최상위 페이지에서 뒤로가기 시 앱 종료 확인
-          App.exitApp()
-        }
-      })
+      try {
+        // Android 뒤로가기 버튼 감지
+        listenerHandle = await App.addListener(
+          'backButton',
+          ({ canGoBack }) => {
+            if (canGoBack) {
+              router.back()
+            } else {
+              // 최상위 페이지에서 뒤로가기 시 앱 종료 확인
+              App.exitApp()
+            }
+          },
+        )
+      } catch (error) {
+        console.error('Failed to setup back button listener:', error)
+      }
     }
 
     setupListener()
@@ -53,16 +60,20 @@ export function useAppState(onActive?: () => void, onInactive?: () => void) {
     let listenerHandle: PluginListenerHandle | null = null
 
     const setupListener = async () => {
-      listenerHandle = await App.addListener(
-        'appStateChange',
-        ({ isActive }) => {
-          if (isActive) {
-            onActive?.()
-          } else {
-            onInactive?.()
-          }
-        },
-      )
+      try {
+        listenerHandle = await App.addListener(
+          'appStateChange',
+          ({ isActive }) => {
+            if (isActive) {
+              onActive?.()
+            } else {
+              onInactive?.()
+            }
+          },
+        )
+      } catch (error) {
+        console.error('Failed to setup app state listener:', error)
+      }
     }
 
     setupListener()
