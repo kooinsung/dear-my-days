@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { CategoryType, Event } from '@/libs/supabase/database.types'
 import { createSupabaseServer } from '@/libs/supabase/server'
+import { CalendarPageContent } from './calendar-page-content'
 
 // 월별 이벤트 카운트
 interface MonthData {
@@ -68,315 +69,341 @@ export default async function CalendarPage({
   const monthsData = getMonthData(events, currentYear)
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
-      {/* 헤더 */}
-      <header
-        style={{
-          backgroundColor: 'white',
-          padding: '16px',
-          borderBottom: '1px solid #e9ecef',
-        }}
-      >
-        <div
+    <CalendarPageContent>
+      <div style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
+        {/* 헤더 */}
+        <header
           style={{
-            maxWidth: '1200px',
-            margin: '0 auto',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
+            backgroundColor: 'white',
+            padding: '16px',
+            borderBottom: '1px solid #e9ecef',
           }}
         >
-          <Link
-            href="/"
+          <div
             style={{
-              fontSize: '14px',
-              color: '#6c757d',
-              textDecoration: 'none',
+              maxWidth: '1200px',
+              margin: '0 auto',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
             }}
           >
-            ← 홈
-          </Link>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <Link
-              href={`/calendar?year=${currentYear - 1}`}
+              href="/"
               style={{
-                padding: '6px 12px',
-                backgroundColor: '#e9ecef',
-                borderRadius: '6px',
-                textDecoration: 'none',
-                color: '#495057',
                 fontSize: '14px',
+                color: '#6c757d',
+                textDecoration: 'none',
               }}
             >
-              ◀
+              ← 홈
             </Link>
-            <h1 style={{ fontSize: '18px', fontWeight: 'bold' }}>
-              {currentYear}년
-            </h1>
-            <Link
-              href={`/calendar?year=${currentYear + 1}`}
-              style={{
-                padding: '6px 12px',
-                backgroundColor: '#e9ecef',
-                borderRadius: '6px',
-                textDecoration: 'none',
-                color: '#495057',
-                fontSize: '14px',
-              }}
-            >
-              ▶
-            </Link>
-          </div>
-          <div style={{ width: '60px' }} />
-        </div>
-      </header>
-
-      {/* 12개월 그리드 */}
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-            gap: '16px',
-          }}
-        >
-          {monthsData.map((monthData) => {
-            const totalEvents = Object.values(monthData.events).reduce(
-              (a, b) => a + b,
-              0,
-            )
-            const hasEvents = totalEvents > 0
-
-            return (
-              <div
-                key={monthData.month}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <Link
+                href={`/calendar?year=${currentYear - 1}`}
                 style={{
-                  backgroundColor: 'white',
-                  padding: '20px',
-                  borderRadius: '12px',
-                  border: '1px solid #e9ecef',
-                  minHeight: '160px',
+                  padding: '6px 12px',
+                  backgroundColor: '#e9ecef',
+                  borderRadius: '6px',
+                  textDecoration: 'none',
+                  color: '#495057',
+                  fontSize: '14px',
                 }}
               >
-                {/* 월 이름 */}
-                <div style={{ marginBottom: '16px' }}>
-                  <h3
-                    style={{
-                      fontSize: '18px',
-                      fontWeight: 'bold',
-                      color: '#212529',
-                    }}
-                  >
-                    {monthData.name}
-                  </h3>
-                </div>
+                ◀
+              </Link>
+              <h1 style={{ fontSize: '18px', fontWeight: 'bold' }}>
+                {currentYear}년
+              </h1>
+              <Link
+                href={`/calendar?year=${currentYear + 1}`}
+                style={{
+                  padding: '6px 12px',
+                  backgroundColor: '#e9ecef',
+                  borderRadius: '6px',
+                  textDecoration: 'none',
+                  color: '#495057',
+                  fontSize: '14px',
+                }}
+              >
+                ▶
+              </Link>
+            </div>
+            <div style={{ width: '60px' }} />
+          </div>
+        </header>
 
-                {/* 이벤트 요약 */}
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px',
-                  }}
-                >
-                  {hasEvents ? (
-                    <>
-                      {monthData.events.BIRTHDAY > 0 && (
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: '8px',
-                              height: '8px',
-                              borderRadius: '50%',
-                              backgroundColor: '#ff6b9d',
-                            }}
-                          />
-                          <span style={{ fontSize: '14px', color: '#495057' }}>
-                            생일 {monthData.events.BIRTHDAY}개
-                          </span>
-                        </div>
-                      )}
-                      {monthData.events.ANNIVERSARY > 0 && (
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: '8px',
-                              height: '8px',
-                              borderRadius: '50%',
-                              backgroundColor: '#ff6347',
-                            }}
-                          />
-                          <span style={{ fontSize: '14px', color: '#495057' }}>
-                            기념일 {monthData.events.ANNIVERSARY}개
-                          </span>
-                        </div>
-                      )}
-                      {monthData.events.MEMORIAL > 0 && (
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: '8px',
-                              height: '8px',
-                              borderRadius: '50%',
-                              backgroundColor: '#6c757d',
-                            }}
-                          />
-                          <span style={{ fontSize: '14px', color: '#495057' }}>
-                            기일 {monthData.events.MEMORIAL}개
-                          </span>
-                        </div>
-                      )}
-                      {monthData.events.HOLIDAY > 0 && (
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: '8px',
-                              height: '8px',
-                              borderRadius: '50%',
-                              backgroundColor: '#ffd700',
-                            }}
-                          />
-                          <span style={{ fontSize: '14px', color: '#495057' }}>
-                            공휴일 {monthData.events.HOLIDAY}개
-                          </span>
-                        </div>
-                      )}
-                      {monthData.events.OTHER > 0 && (
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: '8px',
-                              height: '8px',
-                              borderRadius: '50%',
-                              backgroundColor: '#4f46e5',
-                            }}
-                          />
-                          <span style={{ fontSize: '14px', color: '#495057' }}>
-                            기타 {monthData.events.OTHER}개
-                          </span>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <span style={{ fontSize: '14px', color: '#adb5bd' }}>
-                      이벤트 없음
-                    </span>
-                  )}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* 범례 */}
-      <div
-        style={{
-          backgroundColor: 'white',
-          borderTop: '1px solid #e9ecef',
-          padding: '16px',
-        }}
-      >
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <p
+        {/* 12개월 그리드 */}
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
+          <div
             style={{
-              fontSize: '14px',
-              fontWeight: '600',
-              marginBottom: '12px',
-              color: '#495057',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+              gap: '16px',
             }}
           >
-            카테고리
-          </p>
-          <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {monthsData.map((monthData) => {
+              const totalEvents = Object.values(monthData.events).reduce(
+                (a, b) => a + b,
+                0,
+              )
+              const hasEvents = totalEvents > 0
+
+              return (
+                <div
+                  key={monthData.month}
+                  style={{
+                    backgroundColor: 'white',
+                    padding: '20px',
+                    borderRadius: '12px',
+                    border: '1px solid #e9ecef',
+                    minHeight: '160px',
+                  }}
+                >
+                  {/* 월 이름 */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <h3
+                      style={{
+                        fontSize: '18px',
+                        fontWeight: 'bold',
+                        color: '#212529',
+                      }}
+                    >
+                      {monthData.name}
+                    </h3>
+                  </div>
+
+                  {/* 이벤트 요약 */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                    }}
+                  >
+                    {hasEvents ? (
+                      <>
+                        {monthData.events.BIRTHDAY > 0 && (
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: '8px',
+                                height: '8px',
+                                borderRadius: '50%',
+                                backgroundColor: '#ff6b9d',
+                              }}
+                            />
+                            <span
+                              style={{ fontSize: '14px', color: '#495057' }}
+                            >
+                              생일 {monthData.events.BIRTHDAY}개
+                            </span>
+                          </div>
+                        )}
+                        {monthData.events.ANNIVERSARY > 0 && (
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: '8px',
+                                height: '8px',
+                                borderRadius: '50%',
+                                backgroundColor: '#ff6347',
+                              }}
+                            />
+                            <span
+                              style={{ fontSize: '14px', color: '#495057' }}
+                            >
+                              기념일 {monthData.events.ANNIVERSARY}개
+                            </span>
+                          </div>
+                        )}
+                        {monthData.events.MEMORIAL > 0 && (
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: '8px',
+                                height: '8px',
+                                borderRadius: '50%',
+                                backgroundColor: '#6c757d',
+                              }}
+                            />
+                            <span
+                              style={{ fontSize: '14px', color: '#495057' }}
+                            >
+                              기일 {monthData.events.MEMORIAL}개
+                            </span>
+                          </div>
+                        )}
+                        {monthData.events.HOLIDAY > 0 && (
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: '8px',
+                                height: '8px',
+                                borderRadius: '50%',
+                                backgroundColor: '#ffd700',
+                              }}
+                            />
+                            <span
+                              style={{ fontSize: '14px', color: '#495057' }}
+                            >
+                              공휴일 {monthData.events.HOLIDAY}개
+                            </span>
+                          </div>
+                        )}
+                        {monthData.events.OTHER > 0 && (
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: '8px',
+                                height: '8px',
+                                borderRadius: '50%',
+                                backgroundColor: '#4f46e5',
+                              }}
+                            />
+                            <span
+                              style={{ fontSize: '14px', color: '#495057' }}
+                            >
+                              기타 {monthData.events.OTHER}개
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <span style={{ fontSize: '14px', color: '#adb5bd' }}>
+                        이벤트 없음
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* 범례 */}
+        <div
+          style={{
+            backgroundColor: 'white',
+            borderTop: '1px solid #e9ecef',
+            padding: '16px',
+          }}
+        >
+          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+            <p
+              style={{
+                fontSize: '14px',
+                fontWeight: '600',
+                marginBottom: '12px',
+                color: '#495057',
+              }}
+            >
+              카테고리
+            </p>
+            <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
               <div
-                style={{
-                  width: '12px',
-                  height: '12px',
-                  borderRadius: '50%',
-                  backgroundColor: '#ff6b9d',
-                }}
-              />
-              <span style={{ fontSize: '14px', color: '#495057' }}>생일</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                <div
+                  style={{
+                    width: '12px',
+                    height: '12px',
+                    borderRadius: '50%',
+                    backgroundColor: '#ff6b9d',
+                  }}
+                />
+                <span style={{ fontSize: '14px', color: '#495057' }}>생일</span>
+              </div>
               <div
-                style={{
-                  width: '12px',
-                  height: '12px',
-                  borderRadius: '50%',
-                  backgroundColor: '#ff6347',
-                }}
-              />
-              <span style={{ fontSize: '14px', color: '#495057' }}>기념일</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                <div
+                  style={{
+                    width: '12px',
+                    height: '12px',
+                    borderRadius: '50%',
+                    backgroundColor: '#ff6347',
+                  }}
+                />
+                <span style={{ fontSize: '14px', color: '#495057' }}>
+                  기념일
+                </span>
+              </div>
               <div
-                style={{
-                  width: '12px',
-                  height: '12px',
-                  borderRadius: '50%',
-                  backgroundColor: '#6c757d',
-                }}
-              />
-              <span style={{ fontSize: '14px', color: '#495057' }}>기일</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                <div
+                  style={{
+                    width: '12px',
+                    height: '12px',
+                    borderRadius: '50%',
+                    backgroundColor: '#6c757d',
+                  }}
+                />
+                <span style={{ fontSize: '14px', color: '#495057' }}>기일</span>
+              </div>
               <div
-                style={{
-                  width: '12px',
-                  height: '12px',
-                  borderRadius: '50%',
-                  backgroundColor: '#ffd700',
-                }}
-              />
-              <span style={{ fontSize: '14px', color: '#495057' }}>공휴일</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                <div
+                  style={{
+                    width: '12px',
+                    height: '12px',
+                    borderRadius: '50%',
+                    backgroundColor: '#ffd700',
+                  }}
+                />
+                <span style={{ fontSize: '14px', color: '#495057' }}>
+                  공휴일
+                </span>
+              </div>
               <div
-                style={{
-                  width: '12px',
-                  height: '12px',
-                  borderRadius: '50%',
-                  backgroundColor: '#4f46e5',
-                }}
-              />
-              <span style={{ fontSize: '14px', color: '#495057' }}>기타</span>
+                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                <div
+                  style={{
+                    width: '12px',
+                    height: '12px',
+                    borderRadius: '50%',
+                    backgroundColor: '#4f46e5',
+                  }}
+                />
+                <span style={{ fontSize: '14px', color: '#495057' }}>기타</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </CalendarPageContent>
   )
 }
