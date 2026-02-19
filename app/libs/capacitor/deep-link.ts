@@ -24,8 +24,13 @@ export function useDeepLinks() {
 
           // Custom URL Scheme: dearmydays://path
           if (url.protocol === 'dearmydays:') {
-            const path = url.pathname || '/'
-            router.push(path)
+            // dearmydays://calendar → hostname: calendar, pathname: /
+            // dearmydays://event/detail → hostname: event, pathname: /detail
+            const fullPath = url.hostname
+              ? `/${url.hostname}${url.pathname}`
+              : url.pathname || '/'
+
+            router.push(fullPath + url.search)
           }
 
           // Universal Link: https://dear-my-days.com/path
@@ -39,8 +44,16 @@ export function useDeepLinks() {
       const result = await App.getLaunchUrl()
       if (result?.url) {
         const url = new URL(result.url)
-        if (url.protocol === 'dearmydays:' || url.host === 'dear-my-days.com') {
-          router.push(url.pathname)
+
+        if (url.protocol === 'dearmydays:') {
+          const fullPath = url.hostname
+            ? `/${url.hostname}${url.pathname}`
+            : url.pathname || '/'
+
+          router.push(fullPath + url.search)
+        } else if (url.host === 'dear-my-days.com') {
+          // Universal Link: https://dear-my-days.com/path
+          router.push(url.pathname + url.search)
         }
       }
     }

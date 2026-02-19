@@ -31,3 +31,9 @@ project(':capacitor-splash-screen').projectDir = new File('../node_modules/.pnpm
 
 include ':capacitor-status-bar'
 project(':capacitor-status-bar').projectDir = new File('../node_modules/.pnpm/@capacitor+status-bar@8.0.0_@capacitor+core@8.0.2/node_modules/@capacitor/status-bar/android')
+
+include ':capgo-capacitor-social-login'
+project(':capgo-capacitor-social-login').projectDir = new File('../node_modules/.pnpm/@capgo+capacitor-social-login@8.2.23_@capacitor+core@8.0.2/node_modules/@capgo/capacitor-social-login/android')
+
+include ':capacitor3-kakao-login'
+project(':capacitor3-kakao-login').projectDir = new File('../node_modules/.pnpm/capacitor3-kakao-login@0.8.7_@capacitor+core@8.0.2/node_modules/capacitor3-kakao-login/android')

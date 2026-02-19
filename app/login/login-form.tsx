@@ -1,18 +1,19 @@
 'use client'
 
-import { Browser } from '@capacitor/browser'
 import type { User } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { isNative } from '@/libs/capacitor/platform'
+import { googleLogin, kakaoLogin } from '@/libs/capacitor/social-login'
 import { generateNaverAuthUrl } from '@/libs/naver/oauth'
 import { getOAuthCallbackUrl } from '@/libs/oauth/urls'
 import { createSupabaseBrowser } from '@/libs/supabase/browser'
 import { css, cx } from '@/styled-system/css'
 import { center, vstack } from '@/styled-system/patterns'
 import { button, card, input } from '@/styled-system/recipes'
-import { login, logout, signup } from './actions'
+import { login } from './actions'
 import { PasswordResetModal } from './password-reset-modal'
+import { SignupModal } from './signup-modal'
 
 interface LoginFormProps {
   initialUser: User | null
@@ -30,9 +31,21 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
   const [infoMessage, setInfoMessage] = useState('')
 
   const [isLoginPending, setIsLoginPending] = useState(false)
-  const [isSignupPending, setIsSignupPending] = useState(false)
-  const [isLogoutPending, setIsLogoutPending] = useState(false)
+  const [isOAuthPending, setIsOAuthPending] = useState(false)
   const [isResetModalOpen, setIsResetModalOpen] = useState(false)
+  const [isSignupModalOpen, setIsSignupModalOpen] = useState(false)
+
+  const isAnyPending = isLoginPending || isOAuthPending
+
+  const alertStyle = (bg: string, color: string) =>
+    css({
+      padding: '12px',
+      marginBottom: '16px',
+      backgroundColor: bg,
+      color,
+      borderRadius: '4px',
+      fontSize: '14px',
+    })
 
   // 플랫폼 감지
   useEffect(() => {
@@ -46,7 +59,7 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
   // 세션 변화 감지
   useEffect(() => {
     const supabase = createSupabaseBrowser()
-    const { data } = supabase.auth.onAuthStateChange((_e, session) => {
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
     })
     return () => data.subscription.unsubscribe()
@@ -66,11 +79,17 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
         '비밀번호가 변경되었습니다. 새 비밀번호로 로그인해 주세요.',
       )
     }
+
+    // OAuth 에러 처리
+    const error = params.get('error')
+    if (error) {
+      setMessage(decodeURIComponent(error))
+    }
   }, [])
 
   // ✅ Email 로그인 (Server Action 직접 호출)
   const handleEmailLogin = async () => {
-    if (isLoginPending || isSignupPending || isLogoutPending) {
+    if (isAnyPending) {
       return
     }
 
@@ -92,101 +111,74 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
     }
   }
 
-  const handleEmailSignup = async () => {
-    if (isLoginPending || isSignupPending || isLogoutPending) {
-      return
-    }
-
-    setIsSignupPending(true)
-    try {
-      setMessage('')
-      setInfoMessage('')
-
-      const result = await signup(email, password)
-
-      if (result?.error) {
-        setMessage(result.error)
-        return
-      }
-
-      setInfoMessage(
-        '회원가입이 완료되었습니다. 인증 메일을 보냈으니 메일함에서 확인 후 링크를 클릭해 로그인해 주세요.',
-      )
-    } finally {
-      setIsSignupPending(false)
-    }
-  }
-
   // OAuth
   const oauthLogin = async (provider: 'google' | 'kakao' | 'apple') => {
-    const supabase = createSupabaseBrowser()
-
-    if (isNativeApp) {
-      // 네이티브 앱: 딥링크를 콜백으로 사용
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: 'dearmydays://auth/callback',
-          skipBrowserRedirect: true,
-        },
-      })
-
-      if (error) {
-        console.error('OAuth error:', error)
-        setMessage('로그인에 실패했습니다. 다시 시도해주세요.')
-        return
+    setIsOAuthPending(true)
+    setMessage('')
+    setInfoMessage('')
+    try {
+      if (isNativeApp && (provider === 'google' || provider === 'kakao')) {
+        // 네이티브 앱: 네이티브 SDK 사용
+        const result =
+          provider === 'google' ? await googleLogin() : await kakaoLogin()
+        if (result.success) {
+          router.replace('/')
+          return
+        }
+      } else {
+        // 웹 또는 네이티브 미지원 제공자: Supabase OAuth 플로우
+        const supabase = createSupabaseBrowser()
+        await supabase.auth.signInWithOAuth({
+          provider,
+          options: {
+            redirectTo: getOAuthCallbackUrl(window.location.origin),
+          },
+        })
       }
-
-      if (data?.url) {
-        // Capacitor Browser로 OAuth URL 열기
-        await Browser.open({ url: data.url })
-      }
-    } else {
-      // 웹: 일반 OAuth 플로우
-      await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: getOAuthCallbackUrl(window.location.origin),
-        },
-      })
+    } catch (error) {
+      console.error('❌ OAuth login error:', error)
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : '로그인에 실패했습니다. 다시 시도해 주세요.'
+      setMessage(errorMessage)
+      setIsOAuthPending(false)
     }
   }
 
   const naverLogin = async () => {
-    const state = crypto.randomUUID()
-    sessionStorage.setItem('naver_state', state)
+    try {
+      const state = crypto.randomUUID()
+      // Cookie로 state 저장 (서버에서 검증 가능)
+      // biome-ignore lint/suspicious/noDocumentCookie: CSRF 방지를 위해 서버에서 검증 가능한 cookie 사용 필요
+      document.cookie = `naver_state=${state}; path=/; max-age=600; SameSite=Lax`
 
-    if (isNativeApp) {
-      // 네이티브 앱: 딥링크 콜백 URL 사용
-      const params = new URLSearchParams({
-        response_type: 'code',
-        client_id: process.env.NEXT_PUBLIC_NAVER_CLIENT_ID || '',
-        redirect_uri: 'dearmydays://auth/callback/naver',
-        state,
-      })
-      const naverUrl = `https://nid.naver.com/oauth2.0/authorize?${params}`
-      await Browser.open({ url: naverUrl })
-    } else {
-      // 웹: 일반 리다이렉트
       const naverUrl = generateNaverAuthUrl(state)
       window.location.href = naverUrl
+    } catch (error) {
+      console.error('❌ Naver login error:', error)
+      setMessage('로그인에 실패했습니다. 다시 시도해 주세요.')
     }
   }
 
-  const handleLogout = async () => {
-    if (isLoginPending || isSignupPending || isLogoutPending) {
-      return
-    }
-
-    setIsLogoutPending(true)
-    try {
-      await logout()
-      setUser(null)
-      router.push('/login')
-    } finally {
-      setIsLogoutPending(false)
-    }
-  }
+  const oauthProviders = [
+    {
+      provider: 'google',
+      label: 'Google 로그인',
+      onClick: () => oauthLogin('google'),
+    },
+    {
+      provider: 'kakao',
+      label: 'Kakao 로그인',
+      onClick: () => oauthLogin('kakao'),
+    },
+    {
+      provider: 'apple',
+      label: 'Apple 로그인',
+      onClick: () => oauthLogin('apple'),
+    },
+    { provider: 'naver', label: 'Naver 로그인', onClick: naverLogin },
+  ]
 
   return (
     <div
@@ -205,66 +197,26 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
           }),
         )}
       >
-        {user ? (
-          <div className={css({ textAlign: 'center' })}>
-            <p
-              className={css({
-                marginBottom: '16px',
-                color: '#666',
-                fontSize: '14px',
-              })}
-            >
-              {user.email ?? user.id}
-            </p>
-            <button
-              type="button"
-              onClick={handleLogout}
-              disabled={isLogoutPending}
-              className={cx(
-                button({ variant: 'primary' }),
-                css({
-                  width: '100%',
-                  backgroundColor: 'danger',
-                  cursor: isLogoutPending ? 'not-allowed' : 'pointer',
-                  opacity: isLogoutPending ? 0.6 : 1,
-                }),
-              )}
-            >
-              {isLogoutPending ? '로그아웃 중...' : '로그아웃'}
-            </button>
+        {isOAuthPending && (
+          <div
+            className={cx(
+              alertStyle('#e8f4fd', '#1a73e8'),
+              css({ textAlign: 'center' }),
+            )}
+          >
+            로그인 진행중...
           </div>
-        ) : (
+        )}
+        {!user && (
           <>
             {message && (
-              <div
-                className={css({
-                  padding: '12px',
-                  marginBottom: '16px',
-                  backgroundColor: '#f8d7da',
-                  color: '#721c24',
-                  borderRadius: '4px',
-                  fontSize: '14px',
-                })}
-              >
-                {message}
-              </div>
+              <div className={alertStyle('#f8d7da', '#721c24')}>{message}</div>
             )}
-
             {infoMessage && (
-              <div
-                className={css({
-                  padding: '12px',
-                  marginBottom: '16px',
-                  backgroundColor: '#d1ecf1',
-                  color: '#0c5460',
-                  borderRadius: '4px',
-                  fontSize: '14px',
-                })}
-              >
+              <div className={alertStyle('#d1ecf1', '#0c5460')}>
                 {infoMessage}
               </div>
             )}
-
             <div className={css({ marginBottom: '16px' })}>
               <input
                 type="email"
@@ -274,7 +226,6 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
                 className={input()}
               />
             </div>
-
             <div className={css({ marginBottom: '16px' })}>
               <input
                 type="password"
@@ -284,49 +235,40 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
                 className={input()}
               />
             </div>
-
             <div className={css({ marginBottom: '24px' })}>
               <button
                 type="button"
                 onClick={handleEmailLogin}
-                disabled={isLoginPending || isSignupPending}
+                disabled={isAnyPending}
                 className={cx(
                   button({ variant: 'primary' }),
                   css({
                     width: '100%',
-                    cursor:
-                      isLoginPending || isSignupPending
-                        ? 'not-allowed'
-                        : 'pointer',
-                    opacity: isLoginPending || isSignupPending ? 0.6 : 1,
+                    cursor: isAnyPending ? 'not-allowed' : 'pointer',
+                    opacity: isAnyPending ? 0.6 : 1,
                   }),
                 )}
               >
                 {isLoginPending ? '로그인 중...' : '이메일 로그인'}
               </button>
             </div>
-
             <div className={css({ marginBottom: '24px' })}>
               <button
                 type="button"
-                onClick={handleEmailSignup}
-                disabled={isSignupPending || isLoginPending}
+                onClick={() => setIsSignupModalOpen(true)}
+                disabled={isAnyPending}
                 className={cx(
                   button({ variant: 'secondary' }),
                   css({
                     width: '100%',
-                    cursor:
-                      isSignupPending || isLoginPending
-                        ? 'not-allowed'
-                        : 'pointer',
-                    opacity: isSignupPending || isLoginPending ? 0.6 : 1,
+                    cursor: isAnyPending ? 'not-allowed' : 'pointer',
+                    opacity: isAnyPending ? 0.6 : 1,
                   }),
                 )}
               >
-                {isSignupPending ? '회원가입 중...' : '이메일 회원가입'}
+                이메일 회원가입
               </button>
             </div>
-
             <div
               className={css({
                 height: '1px',
@@ -334,50 +276,21 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
                 margin: '24px 0',
               })}
             />
-
             <div className={vstack({ gap: '12px' })}>
-              <button
-                type="button"
-                onClick={() => oauthLogin('google')}
-                className={cx(
-                  button({ variant: 'secondary' }),
-                  css({ width: '100%' }),
-                )}
-              >
-                Google 로그인
-              </button>
-              <button
-                type="button"
-                onClick={() => oauthLogin('kakao')}
-                className={cx(
-                  button({ variant: 'secondary' }),
-                  css({ width: '100%' }),
-                )}
-              >
-                Kakao 로그인
-              </button>
-              <button
-                type="button"
-                onClick={() => oauthLogin('apple')}
-                className={cx(
-                  button({ variant: 'secondary' }),
-                  css({ width: '100%' }),
-                )}
-              >
-                Apple 로그인
-              </button>
-              <button
-                type="button"
-                onClick={naverLogin}
-                className={cx(
-                  button({ variant: 'secondary' }),
-                  css({ width: '100%' }),
-                )}
-              >
-                Naver 로그인
-              </button>
+              {oauthProviders.map(({ provider, label, onClick }) => (
+                <button
+                  key={provider}
+                  type="button"
+                  onClick={onClick}
+                  className={cx(
+                    button({ variant: 'secondary' }),
+                    css({ width: '100%' }),
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
-
             <div
               className={css({
                 marginTop: '16px',
@@ -418,7 +331,6 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
                 테스트 페이지로 이동
               </button>
             </div>
-
             <PasswordResetModal
               isOpen={isResetModalOpen}
               defaultEmail={email}
@@ -427,6 +339,16 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
                 // 모달에서 성공 메시지는 자체 노출, 화면 상단에도 안내 표시
                 setInfoMessage(
                   '재설정 메일을 발송했습니다. 메일함을 확인해 주세요. (가입된 이메일이라면 발송됩니다)',
+                )
+              }}
+            />
+            <SignupModal
+              isOpen={isSignupModalOpen}
+              defaultEmail={email}
+              onClose={() => setIsSignupModalOpen(false)}
+              onSuccess={() => {
+                setInfoMessage(
+                  '회원가입이 완료되었습니다. 인증 메일을 보냈으니 메일함에서 확인 후 링크를 클릭해 로그인해 주세요.',
                 )
               }}
             />

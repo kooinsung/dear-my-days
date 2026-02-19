@@ -37,6 +37,10 @@ export const env = createEnv({
 
     // Naver OAuth (선택사항)
     NEXT_PUBLIC_NAVER_CLIENT_ID: z.string().optional(),
+
+    // Google OAuth (네이티브 로그인용, 선택사항)
+    NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID: z.string().optional(),
+    NEXT_PUBLIC_GOOGLE_IOS_CLIENT_ID: z.string().optional(),
   },
 
   /**
@@ -63,6 +67,10 @@ export const env = createEnv({
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
     NEXT_PUBLIC_WEB_BASE_URL: process.env.NEXT_PUBLIC_WEB_BASE_URL,
     NEXT_PUBLIC_NAVER_CLIENT_ID: process.env.NEXT_PUBLIC_NAVER_CLIENT_ID,
+    NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID:
+      process.env.NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    NEXT_PUBLIC_GOOGLE_IOS_CLIENT_ID:
+      process.env.NEXT_PUBLIC_GOOGLE_IOS_CLIENT_ID,
   },
 
   /**

@@ -41,9 +41,6 @@ export async function signup(email: string, password: string) {
   if (!baseUrl) {
     return { error: '서버 설정 오류(NEXT_PUBLIC_WEB_BASE_URL)' }
   }
-  if (!baseUrl) {
-    return { error: '서버 설정 오류(NEXT_PUBLIC_WEB_BASE_URL)' }
-  }
 
   const res = await fetch(new URL('/api/auth/signup', baseUrl), {
     method: 'POST',
