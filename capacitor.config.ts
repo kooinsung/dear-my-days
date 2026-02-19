@@ -29,11 +29,34 @@ const config: CapacitorConfig = {
     ? {
         url: getDevServerUrl(),
         cleartext: true,
+        // OAuth 플로우가 WebView 내에서 처리되도록 허용
+        allowNavigation: [
+          '*.supabase.co',
+          '*.kakao.com',
+          '*.google.com',
+          '*.apple.com',
+          '*.naver.com',
+          'nid.naver.com',
+          'accounts.google.com',
+          'kauth.kakao.com',
+          'appleid.apple.com',
+        ],
       }
     : {
         // Production: Vercel deployed web app
         url: 'https://dearmydays.com',
         cleartext: false,
+        allowNavigation: [
+          '*.supabase.co',
+          '*.kakao.com',
+          '*.google.com',
+          '*.apple.com',
+          '*.naver.com',
+          'nid.naver.com',
+          'accounts.google.com',
+          'kauth.kakao.com',
+          'appleid.apple.com',
+        ],
       },
   plugins: {
     SplashScreen: {

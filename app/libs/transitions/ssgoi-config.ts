@@ -98,6 +98,18 @@ export const transitionConfig = {
       transition: drill({ direction: 'exit' }),
     },
 
+    // Event Past → Event Detail
+    {
+      from: '/event/past',
+      to: '/event/detail*',
+      transition: drill({ direction: 'enter' }),
+    },
+    {
+      from: '/event/detail*',
+      to: '/event/past',
+      transition: drill({ direction: 'exit' }),
+    },
+
     // Login → Home
     {
       from: '/login',
@@ -114,18 +126,6 @@ export const transitionConfig = {
     {
       from: '/auth/*',
       to: '/login',
-      transition: drill({ direction: 'exit' }),
-    },
-
-    // Event Past → Event Detail
-    {
-      from: '/event/past',
-      to: '/event/detail*',
-      transition: drill({ direction: 'enter' }),
-    },
-    {
-      from: '/event/detail*',
-      to: '/event/past',
       transition: drill({ direction: 'exit' }),
     },
 
