@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { css, cx } from '@/styled-system/css'
 import { button, input } from '@/styled-system/recipes'
 
@@ -13,6 +13,10 @@ export default function ResetPasswordForm() {
   const token = searchParams.get('token') ?? ''
 
   const hasParams = useMemo(() => Boolean(uid && token), [uid, token])
+
+  useEffect(() => {
+    router.prefetch('/login')
+  }, [router])
 
   const [password, setPassword] = useState('')
   const [passwordConfirm, setPasswordConfirm] = useState('')

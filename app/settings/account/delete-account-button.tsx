@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { css, cx } from '@/styled-system/css'
 import { button } from '@/styled-system/recipes'
 import { deleteAccount } from './actions'
@@ -10,6 +10,10 @@ export function DeleteAccountButton() {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string>('')
+
+  useEffect(() => {
+    router.prefetch('/login')
+  }, [router])
 
   const handleDelete = () => {
     const ok = window.confirm(
