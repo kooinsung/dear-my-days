@@ -19,7 +19,10 @@
     "cap:run:ios": "CAPACITOR_PLATFORM=ios npx cap run ios",
     "cap:run:android": "CAPACITOR_PLATFORM=android npx cap run android",
     "dev:ios": "CAPACITOR_PLATFORM=ios npx cap run ios --livereload --external",
-    "dev:android": "CAPACITOR_PLATFORM=android npx cap run android --livereload --external"
+    "dev:android": "CAPACITOR_PLATFORM=android npx cap run android --livereload --external",
+    "version:patch": "npm version patch --no-git-tag-version",
+    "version:minor": "npm version minor --no-git-tag-version",
+    "version:major": "npm version major --no-git-tag-version"
   },
   "dependencies": {
     "@capacitor/app": "^8.0.0",
