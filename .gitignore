@@ -48,6 +48,7 @@ styled-system-studio
 
 # Capacitor
 ios/App/
-android/app/
+android/app/*
+!android/app/build.gradle
 *.mobileprovision
 *.p12
