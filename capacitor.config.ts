@@ -61,7 +61,7 @@ const config: CapacitorConfig = {
       backgroundColor: '#ffffff',
     },
     Keyboard: {
-      resize: 'body',
+      resize: 'ionic',
       resizeOnFullScreen: true,
     },
     // CORS bypass (Capacitor native HTTP)

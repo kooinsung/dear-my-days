@@ -35,6 +35,10 @@ export function EventDetailContent({
   const [notifications, setNotifications] = useState<NotificationSchedule[]>([])
   const [loadingNotifications, setLoadingNotifications] = useState(true)
 
+  useEffect(() => {
+    router.prefetch('/')
+  }, [router])
+
   // 알림 설정 불러오기
   useEffect(() => {
     async function loadNotifications() {

@@ -47,6 +47,11 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
       fontSize: '14px',
     })
 
+  // 로그인 후 이동할 홈 화면 미리 로드
+  useEffect(() => {
+    router.prefetch('/')
+  }, [router])
+
   // 플랫폼 감지
   useEffect(() => {
     const checkNative = async () => {

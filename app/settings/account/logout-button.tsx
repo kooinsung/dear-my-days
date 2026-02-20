@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { logout } from '@/login/actions'
 import { css, cx } from '@/styled-system/css'
 import { button } from '@/styled-system/recipes'
@@ -10,6 +10,10 @@ export function LogoutButton() {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string>('')
+
+  useEffect(() => {
+    router.prefetch('/login')
+  }, [router])
 
   const handleLogout = () => {
     setError('')
