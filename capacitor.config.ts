@@ -1,11 +1,13 @@
 import type { CapacitorConfig } from '@capacitor/cli'
 
-// CAPACITOR_ENV 환경 변수로 명시적 환경 구분
-// 기본값: 개발 환경 (production이 아닌 모든 경우)
-const isDev = process.env.CAPACITOR_ENV !== 'production'
+// CAPACITOR_ENV: local(기본) | dev | production
+const capEnv = (process.env.CAPACITOR_ENV || 'local') as
+  | 'local'
+  | 'dev'
+  | 'production'
 
-// 플랫폼별 개발 서버 URL
-const getDevServerUrl = () => {
+// 플랫폼별 로컬 개발 서버 URL
+const getLocalServerUrl = () => {
   const platform = process.env.CAPACITOR_PLATFORM || 'android'
 
   if (platform === 'ios') {
@@ -17,6 +19,12 @@ const getDevServerUrl = () => {
   }
 }
 
+const serverUrlMap = {
+  local: getLocalServerUrl(),
+  dev: 'https://dear-my-days-dev.vercel.app',
+  production: 'https://dear-my-days.vercel.app',
+} as const
+
 const config: CapacitorConfig = {
   appId: 'com.dearmydays.app',
   appName: 'Dear My Days',
@@ -25,39 +33,21 @@ const config: CapacitorConfig = {
   webDir: 'public',
 
   // Load web URL in WebView
-  server: isDev
-    ? {
-        url: getDevServerUrl(),
-        cleartext: true,
-        // OAuth 플로우가 WebView 내에서 처리되도록 허용
-        allowNavigation: [
-          '*.supabase.co',
-          '*.kakao.com',
-          '*.google.com',
-          '*.apple.com',
-          '*.naver.com',
-          'nid.naver.com',
-          'accounts.google.com',
-          'kauth.kakao.com',
-          'appleid.apple.com',
-        ],
-      }
-    : {
-        // Production: Vercel deployed web app
-        url: 'https://dearmydays.com',
-        cleartext: false,
-        allowNavigation: [
-          '*.supabase.co',
-          '*.kakao.com',
-          '*.google.com',
-          '*.apple.com',
-          '*.naver.com',
-          'nid.naver.com',
-          'accounts.google.com',
-          'kauth.kakao.com',
-          'appleid.apple.com',
-        ],
-      },
+  server: {
+    url: serverUrlMap[capEnv],
+    cleartext: capEnv === 'local',
+    allowNavigation: [
+      '*.supabase.co',
+      '*.kakao.com',
+      '*.google.com',
+      '*.apple.com',
+      '*.naver.com',
+      'nid.naver.com',
+      'accounts.google.com',
+      'kauth.kakao.com',
+      'appleid.apple.com',
+    ],
+  },
   plugins: {
     SplashScreen: {
       launchShowDuration: 500,

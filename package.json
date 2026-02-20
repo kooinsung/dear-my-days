@@ -12,6 +12,7 @@
     "prepare": "panda codegen && husky",
     "cap:init": "npx cap init 'Dear My Days' 'com.dearmydays.app'",
     "cap:sync": "npx cap sync",
+    "cap:sync:dev": "CAPACITOR_ENV=dev npx cap sync",
     "cap:sync:prod": "CAPACITOR_ENV=production npx cap sync",
     "cap:ios": "npx cap open ios",
     "cap:android": "npx cap open android",
