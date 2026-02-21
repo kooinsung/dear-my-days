@@ -4,7 +4,9 @@
     "target": {
       "namespace": "android_app",
       "package_name": "com.dearmydays.app",
-      "sha256_cert_fingerprints": ["REPLACE_WITH_YOUR_SHA256_CERT_FINGERPRINT"]
+      "sha256_cert_fingerprints": [
+        "6D:82:C6:0C:9A:FB:11:95:8A:45:87:51:F7:5D:41:B8:D7:08:98:61:22:18:FA:A4:4F:74:D0:32:26:A7:CD:85"
+      ]
     }
   }
 ]
