@@ -1,6 +1,5 @@
 'use client'
 
-import { SsgoiTransition } from '@ssgoi/react'
 import Link from 'next/link'
 import type { Event } from '@/libs/supabase/database.types'
 import { css, cx } from '@/styled-system/css'
@@ -15,71 +14,63 @@ interface HomePageClientProps {
 
 export function HomePageClient({ upcomingEvents }: HomePageClientProps) {
   return (
-    <SsgoiTransition id="/">
-      <div
+    <div
+      className={css({
+        minHeight: '100vh',
+        backgroundColor: 'background',
+      })}
+    >
+      {/* 헤더 */}
+      <header
         className={css({
-          minHeight: '100vh',
-          backgroundColor: 'background',
+          backgroundColor: 'white',
+          borderBottom: '1px solid',
+          borderColor: 'border',
+          padding: '16px 0',
         })}
       >
-        {/* 헤더 */}
-        <header
-          className={css({
-            backgroundColor: 'white',
-            borderBottom: '1px solid',
-            borderColor: 'border',
-            padding: '16px 0',
+        <div
+          className={flex({
+            maxWidth: 'container',
+            margin: '0 auto',
+            padding: '0 24px',
+            justify: 'space-between',
+            align: 'center',
           })}
         >
-          <div
-            className={flex({
-              maxWidth: 'container',
-              margin: '0 auto',
-              padding: '0 24px',
-              justify: 'space-between',
-              align: 'center',
+          <h1
+            className={css({
+              fontSize: '24px',
+              fontWeight: 'bold',
+              margin: 0,
             })}
           >
-            <h1
-              className={css({
-                fontSize: '24px',
-                fontWeight: 'bold',
-                margin: 0,
-              })}
+            Dear Days
+          </h1>
+          <HStack gap={12}>
+            <Link href="/event/new" className={button({ variant: 'primary' })}>
+              + 새 이벤트
+            </Link>
+            <Link
+              href="/calendar"
+              className={cx(
+                button({ variant: 'secondary' }),
+                css({ backgroundColor: '#6c757d', color: 'white' }),
+              )}
             >
-              Dear Days
-            </h1>
-            <HStack gap={12}>
-              <Link
-                href="/event/new"
-                className={button({ variant: 'primary' })}
-              >
-                + 새 이벤트
-              </Link>
-              <Link
-                href="/calendar"
-                className={cx(
-                  button({ variant: 'secondary' }),
-                  css({ backgroundColor: '#6c757d', color: 'white' }),
-                )}
-              >
-                📅 캘린더
-              </Link>
-              <Link
-                href="/settings"
-                className={button({ variant: 'secondary' })}
-              >
-                설정
-              </Link>
-            </HStack>
-          </div>
-        </header>
-
-        {/* 콘텐츠 영역 */}
-        <div className={cx(pageContainer(), css({ paddingTop: '24px' }))}>
-          <HomeContent upcomingEvents={upcomingEvents} />
+              📅 캘린더
+            </Link>
+            <Link href="/settings" className={button({ variant: 'secondary' })}>
+              설정
+            </Link>
+          </HStack>
         </div>
+      </header>
+
+      {/* 콘텐츠 영역 */}
+      <div className={cx(pageContainer(), css({ paddingTop: '24px' }))}>
+        <HomeContent upcomingEvents={upcomingEvents} />
       </div>
-    </SsgoiTransition>
+    </div>
   )
 }
