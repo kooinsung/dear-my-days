@@ -56,10 +56,6 @@ export default function EventForm({
   const router = useRouter()
   const showToast = useUIStore((state) => state.showToast)
 
-  useEffect(() => {
-    router.prefetch('/')
-  }, [router])
-
   const { data: existingEvent, isLoading: isLoadingEvent } = useEvent(
     eventId || null,
   )
