@@ -38,11 +38,12 @@ export async function updateSession(request: NextRequest) {
     },
   )
 
-  // 3. 세션 갱신 (매우 중요)
-  // 이 호출은 만료된 토큰을 갱신하고, setAll을 트리거하여 새 쿠키를 응답에 굽습니다.
+  // 3. 세션 확인 (JWT 로컬 디코딩, 네트워크 호출 없음)
+  // 만료된 토큰은 자동 갱신되고, setAll을 트리거하여 새 쿠키를 응답에 굽습니다.
+  // 민감한 작업은 서버 컴포넌트/API 라우트에서 getUser()로 별도 검증
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { session },
+  } = await supabase.auth.getSession()
 
-  return { response, user }
+  return { response, user: session?.user ?? null }
 }
