@@ -1,11 +1,10 @@
-import { createServerClient } from '@supabase/ssr'
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { buildLoginRedirect, isPublicPath } from '@/libs/auth/route-policy'
 import { updateSession } from '@/libs/supabase/proxy'
 
 export async function proxy(request: NextRequest) {
-  const response = await updateSession(request)
+  const { response, user } = await updateSession(request)
 
   const pathname = request.nextUrl.pathname
 
@@ -13,41 +12,13 @@ export async function proxy(request: NextRequest) {
     return response
   }
 
-  let authResponse = response
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '',
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => {
-            request.cookies.set(name, value)
-          })
-
-          authResponse = NextResponse.next({ request })
-
-          cookiesToSet.forEach(({ name, value, options }) => {
-            authResponse.cookies.set(name, value, options)
-          })
-        },
-      },
-    },
-  )
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
   if (!user) {
     return NextResponse.redirect(
       buildLoginRedirect(pathname, request.nextUrl.origin),
     )
   }
 
-  return authResponse
+  return response
 }
 
 export const config = {
