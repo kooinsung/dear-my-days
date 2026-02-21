@@ -6,15 +6,25 @@ import { css, cx } from '@/styled-system/css'
 import { center } from '@/styled-system/patterns'
 import { button, card } from '@/styled-system/recipes'
 
-const DEEP_LINK_URL = 'dearmydays://login?verified=1'
+const CUSTOM_SCHEME_URL = 'dearmydays://login?verified=1'
+const INTENT_URL =
+  'intent://login?verified=1#Intent;scheme=dearmydays;package=com.dearmydays.app;end'
 const WEB_FALLBACK_URL = '/login?verified=1'
 const FALLBACK_DELAY_MS = 2000
+
+function getDeepLinkUrl() {
+  const ua = navigator.userAgent.toLowerCase()
+  if (ua.includes('android')) {
+    return INTENT_URL
+  }
+  return CUSTOM_SCHEME_URL
+}
 
 export function VerifyEmailSuccessClient() {
   const [showFallback, setShowFallback] = useState(false)
 
   useEffect(() => {
-    window.location.href = DEEP_LINK_URL
+    window.location.href = getDeepLinkUrl()
 
     const timer = setTimeout(() => {
       setShowFallback(true)
@@ -70,7 +80,7 @@ export function VerifyEmailSuccessClient() {
             })}
           >
             <a
-              href={DEEP_LINK_URL}
+              href={getDeepLinkUrl()}
               className={cx(
                 button({ variant: 'primary' }),
                 css({
