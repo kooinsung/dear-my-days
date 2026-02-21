@@ -1,12 +1,8 @@
-import type { User } from '@supabase/supabase-js'
-import { createSupabaseServer } from '@/libs/supabase/server'
+import { requireAuth } from '@/libs/auth/require-auth'
 import { SettingsHomeClient } from './settings-home-client'
 
 export default async function SettingsPage() {
-  const supabase = await createSupabaseServer()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { user } = await requireAuth()
 
-  return <SettingsHomeClient user={user as User} />
+  return <SettingsHomeClient user={user} />
 }
