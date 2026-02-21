@@ -1,4 +1,4 @@
-import { createSupabaseServer } from '@/libs/supabase/server'
+import { requireAuth } from '@/libs/auth/require-auth'
 import { EventEditPageClient } from './edit-page-client'
 import { EditPageWrapper } from './edit-page-wrapper'
 
@@ -9,8 +9,7 @@ export default async function EditPage({
 }) {
   const { id } = await params
 
-  const supabase = await createSupabaseServer()
-  void supabase
+  await requireAuth()
 
   return (
     <EditPageWrapper eventId={id}>

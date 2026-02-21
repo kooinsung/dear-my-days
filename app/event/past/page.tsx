@@ -1,5 +1,5 @@
+import { requireAuth } from '@/libs/auth/require-auth'
 import type { CategoryType, Event } from '@/libs/supabase/database.types'
-import { createSupabaseServer } from '@/libs/supabase/server'
 import { dayjs, toThisYearDate } from '@/libs/utils'
 import { PastPageClient } from './past-page-client'
 
@@ -29,7 +29,7 @@ export default async function PastPage({
   const params = await searchParams
   const filterCategory = params.category
 
-  const supabase = await createSupabaseServer()
+  const { supabase } = await requireAuth()
 
   // 모든 이벤트를 조회하여 올해 발생일 기준으로 필터링
   let query = supabase

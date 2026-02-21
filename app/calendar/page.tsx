@@ -1,6 +1,6 @@
 import Link from 'next/link'
+import { requireAuth } from '@/libs/auth/require-auth'
 import type { CategoryType, Event } from '@/libs/supabase/database.types'
-import { createSupabaseServer } from '@/libs/supabase/server'
 import { CalendarPageContent } from './calendar-page-content'
 
 // 월별 이벤트 카운트
@@ -53,7 +53,7 @@ export default async function CalendarPage({
     ? Number.parseInt(params.year, 10)
     : new Date().getFullYear()
 
-  const supabase = await createSupabaseServer()
+  const { supabase } = await requireAuth()
 
   // 해당 년도의 이벤트 조회
   const startDate = `${currentYear}-01-01`

@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
+import { requireAuth } from '@/libs/auth/require-auth'
 import type { Event } from '@/libs/supabase/database.types'
-import { createSupabaseServer } from '@/libs/supabase/server'
 import { EventDetailContent } from './detail-content'
 
 export default async function DetailPage({
@@ -15,7 +15,7 @@ export default async function DetailPage({
     redirect('/')
   }
 
-  const supabase = await createSupabaseServer()
+  const { supabase } = await requireAuth()
 
   // 서버 사이드에서 데이터 fetch
   const { data: event, error } = await supabase

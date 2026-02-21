@@ -1,10 +1,10 @@
+import { requireAuth } from '@/libs/auth/require-auth'
 import type { Event } from '@/libs/supabase/database.types'
-import { createSupabaseServer } from '@/libs/supabase/server'
 import { getUpcomingEventsThisYear } from '@/libs/utils'
 import { HomePageClient } from './home-page-client'
 
 export default async function HomePage() {
-  const supabase = await createSupabaseServer()
+  const { supabase } = await requireAuth()
 
   const { data: eventsData, error } = await supabase
     .from('events')
