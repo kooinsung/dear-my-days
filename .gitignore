@@ -50,5 +50,10 @@ styled-system-studio
 ios/App/
 android/app/*
 !android/app/build.gradle
+!android/app/src
+android/app/src/*
+!android/app/src/main
+android/app/src/main/*
+!android/app/src/main/AndroidManifest.xml
 *.mobileprovision
 *.p12
