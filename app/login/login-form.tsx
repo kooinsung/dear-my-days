@@ -2,7 +2,7 @@
 
 import type { User } from '@supabase/supabase-js'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { isNative } from '@/libs/capacitor/platform'
 import { googleLogin, kakaoLogin } from '@/libs/capacitor/social-login'
 import { generateNaverAuthUrl } from '@/libs/naver/oauth'
@@ -28,7 +28,6 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState('')
-  // success 메시지도 필요해서 별도 상태로 둠
   const [infoMessage, setInfoMessage] = useState('')
 
   const [isLoginPending, setIsLoginPending] = useState(false)
@@ -37,6 +36,23 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false)
 
   const isAnyPending = isLoginPending || isOAuthPending
+
+  // 메시지 3초 후 자동 숨김 + 상태 리셋
+  const clearMessagesAfterDelay = useCallback(() => {
+    const timer = setTimeout(() => {
+      setMessage('')
+      setInfoMessage('')
+    }, 3000)
+    return timer
+  }, [])
+
+  useEffect(() => {
+    if (!message && !infoMessage) {
+      return
+    }
+    const timer = clearMessagesAfterDelay()
+    return () => clearTimeout(timer)
+  }, [message, infoMessage, clearMessagesAfterDelay])
 
   const alertStyle = (bg: string, color: string) =>
     css({
@@ -66,13 +82,8 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
     return () => data.subscription.unsubscribe()
   }, [])
 
-  // 인증 완료 후 리다이렉트(/login?verified=1)
+  // URL 파라미터 기반 메시지 표시
   useEffect(() => {
-    const verified = searchParams.get('verified')
-    if (verified === '1') {
-      setInfoMessage('이메일 인증이 완료되었습니다. 이제 로그인할 수 있어요.')
-    }
-
     const reset = searchParams.get('reset')
     if (reset === '1') {
       setInfoMessage(
@@ -80,7 +91,6 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
       )
     }
 
-    // OAuth 에러 처리
     const error = searchParams.get('error')
     if (error) {
       setMessage(decodeURIComponent(error))
