@@ -55,11 +55,21 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
   // 세션 변화 감지
   useEffect(() => {
     const supabase = createSupabaseBrowser()
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      // 서버에서 유저 없음 확인 시, stale JWT의 초기 세션 이벤트 무시
+      if (event === 'INITIAL_SESSION' && !initialUser) {
+        return
+      }
       setUser(session?.user ?? null)
     })
+
+    // 서버에서 유저 없음 확인 시, stale 클라이언트 세션 정리
+    if (!initialUser) {
+      supabase.auth.signOut()
+    }
+
     return () => data.subscription.unsubscribe()
-  }, [])
+  }, [initialUser])
 
   // URL 파라미터 기반 메시지 표시
   useEffect(() => {
