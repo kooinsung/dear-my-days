@@ -13,7 +13,12 @@ const PUBLIC_PATHS = [
   '/api/health-check',
 ] as const
 
-const PUBLIC_PREFIXES = ['/_next', '/favicon.ico', '/api'] as const
+const PUBLIC_PREFIXES = [
+  '/_next',
+  '/favicon.ico',
+  '/api',
+  '/.well-known',
+] as const
 
 const PUBLIC_FILE_EXT = /\.(?:svg|png|jpg|jpeg|gif|webp|ico)$/i
 
