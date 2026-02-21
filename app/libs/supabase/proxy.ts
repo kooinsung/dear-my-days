@@ -40,8 +40,9 @@ export async function updateSession(request: NextRequest) {
 
   // 3. 세션 갱신 (매우 중요)
   // 이 호출은 만료된 토큰을 갱신하고, setAll을 트리거하여 새 쿠키를 응답에 굽습니다.
-  // user 정보를 반환하지만, 여기서는 변수에 할당하지 않아도 됩니다.
-  await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  return response
+  return { response, user }
 }
