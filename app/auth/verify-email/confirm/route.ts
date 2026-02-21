@@ -70,5 +70,5 @@ export async function GET(req: NextRequest) {
     )
   }
 
-  return NextResponse.redirect(`${origin}/auth/verify-email/success`)
+  return NextResponse.redirect(`${origin}/login?verified=1`)
 }
