@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
+import { env } from '@/libs/config/env'
 import { createSupabaseServer } from '@/libs/supabase/server'
 
 type OtpType = 'signup' | 'magiclink' | 'recovery' | 'invite' | 'email_change'
@@ -14,33 +15,21 @@ function isOtpType(value: string): value is OtpType {
 }
 
 export async function GET(req: NextRequest) {
-  const { searchParams, origin } = new URL(req.url)
-
-  // 디버깅: 요청 URL 로깅
-  console.log('🔍 [Callback] Request URL:', req.url)
-  console.log('🔍 [Callback] Origin:', origin)
+  const { searchParams } = new URL(req.url)
+  const baseUrl = env.NEXT_PUBLIC_WEB_BASE_URL
 
   // Supabase/Auth 링크는 상황에 따라 파라미터가 달라질 수 있음
   const code = searchParams.get('code')
   const token_hash = searchParams.get('token_hash')
   const type = searchParams.get('type')
 
-  console.log('🔍 [Callback] Params:', {
-    code: `${code?.slice(0, 10)}...`,
-    token_hash,
-    type,
-  })
-
   const supabase = await createSupabaseServer()
 
   // 1) OAuth(PKCE) / 일부 이메일 링크: code 교환
   if (code) {
-    console.log('🔐 [Callback] Exchanging code for session...')
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (error) {
-      console.error('❌ [Callback] Exchange failed:', error)
-
       // 사용자 친화적 에러 메시지 매핑
       const friendlyErrors: Record<string, string> = {
         access_denied: '권한을 거부했습니다.',
@@ -61,24 +50,15 @@ export async function GET(req: NextRequest) {
         friendlyErrors[error.message] ||
         '로그인에 실패했습니다.'
 
-      console.log('🔍 [Callback] Error details:', {
-        code: errCode,
-        message: error.message,
-        friendly: friendlyMessage,
-      })
-
       const params = new URLSearchParams({
         error: encodeURIComponent(friendlyMessage),
       })
 
-      return NextResponse.redirect(`${origin}/login?${params.toString()}`)
+      return NextResponse.redirect(`${baseUrl}/login?${params.toString()}`)
     }
 
-    console.log('✅ [Callback] Session created, redirecting to home...')
-    console.log('🔍 [Callback] Redirect URL:', `${origin}/`)
-
     // OAuth 성공: 홈으로 리다이렉트
-    return NextResponse.redirect(`${origin}/`)
+    return NextResponse.redirect(`${baseUrl}/`)
   }
 
   // 2) 이메일 인증/매직링크/리커버리: token_hash + type 검증
@@ -87,7 +67,7 @@ export async function GET(req: NextRequest) {
       const params = new URLSearchParams({
         error: encodeURIComponent('유효하지 않은 인증 유형입니다.'),
       })
-      return NextResponse.redirect(`${origin}/login?${params.toString()}`)
+      return NextResponse.redirect(`${baseUrl}/login?${params.toString()}`)
     }
 
     const { error } = await supabase.auth.verifyOtp({
@@ -119,15 +99,15 @@ export async function GET(req: NextRequest) {
         error: encodeURIComponent(friendlyMessage),
       })
 
-      return NextResponse.redirect(`${origin}/login?${params.toString()}`)
+      return NextResponse.redirect(`${baseUrl}/login?${params.toString()}`)
     }
 
     // 인증 성공: 홈으로 리다이렉트
-    return NextResponse.redirect(`${origin}/`)
+    return NextResponse.redirect(`${baseUrl}/`)
   }
 
   const params = new URLSearchParams({
     error: encodeURIComponent('인증 정보가 누락되었습니다.'),
   })
-  return NextResponse.redirect(`${origin}/login?${params.toString()}`)
+  return NextResponse.redirect(`${baseUrl}/login?${params.toString()}`)
 }

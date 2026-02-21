@@ -94,7 +94,7 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
         return
       }
 
-      router.push('/')
+      router.replace('/')
     } finally {
       setIsLoginPending(false)
     }
