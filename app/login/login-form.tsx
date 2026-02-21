@@ -3,6 +3,7 @@
 import type { User } from '@supabase/supabase-js'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
+import { AlertModal } from '@/components/ui/AlertModal'
 import { isNative } from '@/libs/capacitor/platform'
 import { googleLogin, kakaoLogin } from '@/libs/capacitor/social-login'
 import { generateNaverAuthUrl } from '@/libs/naver/oauth'
@@ -37,32 +38,10 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
 
   const isAnyPending = isLoginPending || isOAuthPending
 
-  // 메시지 3초 후 자동 숨김 + 상태 리셋
-  const clearMessagesAfterDelay = useCallback(() => {
-    const timer = setTimeout(() => {
-      setMessage('')
-      setInfoMessage('')
-    }, 3000)
-    return timer
+  const clearMessages = useCallback(() => {
+    setMessage('')
+    setInfoMessage('')
   }, [])
-
-  useEffect(() => {
-    if (!message && !infoMessage) {
-      return
-    }
-    const timer = clearMessagesAfterDelay()
-    return () => clearTimeout(timer)
-  }, [message, infoMessage, clearMessagesAfterDelay])
-
-  const alertStyle = (bg: string, color: string) =>
-    css({
-      padding: '12px',
-      marginBottom: '16px',
-      backgroundColor: bg,
-      color,
-      borderRadius: '4px',
-      fontSize: '14px',
-    })
 
   // 플랫폼 감지
   useEffect(() => {
@@ -209,24 +188,31 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
       >
         {isOAuthPending && (
           <div
-            className={cx(
-              alertStyle('#e8f4fd', '#1a73e8'),
-              css({ textAlign: 'center' }),
-            )}
+            className={css({
+              padding: '12px',
+              marginBottom: '16px',
+              backgroundColor: '#e8f4fd',
+              color: '#1a73e8',
+              borderRadius: '4px',
+              fontSize: '14px',
+              textAlign: 'center',
+            })}
           >
             로그인 진행중...
           </div>
         )}
         {!user && (
           <>
-            {message && (
-              <div className={alertStyle('#f8d7da', '#721c24')}>{message}</div>
-            )}
-            {infoMessage && (
-              <div className={alertStyle('#d1ecf1', '#0c5460')}>
-                {infoMessage}
-              </div>
-            )}
+            <AlertModal
+              message={message}
+              type="error"
+              onClose={clearMessages}
+            />
+            <AlertModal
+              message={infoMessage}
+              type="info"
+              onClose={clearMessages}
+            />
             <div className={css({ marginBottom: '16px' })}>
               <input
                 type="email"
