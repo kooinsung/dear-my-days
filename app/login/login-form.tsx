@@ -1,7 +1,7 @@
 'use client'
 
 import type { User } from '@supabase/supabase-js'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { isNative } from '@/libs/capacitor/platform'
 import { googleLogin, kakaoLogin } from '@/libs/capacitor/social-login'
@@ -21,6 +21,7 @@ interface LoginFormProps {
 
 export default function LoginForm({ initialUser }: LoginFormProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [isNativeApp, setIsNativeApp] = useState(false)
 
   const [user, setUser] = useState<User | null>(initialUser)
@@ -67,13 +68,12 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
 
   // 인증 완료 후 리다이렉트(/login?verified=1)
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const verified = params.get('verified')
+    const verified = searchParams.get('verified')
     if (verified === '1') {
       setInfoMessage('이메일 인증이 완료되었습니다. 이제 로그인할 수 있어요.')
     }
 
-    const reset = params.get('reset')
+    const reset = searchParams.get('reset')
     if (reset === '1') {
       setInfoMessage(
         '비밀번호가 변경되었습니다. 새 비밀번호로 로그인해 주세요.',
@@ -81,11 +81,11 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
     }
 
     // OAuth 에러 처리
-    const error = params.get('error')
+    const error = searchParams.get('error')
     if (error) {
       setMessage(decodeURIComponent(error))
     }
-  }, [])
+  }, [searchParams])
 
   // ✅ Email 로그인 (Server Action 직접 호출)
   const handleEmailLogin = async () => {
