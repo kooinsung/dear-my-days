@@ -10,9 +10,11 @@ const CUSTOM_SCHEME_URL = 'dearmydays://login?verified=1'
 const INTENT_URL =
   'intent://login?verified=1#Intent;scheme=dearmydays;package=com.dearmydays.app;end'
 const WEB_FALLBACK_URL = '/login?verified=1'
-const FALLBACK_DELAY_MS = 2000
 
 function getDeepLinkUrl() {
+  if (typeof navigator === 'undefined') {
+    return CUSTOM_SCHEME_URL
+  }
   const ua = navigator.userAgent.toLowerCase()
   if (ua.includes('android')) {
     return INTENT_URL
@@ -21,16 +23,10 @@ function getDeepLinkUrl() {
 }
 
 export function VerifyEmailSuccessClient() {
-  const [showFallback, setShowFallback] = useState(false)
+  const [deepLinkUrl, setDeepLinkUrl] = useState(CUSTOM_SCHEME_URL)
 
   useEffect(() => {
-    window.location.href = getDeepLinkUrl()
-
-    const timer = setTimeout(() => {
-      setShowFallback(true)
-    }, FALLBACK_DELAY_MS)
-
-    return () => clearTimeout(timer)
+    setDeepLinkUrl(getDeepLinkUrl())
   }, [])
 
   return (
@@ -68,43 +64,41 @@ export function VerifyEmailSuccessClient() {
             marginBottom: '24px',
           })}
         >
-          이메일 인증이 완료되었습니다. 앱으로 이동합니다...
+          이메일 인증이 완료되었습니다.
         </p>
 
-        {showFallback && (
-          <div
+        <div
+          className={css({
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+          })}
+        >
+          <a
+            href={deepLinkUrl}
+            className={cx(
+              button({ variant: 'primary' }),
+              css({
+                width: '100%',
+                textDecoration: 'none',
+                textAlign: 'center',
+              }),
+            )}
+          >
+            앱으로 돌아가기
+          </a>
+
+          <Link
+            href={WEB_FALLBACK_URL}
             className={css({
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px',
+              color: 'primary',
+              fontSize: '14px',
+              textDecoration: 'underline',
             })}
           >
-            <a
-              href={getDeepLinkUrl()}
-              className={cx(
-                button({ variant: 'primary' }),
-                css({
-                  width: '100%',
-                  textDecoration: 'none',
-                  textAlign: 'center',
-                }),
-              )}
-            >
-              앱으로 돌아가기
-            </a>
-
-            <Link
-              href={WEB_FALLBACK_URL}
-              className={css({
-                color: 'primary',
-                fontSize: '14px',
-                textDecoration: 'underline',
-              })}
-            >
-              웹에서 로그인하기
-            </Link>
-          </div>
-        )}
+            웹에서 로그인하기
+          </Link>
+        </div>
       </div>
     </div>
   )
