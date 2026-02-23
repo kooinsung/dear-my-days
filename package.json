@@ -38,6 +38,7 @@
     "@capacitor/splash-screen": "^8.0.0",
     "@capacitor/status-bar": "^8.0.0",
     "@capgo/capacitor-social-login": "^8.2.23",
+    "@capgo/native-purchases": "^8.1.0",
     "@ssgoi/core": "^4.4.0",
     "@ssgoi/react": "^4.2.1",
     "@supabase/ssr": "^0.8.0",

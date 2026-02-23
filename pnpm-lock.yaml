@@ -47,6 +47,9 @@ importers:
       '@capgo/capacitor-social-login':
         specifier: ^8.2.23
         version: 8.2.23(@capacitor/core@8.0.2)
+      '@capgo/native-purchases':
+        specifier: ^8.1.0
+        version: 8.1.0(@capacitor/core@8.0.2)
       '@ssgoi/core':
         specifier: ^4.4.0
         version: 4.4.0
@@ -325,6 +328,11 @@ packages:
 
   '@capgo/capacitor-social-login@8.2.23':
     resolution: {integrity: sha512-nYy2wFhrH5HAkwGwnZOD17CoEIMn0nof0uMkztVmduENERnCYOE6+1qmbVmbpJ+pP5AjPUkn5ZgaEMg4S4SwNA==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
+
+  '@capgo/native-purchases@8.1.0':
+    resolution: {integrity: sha512-FzkflQVZ28IgaI+k3sazXck8q+ogrV6wJMz/IL+L2Zz8ZQHF2GGrvTM5uRrW+LKa2I74bsOAt6OjA7tZSLsHdg==}
     peerDependencies:
       '@capacitor/core': '>=8.0.0'
 
@@ -2579,6 +2587,10 @@ snapshots:
       '@capacitor/core': 8.0.2
 
   '@capgo/capacitor-social-login@8.2.23(@capacitor/core@8.0.2)':
+    dependencies:
+      '@capacitor/core': 8.0.2
+
+  '@capgo/native-purchases@8.1.0(@capacitor/core@8.0.2)':
     dependencies:
       '@capacitor/core': 8.0.2
 
