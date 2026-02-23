@@ -1,22 +1,27 @@
 'use client'
 
 import type { PlanType } from '@/libs/supabase/database.types'
-import { isNative } from './platform'
+import { getPlatform, isNative } from './platform'
 
-/**
- * 인앱결제 상품 ID 매핑
- */
 export const PRODUCT_IDS = {
   PREMIUM_MONTHLY: 'com.dearmydays.premium.monthly',
   PREMIUM_YEARLY: 'com.dearmydays.premium.yearly',
-  ENTERPRISE: 'com.dearmydays.enterprise',
+  EVENT_SLOT: 'com.dearmydays.event.slot',
 } as const
 
 export type ProductId = (typeof PRODUCT_IDS)[keyof typeof PRODUCT_IDS]
 
-/**
- * 상품 정보
- */
+const PLAN_IDENTIFIERS: Partial<Record<ProductId, string>> = {
+  [PRODUCT_IDS.PREMIUM_MONTHLY]: 'monthly-plan',
+  [PRODUCT_IDS.PREMIUM_YEARLY]: 'yearly-plan',
+}
+
+const INAPP_PRODUCT_IDS: ProductId[] = [PRODUCT_IDS.EVENT_SLOT]
+
+function isInAppProduct(productId: ProductId): boolean {
+  return INAPP_PRODUCT_IDS.includes(productId)
+}
+
 export interface Product {
   id: ProductId
   title: string
@@ -25,126 +30,274 @@ export interface Product {
   priceValue: number
   currency: string
   platform: 'ios' | 'android' | 'web'
+  type: 'SUBS' | 'INAPP'
 }
 
-/**
- * 구매 결과
- */
 export interface PurchaseResult {
   success: boolean
   error?: string
   transactionId?: string
 }
 
-/**
- * IAP 가능 여부 확인
- */
+const MOCK_PRODUCTS: Product[] = [
+  {
+    id: PRODUCT_IDS.PREMIUM_MONTHLY,
+    title: '월간 프리미엄',
+    description: '월간 프리미엄 구독',
+    price: '₩4,900',
+    priceValue: 4900,
+    currency: 'KRW',
+    platform: 'web',
+    type: 'SUBS',
+  },
+  {
+    id: PRODUCT_IDS.PREMIUM_YEARLY,
+    title: '연간 프리미엄',
+    description: '연간 프리미엄 구독 (2개월 무료)',
+    price: '₩49,000',
+    priceValue: 49000,
+    currency: 'KRW',
+    platform: 'web',
+    type: 'SUBS',
+  },
+  {
+    id: PRODUCT_IDS.EVENT_SLOT,
+    title: '이벤트 슬롯 추가',
+    description: '이벤트 등록 슬롯 1개 추가',
+    price: '₩990',
+    priceValue: 990,
+    currency: 'KRW',
+    platform: 'web',
+    type: 'INAPP',
+  },
+]
+
 export async function isIAPAvailable(): Promise<boolean> {
-  return await isNative()
+  if (!(await isNative())) {
+    return false
+  }
+  try {
+    const { NativePurchases } = await import('@capgo/native-purchases')
+    const { isBillingSupported } = await NativePurchases.isBillingSupported()
+    return isBillingSupported
+  } catch {
+    return false
+  }
 }
 
-/**
- * 상품 목록 조회 (Mock 구현)
- * 실제 구현 시 네이티브 코드와 통신하여 스토어에서 가격 정보 가져옴
- */
 export async function getProducts(): Promise<Product[]> {
   if (!(await isNative())) {
-    // 웹에서는 Mock 데이터 반환
-    return [
-      {
-        id: PRODUCT_IDS.PREMIUM_MONTHLY,
-        title: 'Premium Monthly',
-        description: '월간 프리미엄 구독',
-        price: '₩4,900',
-        priceValue: 4900,
-        currency: 'KRW',
-        platform: 'web',
-      },
-      {
-        id: PRODUCT_IDS.PREMIUM_YEARLY,
-        title: 'Premium Yearly',
-        description: '연간 프리미엄 구독 (2개월 무료)',
-        price: '₩49,000',
-        priceValue: 49000,
-        currency: 'KRW',
-        platform: 'web',
-      },
-    ]
+    return MOCK_PRODUCTS
   }
 
-  // TODO: 네이티브 구현
-  // 실제로는 네이티브 코드를 호출하여 스토어에서 상품 정보 가져옴
-  // iOS: StoreKit 2
-  // Android: Google Play Billing Library
-  throw new Error('Native IAP not implemented yet')
+  try {
+    const { NativePurchases, PURCHASE_TYPE } = await import(
+      '@capgo/native-purchases'
+    )
+    const platform = await getPlatform()
+
+    const subsIds = [PRODUCT_IDS.PREMIUM_MONTHLY, PRODUCT_IDS.PREMIUM_YEARLY]
+    const inappIds = [PRODUCT_IDS.EVENT_SLOT]
+
+    const [subsResult, inappResult] = await Promise.all([
+      NativePurchases.getProducts({
+        productIdentifiers: [...subsIds],
+        productType: PURCHASE_TYPE.SUBS,
+      }),
+      NativePurchases.getProducts({
+        productIdentifiers: [...inappIds],
+        productType: PURCHASE_TYPE.INAPP,
+      }),
+    ])
+
+    const products: Product[] = []
+
+    for (const p of subsResult.products) {
+      const productId = (p.planIdentifier || p.identifier) as ProductId
+      products.push({
+        id: productId,
+        title: p.title || productId,
+        description: p.description || '',
+        price: p.priceString || `${p.price}`,
+        priceValue: p.price,
+        currency: p.currencyCode || 'KRW',
+        platform: platform as 'ios' | 'android',
+        type: 'SUBS',
+      })
+    }
+
+    for (const p of inappResult.products) {
+      products.push({
+        id: p.identifier as ProductId,
+        title: p.title || p.identifier,
+        description: p.description || '',
+        price: p.priceString || `${p.price}`,
+        priceValue: p.price,
+        currency: p.currencyCode || 'KRW',
+        platform: platform as 'ios' | 'android',
+        type: 'INAPP',
+      })
+    }
+
+    return products
+  } catch {
+    return MOCK_PRODUCTS
+  }
 }
 
-/**
- * 구독 구매
- */
-export async function purchaseSubscription(
-  _productId: ProductId,
-  _userId: string,
+export async function purchaseProduct(
+  productId: ProductId,
+  userId: string,
 ): Promise<PurchaseResult> {
+  if (!(await isNative())) {
+    return { success: false, error: '모바일 앱에서만 구매할 수 있습니다.' }
+  }
+
   try {
-    if (!(await isNative())) {
+    const { NativePurchases, PURCHASE_TYPE } = await import(
+      '@capgo/native-purchases'
+    )
+    const platform = await getPlatform()
+
+    const productType = isInAppProduct(productId)
+      ? PURCHASE_TYPE.INAPP
+      : PURCHASE_TYPE.SUBS
+
+    const purchaseOptions: Parameters<
+      typeof NativePurchases.purchaseProduct
+    >[0] = {
+      productIdentifier: productId,
+      productType,
+    }
+
+    const planId = PLAN_IDENTIFIERS[productId]
+    if (planId && productType === PURCHASE_TYPE.SUBS) {
+      purchaseOptions.planIdentifier = planId
+    }
+
+    const result = await NativePurchases.purchaseProduct(purchaseOptions)
+
+    const transactionId = result.transactionId
+    const receipt =
+      platform === 'ios'
+        ? result.receipt || result.jwsRepresentation
+        : result.purchaseToken
+
+    if (!receipt || !transactionId) {
+      return { success: false, error: '구매 정보를 가져올 수 없습니다.' }
+    }
+
+    const provider = platform === 'ios' ? 'APPLE' : 'GOOGLE'
+
+    const response = await fetch('/api/iap/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        receipt,
+        transactionId,
+        provider,
+        userId,
+        productId,
+      }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok || !data.success) {
       return {
         success: false,
-        error: 'IAP is only available in native app',
+        error: data.error || '서버 검증에 실패했습니다.',
+        transactionId,
       }
     }
 
-    // TODO: 네이티브 구현
-    // 1. 네이티브 IAP 시작
-    // 2. 영수증 받기
-    // 3. 서버로 검증 요청
-
-    throw new Error('Native IAP not implemented yet')
+    return { success: true, transactionId }
   } catch (error) {
-    console.error('Purchase failed:', error)
-    return { success: false, error: String(error) }
+    const message =
+      error instanceof Error ? error.message : '구매에 실패했습니다.'
+    if (message.includes('cancel') || message.includes('Cancel')) {
+      return { success: false, error: '구매가 취소되었습니다.' }
+    }
+    return { success: false, error: message }
   }
 }
 
-/**
- * 구독 복원
- */
 export async function restorePurchases(
-  _userId: string,
+  userId: string,
 ): Promise<PurchaseResult> {
+  if (!(await isNative())) {
+    return { success: false, error: '모바일 앱에서만 복원할 수 있습니다.' }
+  }
+
   try {
-    if (!(await isNative())) {
-      return {
-        success: false,
-        error: 'IAP is only available in native app',
+    const { NativePurchases } = await import('@capgo/native-purchases')
+    const platform = await getPlatform()
+    const provider = platform === 'ios' ? 'APPLE' : 'GOOGLE'
+
+    await NativePurchases.restorePurchases()
+    const { purchases } = await NativePurchases.getPurchases()
+
+    if (!purchases || purchases.length === 0) {
+      return { success: false, error: '복원할 구매 내역이 없습니다.' }
+    }
+
+    let restoredCount = 0
+
+    for (const purchase of purchases) {
+      const transactionId = purchase.transactionId
+      const receipt =
+        platform === 'ios'
+          ? purchase.receipt || purchase.jwsRepresentation
+          : purchase.purchaseToken
+      const productId = purchase.productIdentifier
+
+      if (!receipt || !transactionId) {
+        continue
+      }
+
+      try {
+        const response = await fetch('/api/iap/restore', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            receipt,
+            transactionId,
+            provider,
+            userId,
+            productId,
+          }),
+        })
+
+        if (response.ok) {
+          restoredCount++
+        }
+      } catch {
+        // 개별 복원 실패는 무시하고 계속
       }
     }
 
-    // TODO: 네이티브 구현
-    // 1. 네이티브 복원 API 호출
-    // 2. 복원된 구매 목록 가져오기
-    // 3. 서버에 동기화
+    if (restoredCount === 0) {
+      return { success: false, error: '유효한 구매 내역을 찾을 수 없습니다.' }
+    }
 
-    throw new Error('Native IAP not implemented yet')
+    return { success: true }
   } catch (error) {
-    console.error('Restore failed:', error)
-    return { success: false, error: String(error) }
+    const message =
+      error instanceof Error ? error.message : '복원에 실패했습니다.'
+    return { success: false, error: message }
   }
 }
 
-/**
- * 현재 구독 상태 조회
- */
 export async function getCurrentSubscription(_userId: string): Promise<{
   planType: PlanType | null
   expiresAt: string | null
+  extraEventSlots: number
+  eventLimit: number
 }> {
   try {
     const response = await fetch('/api/iap/subscription', {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
     })
 
     if (!response.ok) {
@@ -152,9 +305,32 @@ export async function getCurrentSubscription(_userId: string): Promise<{
     }
 
     const data = await response.json()
-    return data.data || { planType: null, expiresAt: null }
-  } catch (error) {
-    console.error('Failed to get subscription:', error)
-    return { planType: null, expiresAt: null }
+    return (
+      data.data || {
+        planType: null,
+        expiresAt: null,
+        extraEventSlots: 0,
+        eventLimit: 3,
+      }
+    )
+  } catch {
+    return {
+      planType: null,
+      expiresAt: null,
+      extraEventSlots: 0,
+      eventLimit: 3,
+    }
+  }
+}
+
+export async function manageSubscriptions(): Promise<void> {
+  if (!(await isNative())) {
+    return
+  }
+  try {
+    const { NativePurchases } = await import('@capgo/native-purchases')
+    await NativePurchases.manageSubscriptions()
+  } catch {
+    // 관리 페이지를 열 수 없는 경우 무시
   }
 }
