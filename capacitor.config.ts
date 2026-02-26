@@ -65,6 +65,9 @@ const config: CapacitorConfig = {
       resize: 'none',
       resizeOnFullScreen: false,
     },
+    PushNotifications: {
+      presentationOptions: ['badge', 'sound', 'alert'],
+    },
     // CORS bypass (Capacitor native HTTP)
     CapacitorHttp: {
       enabled: true,
