@@ -55,10 +55,7 @@ export async function POST(req: NextRequest) {
       if (existing.token !== token) {
         const { error: updateError } = await admin
           .from('device_tokens')
-          .update({
-            token,
-            updated_at: new Date().toISOString(),
-          })
+          .update({ token })
           .eq('id', existing.id)
 
         if (updateError) {
@@ -75,8 +72,6 @@ export async function POST(req: NextRequest) {
         user_id: user.id,
         platform,
         token,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       })
 
       if (insertError) {
