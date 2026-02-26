@@ -21,13 +21,13 @@ const getLocalServerUrl = () => {
 
 const serverUrlMap = {
   local: getLocalServerUrl(),
-  dev: 'https://dear-my-days-dev.vercel.app',
-  production: 'https://dear-my-days.vercel.app',
+  dev: 'https://dear-my-days-dev.clobead.com',
+  production: 'https://dear-my-days.clobead.com',
 } as const
 
 const config: CapacitorConfig = {
   appId: 'com.dearmydays.app',
-  appName: 'Dear My Days',
+  appName: 'DMD',
 
   // webDir is required but not used (dummy directory)
   webDir: 'public',
