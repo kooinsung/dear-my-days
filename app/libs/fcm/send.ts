@@ -24,7 +24,16 @@ async function getAccessToken(): Promise<string> {
     )
   }
 
-  const key = await importPKCS8(privateKey.replace(/\\n/g, '\n'), 'RS256')
+  // 환경변수 소스에 따라 \n 처리가 다를 수 있음:
+  // - dotenv(.env): 쌍따옴표 안 \n → 실제 개행으로 변환됨
+  // - Vercel Dashboard: \n이 리터럴 문자열로 남음
+  // - JSON에서 파싱: \\n이 \n으로 남음
+  const formattedKey = privateKey
+    .replace(/\\n/g, '\n')
+    .replace(/^["']|["']$/g, '')
+    .trim()
+
+  const key = await importPKCS8(formattedKey, 'RS256')
 
   const jwt = await new SignJWT({
     scope: FCM_SCOPE,
