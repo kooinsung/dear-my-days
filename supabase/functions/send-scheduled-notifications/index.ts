@@ -140,30 +140,53 @@ const CATEGORY_LABELS: Record<string, string> = {
   OTHER: '이벤트',
 }
 
+function formatMinutesBefore(minutes: number): string {
+  const PRESETS: Record<number, string> = {
+    10080: '1주 전',
+    4320: '3일 전',
+    1440: '1일 전',
+    720: '12시간 전',
+    180: '3시간 전',
+    60: '1시간 전',
+    30: '30분 전',
+  }
+
+  if (PRESETS[minutes]) {
+    return PRESETS[minutes]
+  }
+  if (minutes >= 1440 && minutes % 1440 === 0) {
+    return `${minutes / 1440}일 전`
+  }
+  if (minutes >= 60 && minutes % 60 === 0) {
+    return `${minutes / 60}시간 전`
+  }
+  return `${minutes}분 전`
+}
+
 function buildNotificationMessage(
   eventTitle: string,
-  daysBefore: number,
+  minutesBefore: number,
   category?: string,
 ): { title: string; body: string } {
   const categoryLabel = CATEGORY_LABELS[category ?? ''] ?? '이벤트'
 
-  if (daysBefore === 0) {
+  if (minutesBefore === 0) {
     return {
       title: `오늘은 ${eventTitle}`,
       body: `오늘은 ${eventTitle} 입니다. 잊지 마세요!`,
     }
   }
 
-  if (daysBefore === 1) {
+  if (minutesBefore <= 1440) {
     return {
-      title: `내일은 ${eventTitle}`,
-      body: `내일은 ${eventTitle} 입니다. 준비하세요!`,
+      title: `${eventTitle} ${formatMinutesBefore(minutesBefore)}`,
+      body: `${eventTitle}이(가) ${formatMinutesBefore(minutesBefore)}입니다. 준비하세요!`,
     }
   }
 
   return {
     title: `${categoryLabel} 알림`,
-    body: `${eventTitle}이(가) ${daysBefore}일 후입니다.`,
+    body: `${eventTitle}이(가) ${formatMinutesBefore(minutesBefore)}입니다.`,
   }
 }
 
@@ -173,24 +196,11 @@ serve(async (_req) => {
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // KST (UTC+9) 기준 현재 시간
-    const now = new Date()
-    const kstOffset = 9 * 60 * 60 * 1000
-    const kst = new Date(now.getTime() + kstOffset)
-    const currentHour = kst.getUTCHours()
-    const currentMinute = kst.getUTCMinutes()
+    console.log(`Checking pending notifications at ${new Date().toISOString()}`)
 
-    console.log(
-      `Checking notifications for KST ${currentHour}:${String(currentMinute).padStart(2, '0')}`,
-    )
-
-    // 오늘 발송할 알림 조회
+    // 발송 대상 알림 조회 (DB 함수에서 NOW() 기준으로 매칭)
     const { data: pendingNotifications, error } = await supabase.rpc(
       'get_pending_notifications',
-      {
-        current_hour: currentHour,
-        current_minute: currentMinute,
-      },
     )
 
     if (error) {
@@ -244,13 +254,13 @@ serve(async (_req) => {
         event_id,
         event_title,
         event_category,
-        days_before,
+        minutes_before,
         device_tokens,
       } = notification
 
       const { title, body } = buildNotificationMessage(
         event_title,
-        days_before ?? 0,
+        minutes_before ?? 0,
         event_category,
       )
 

@@ -2,14 +2,21 @@
 
 import { useEffect, useState } from 'react'
 import { createSupabaseBrowser } from '@/libs/supabase/browser'
+import {
+  formatMinutesBefore,
+  minutesToUnit,
+  NOTIFICATION_PRESETS,
+  type NotificationUnit,
+  UNIT_OPTIONS,
+  unitToMinutes,
+} from '@/libs/utils/notification'
 import { css, cx } from '@/styled-system/css'
-import { vstack } from '@/styled-system/patterns'
+import { flex, wrap } from '@/styled-system/patterns'
 import { button } from '@/styled-system/recipes'
 
-interface NotificationSchedule {
-  days_before: number // 이벤트 며칠 전 (0 = 당일)
-  hour: number // 0-23
-  minute: number // 0-59
+interface NotificationEntry {
+  value: number
+  unit: NotificationUnit
 }
 
 interface NotificationSettingsProps {
@@ -17,17 +24,16 @@ interface NotificationSettingsProps {
 }
 
 export function NotificationSettings({ eventId }: NotificationSettingsProps) {
-  const [schedules, setSchedules] = useState<NotificationSchedule[]>([])
+  const [entries, setEntries] = useState<NotificationEntry[]>([])
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
 
-  // 기존 설정 불러오기
   useEffect(() => {
     async function loadSettings() {
       const supabase = createSupabaseBrowser()
       const { data, error } = await supabase
         .from('event_notification_settings')
-        .select('days_before, notification_hour, notification_minute')
+        .select('minutes_before')
         .eq('event_id', eventId)
 
       if (error) {
@@ -36,37 +42,43 @@ export function NotificationSettings({ eventId }: NotificationSettingsProps) {
       }
 
       if (data && data.length > 0) {
-        const loaded = data.map((d) => ({
-          days_before: d.days_before,
-          hour: d.notification_hour,
-          minute: d.notification_minute,
-        }))
-        setSchedules(loaded)
+        setEntries(data.map((d) => minutesToUnit(d.minutes_before)))
       }
     }
 
     loadSettings()
   }, [eventId])
 
-  const addSchedule = () => {
-    setSchedules([...schedules, { days_before: 1, hour: 9, minute: 0 }])
+  const addEntry = () => {
+    setEntries([...entries, { value: 1, unit: 'days' }])
   }
 
-  const removeSchedule = (index: number) => {
-    setSchedules(schedules.filter((_, i) => i !== index))
+  const removeEntry = (index: number) => {
+    setEntries(entries.filter((_, i) => i !== index))
   }
 
-  const updateSchedule = (
+  const updateEntry = (
     index: number,
-    field: keyof NotificationSchedule,
-    value: number,
+    field: 'value' | 'unit',
+    newValue: number | NotificationUnit,
   ) => {
-    const newSchedules = [...schedules]
-    newSchedules[index] = {
-      ...newSchedules[index],
-      [field]: value,
+    const next = [...entries]
+    if (field === 'value') {
+      next[index] = { ...next[index], value: newValue as number }
+    } else {
+      next[index] = { ...next[index], unit: newValue as NotificationUnit }
     }
-    setSchedules(newSchedules)
+    setEntries(next)
+  }
+
+  const addPreset = (presetMinutes: number) => {
+    const alreadyExists = entries.some(
+      (e) => unitToMinutes(e.value, e.unit) === presetMinutes,
+    )
+    if (alreadyExists) {
+      return
+    }
+    setEntries([...entries, minutesToUnit(presetMinutes)])
   }
 
   const handleSave = async () => {
@@ -83,7 +95,6 @@ export function NotificationSettings({ eventId }: NotificationSettingsProps) {
         return
       }
 
-      // 기존 알림 스케줄 삭제
       const { error: deleteError } = await supabase
         .from('event_notification_settings')
         .delete()
@@ -95,17 +106,14 @@ export function NotificationSettings({ eventId }: NotificationSettingsProps) {
         return
       }
 
-      // 모든 알림 스케줄 저장
-      if (schedules.length > 0) {
+      if (entries.length > 0) {
         const { error: insertError } = await supabase
           .from('event_notification_settings')
           .insert(
-            schedules.map((schedule) => ({
+            entries.map((entry) => ({
               event_id: eventId,
               user_id: user.id,
-              days_before: schedule.days_before,
-              notification_hour: schedule.hour,
-              notification_minute: schedule.minute,
+              minutes_before: unitToMinutes(entry.value, entry.unit),
             })),
           )
 
@@ -159,8 +167,60 @@ export function NotificationSettings({ eventId }: NotificationSettingsProps) {
         </div>
       )}
 
-      <div className={vstack({ gap: '12px', marginBottom: '16px' })}>
-        {schedules.length === 0 ? (
+      {/* 프리셋 바로가기 */}
+      <div className={css({ marginBottom: '16px' })}>
+        <p
+          className={css({
+            fontSize: '13px',
+            color: '#666',
+            marginBottom: '8px',
+          })}
+        >
+          빠른 추가
+        </p>
+        <div className={wrap({ gap: '8px' })}>
+          {NOTIFICATION_PRESETS.map((preset) => {
+            const isActive = entries.some(
+              (e) => unitToMinutes(e.value, e.unit) === preset.minutes,
+            )
+            return (
+              <button
+                key={preset.minutes}
+                type="button"
+                onClick={() => addPreset(preset.minutes)}
+                disabled={isActive}
+                className={css({
+                  padding: '6px 12px',
+                  fontSize: '13px',
+                  borderRadius: '16px',
+                  border: '1px solid',
+                  cursor: isActive ? 'default' : 'pointer',
+                  borderColor: isActive ? 'primary' : '#ddd',
+                  backgroundColor: isActive ? 'primary' : 'white',
+                  color: isActive ? 'white' : '#333',
+                  opacity: isActive ? 0.7 : 1,
+                  '&:hover': {
+                    borderColor: isActive ? 'primary' : '#bbb',
+                  },
+                })}
+              >
+                {preset.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* 알림 목록 */}
+      <div
+        className={css({
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+          marginBottom: '16px',
+        })}
+      >
+        {entries.length === 0 ? (
           <div
             className={css({
               padding: '24px',
@@ -171,31 +231,37 @@ export function NotificationSettings({ eventId }: NotificationSettingsProps) {
               borderRadius: '4px',
             })}
           >
-            설정된 알림이 없습니다. 알림을 추가해주세요.
+            설정된 알림이 없습니다.
           </div>
         ) : (
-          schedules.map((schedule, index) => (
+          entries.map((entry, index) => (
             <div
-              key={`${index}-${schedule.days_before}-${schedule.hour}-${schedule.minute}`}
-              className={css({
-                display: 'flex',
-                alignItems: 'center',
+              key={`${index}-${entry.value}-${entry.unit}`}
+              className={flex({
+                align: 'center',
                 gap: '8px',
-                padding: '12px',
+                padding: '10px 12px',
                 backgroundColor: 'white',
                 borderRadius: '4px',
               })}
             >
-              <span className={css({ fontSize: '14px', minWidth: '30px' })}>
-                D-
-              </span>
               <input
                 type="number"
-                min={0}
-                max={365}
-                value={schedule.days_before}
+                min={1}
+                max={
+                  entry.unit === 'days'
+                    ? 14
+                    : entry.unit === 'hours'
+                      ? 336
+                      : 20160
+                }
+                value={entry.value}
                 onChange={(e) =>
-                  updateSchedule(index, 'days_before', Number(e.target.value))
+                  updateEntry(
+                    index,
+                    'value',
+                    Math.max(1, Number(e.target.value)),
+                  )
                 }
                 className={css({
                   width: '70px',
@@ -203,50 +269,39 @@ export function NotificationSettings({ eventId }: NotificationSettingsProps) {
                   border: '1px solid #ddd',
                   borderRadius: '4px',
                   fontSize: '14px',
+                  textAlign: 'center',
                 })}
               />
-              <span className={css({ fontSize: '14px' })}>일</span>
-              <input
-                type="number"
-                min={0}
-                max={23}
-                value={schedule.hour}
+              <select
+                value={entry.unit}
                 onChange={(e) =>
-                  updateSchedule(index, 'hour', Number(e.target.value))
+                  updateEntry(index, 'unit', e.target.value as NotificationUnit)
                 }
                 className={css({
-                  width: '60px',
                   padding: '4px 8px',
                   border: '1px solid #ddd',
                   borderRadius: '4px',
                   fontSize: '14px',
+                  backgroundColor: 'white',
                 })}
-              />
-              <span className={css({ fontSize: '14px' })}>시</span>
-              <input
-                type="number"
-                min={0}
-                max={59}
-                value={schedule.minute}
-                onChange={(e) =>
-                  updateSchedule(index, 'minute', Number(e.target.value))
-                }
-                className={css({
-                  width: '60px',
-                  padding: '4px 8px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  fontSize: '14px',
-                })}
-              />
-              <span className={css({ fontSize: '14px' })}>분</span>
+              >
+                {UNIT_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <span
+                className={css({ fontSize: '13px', color: '#999', flex: 1 })}
+              >
+                ({formatMinutesBefore(unitToMinutes(entry.value, entry.unit))})
+              </span>
               <button
                 type="button"
-                onClick={() => removeSchedule(index)}
+                onClick={() => removeEntry(index)}
                 className={css({
-                  marginLeft: 'auto',
-                  padding: '4px 12px',
-                  fontSize: '14px',
+                  padding: '4px 10px',
+                  fontSize: '13px',
                   color: '#dc3545',
                   backgroundColor: 'white',
                   border: '1px solid #dc3545',
@@ -267,7 +322,7 @@ export function NotificationSettings({ eventId }: NotificationSettingsProps) {
 
       <button
         type="button"
-        onClick={addSchedule}
+        onClick={addEntry}
         className={cx(
           button({ variant: 'secondary' }),
           css({
@@ -276,7 +331,7 @@ export function NotificationSettings({ eventId }: NotificationSettingsProps) {
           }),
         )}
       >
-        + 알림 추가
+        + 직접 추가
       </button>
 
       <button
@@ -302,7 +357,7 @@ export function NotificationSettings({ eventId }: NotificationSettingsProps) {
           color: '#666',
         })}
       >
-        ※ 알림은 매년 해당 날짜에 자동으로 발송됩니다.
+        ※ 이벤트 날짜 기준으로 선택한 시간 전에 알림이 발송됩니다.
       </p>
     </div>
   )

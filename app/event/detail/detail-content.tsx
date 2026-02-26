@@ -8,15 +8,14 @@ import { getCategoryIcon, getCategoryLabel } from '@/libs/helpers'
 import { createSupabaseBrowser } from '@/libs/supabase/browser'
 import type { Event } from '@/libs/supabase/database.types'
 import { calculateDday, formatDday, toThisYearDate } from '@/libs/utils'
+import { formatMinutesBefore } from '@/libs/utils/notification'
 import { useUIStore } from '@/stores/ui-store'
 import { css, cx } from '@/styled-system/css'
 import { flex, grid } from '@/styled-system/patterns'
 import { button, card } from '@/styled-system/recipes'
 
 interface NotificationSchedule {
-  days_before: number
-  notification_hour: number
-  notification_minute: number
+  minutes_before: number
 }
 
 interface EventDetailContentProps {
@@ -40,9 +39,9 @@ export function EventDetailContent({
       const supabase = createSupabaseBrowser()
       const { data, error } = await supabase
         .from('event_notification_settings')
-        .select('days_before, notification_hour, notification_minute')
+        .select('minutes_before')
         .eq('event_id', eventId)
-        .order('days_before', { ascending: false })
+        .order('minutes_before', { ascending: false })
 
       if (error) {
         console.error('Failed to load notifications:', error)
@@ -403,7 +402,7 @@ export function EventDetailContent({
             >
               {notifications.map((notif, index) => (
                 <div
-                  key={`${index}-${notif.days_before}-${notif.notification_hour}-${notif.notification_minute}`}
+                  key={`${index}-${notif.minutes_before}`}
                   className={css({
                     padding: '12px',
                     backgroundColor: '#f0f9f4',
@@ -412,12 +411,7 @@ export function EventDetailContent({
                     fontSize: '14px',
                   })}
                 >
-                  🔔{' '}
-                  {notif.days_before === 0
-                    ? '당일'
-                    : `${notif.days_before}일 전`}{' '}
-                  {String(notif.notification_hour).padStart(2, '0')}:
-                  {String(notif.notification_minute).padStart(2, '0')}
+                  🔔 {formatMinutesBefore(notif.minutes_before)}
                 </div>
               ))}
             </div>

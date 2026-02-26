@@ -5,9 +5,16 @@ import { useEffect, useMemo, useState } from 'react'
 import { useCreateEvent, useEvent, useUpdateEvent } from '@/hooks/use-events'
 import { createSupabaseBrowser } from '@/libs/supabase/browser'
 import type { CalendarType, CategoryType } from '@/libs/supabase/database.types'
+import {
+  minutesToUnit,
+  NOTIFICATION_PRESETS,
+  type NotificationUnit,
+  UNIT_OPTIONS,
+  unitToMinutes,
+} from '@/libs/utils/notification'
 import { useUIStore } from '@/stores/ui-store'
 import { css, cx } from '@/styled-system/css'
-import { flex, grid, hstack, vstack } from '@/styled-system/patterns'
+import { flex, grid, hstack, wrap } from '@/styled-system/patterns'
 import {
   button,
   categoryButton,
@@ -16,12 +23,6 @@ import {
   label,
   textarea,
 } from '@/styled-system/recipes'
-
-interface NotificationSchedule {
-  days_before: number
-  hour: number
-  minute: number
-}
 
 interface EventFormProps {
   eventId?: string
@@ -66,7 +67,9 @@ export default function EventForm({
   const [lunarDate, setLunarDate] = useState('')
   const [calendarType, setCalendarType] = useState<CalendarType>('SOLAR')
   const [note, setNote] = useState('')
-  const [notifications, setNotifications] = useState<NotificationSchedule[]>([])
+  const [notifEntries, setNotifEntries] = useState<
+    { value: number; unit: NotificationUnit }[]
+  >([])
 
   useEffect(() => {
     if (existingEvent) {
@@ -135,7 +138,7 @@ export default function EventForm({
   }
 
   async function saveNotifications(createdEventId: string) {
-    if (notifications.length === 0) {
+    if (notifEntries.length === 0) {
       return
     }
 
@@ -148,12 +151,10 @@ export default function EventForm({
     }
 
     const { error } = await supabase.from('event_notification_settings').insert(
-      notifications.map((notif) => ({
+      notifEntries.map((entry) => ({
         event_id: createdEventId,
         user_id: user.id,
-        days_before: notif.days_before,
-        notification_hour: notif.hour,
-        notification_minute: notif.minute,
+        minutes_before: unitToMinutes(entry.value, entry.unit),
       })),
     )
 
@@ -224,25 +225,36 @@ export default function EventForm({
     router.refresh()
   }
 
-  const addNotification = () => {
-    setNotifications([...notifications, { days_before: 1, hour: 9, minute: 0 }])
+  const addNotifEntry = () => {
+    setNotifEntries([...notifEntries, { value: 1, unit: 'days' }])
   }
 
-  const removeNotification = (index: number) => {
-    setNotifications(notifications.filter((_, i) => i !== index))
+  const removeNotifEntry = (index: number) => {
+    setNotifEntries(notifEntries.filter((_, i) => i !== index))
   }
 
-  const updateNotification = (
+  const updateNotifEntry = (
     index: number,
-    field: keyof NotificationSchedule,
-    value: number,
+    field: 'value' | 'unit',
+    newValue: number | NotificationUnit,
   ) => {
-    const newNotifications = [...notifications]
-    newNotifications[index] = {
-      ...newNotifications[index],
-      [field]: value,
+    const next = [...notifEntries]
+    if (field === 'value') {
+      next[index] = { ...next[index], value: newValue as number }
+    } else {
+      next[index] = { ...next[index], unit: newValue as NotificationUnit }
     }
-    setNotifications(newNotifications)
+    setNotifEntries(next)
+  }
+
+  const addPreset = (presetMinutes: number) => {
+    const alreadyExists = notifEntries.some(
+      (e) => unitToMinutes(e.value, e.unit) === presetMinutes,
+    )
+    if (alreadyExists) {
+      return
+    }
+    setNotifEntries([...notifEntries, minutesToUnit(presetMinutes)])
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -461,8 +473,60 @@ export default function EventForm({
               알림 설정 (선택)
             </h3>
 
-            <div className={vstack({ gap: '12px', marginBottom: '16px' })}>
-              {notifications.length === 0 ? (
+            {/* 프리셋 바로가기 */}
+            <div className={css({ marginBottom: '12px' })}>
+              <p
+                className={css({
+                  fontSize: '13px',
+                  color: '#666',
+                  marginBottom: '8px',
+                })}
+              >
+                빠른 추가
+              </p>
+              <div className={wrap({ gap: '8px' })}>
+                {NOTIFICATION_PRESETS.map((preset) => {
+                  const isActive = notifEntries.some(
+                    (e) => unitToMinutes(e.value, e.unit) === preset.minutes,
+                  )
+                  return (
+                    <button
+                      key={preset.minutes}
+                      type="button"
+                      onClick={() => addPreset(preset.minutes)}
+                      disabled={isActive}
+                      className={css({
+                        padding: '6px 12px',
+                        fontSize: '13px',
+                        borderRadius: '16px',
+                        border: '1px solid',
+                        cursor: isActive ? 'default' : 'pointer',
+                        borderColor: isActive ? 'primary' : '#ddd',
+                        backgroundColor: isActive ? 'primary' : 'white',
+                        color: isActive ? 'white' : '#333',
+                        opacity: isActive ? 0.7 : 1,
+                        '&:hover': {
+                          borderColor: isActive ? 'primary' : '#bbb',
+                        },
+                      })}
+                    >
+                      {preset.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* 알림 목록 */}
+            <div
+              className={css({
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                marginBottom: '16px',
+              })}
+            >
+              {notifEntries.length === 0 ? (
                 <div
                   className={css({
                     padding: '16px',
@@ -476,33 +540,33 @@ export default function EventForm({
                   알림을 추가하면 이벤트 전에 자동으로 알려드려요
                 </div>
               ) : (
-                notifications.map((notif, index) => (
+                notifEntries.map((entry, index) => (
                   <div
-                    key={`${index}-${notif.days_before}-${notif.hour}-${notif.minute}`}
-                    className={css({
-                      display: 'flex',
-                      alignItems: 'center',
+                    key={`${index}-${entry.value}-${entry.unit}`}
+                    className={flex({
+                      align: 'center',
                       gap: '8px',
-                      padding: '12px',
+                      padding: '10px 12px',
                       backgroundColor: 'white',
                       borderRadius: '4px',
                     })}
                   >
-                    <span
-                      className={css({ fontSize: '14px', minWidth: '30px' })}
-                    >
-                      D-
-                    </span>
                     <input
                       type="number"
-                      min={0}
-                      max={365}
-                      value={notif.days_before}
+                      min={1}
+                      max={
+                        entry.unit === 'days'
+                          ? 14
+                          : entry.unit === 'hours'
+                            ? 336
+                            : 20160
+                      }
+                      value={entry.value}
                       onChange={(e) =>
-                        updateNotification(
+                        updateNotifEntry(
                           index,
-                          'days_before',
-                          Number(e.target.value),
+                          'value',
+                          Math.max(1, Number(e.target.value)),
                         )
                       }
                       className={css({
@@ -511,58 +575,39 @@ export default function EventForm({
                         border: '1px solid #ddd',
                         borderRadius: '4px',
                         fontSize: '14px',
+                        textAlign: 'center',
                       })}
                     />
-                    <span className={css({ fontSize: '14px' })}>일</span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={23}
-                      value={notif.hour}
+                    <select
+                      value={entry.unit}
                       onChange={(e) =>
-                        updateNotification(
+                        updateNotifEntry(
                           index,
-                          'hour',
-                          Number(e.target.value),
+                          'unit',
+                          e.target.value as NotificationUnit,
                         )
                       }
                       className={css({
-                        width: '60px',
                         padding: '4px 8px',
                         border: '1px solid #ddd',
                         borderRadius: '4px',
                         fontSize: '14px',
+                        backgroundColor: 'white',
                       })}
-                    />
-                    <span className={css({ fontSize: '14px' })}>시</span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={59}
-                      value={notif.minute}
-                      onChange={(e) =>
-                        updateNotification(
-                          index,
-                          'minute',
-                          Number(e.target.value),
-                        )
-                      }
-                      className={css({
-                        width: '60px',
-                        padding: '4px 8px',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        fontSize: '14px',
-                      })}
-                    />
-                    <span className={css({ fontSize: '14px' })}>분</span>
+                    >
+                      {UNIT_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
                     <button
                       type="button"
-                      onClick={() => removeNotification(index)}
+                      onClick={() => removeNotifEntry(index)}
                       className={css({
                         marginLeft: 'auto',
-                        padding: '4px 12px',
-                        fontSize: '14px',
+                        padding: '4px 10px',
+                        fontSize: '13px',
                         color: '#dc3545',
                         backgroundColor: 'white',
                         border: '1px solid #dc3545',
@@ -583,7 +628,7 @@ export default function EventForm({
 
             <button
               type="button"
-              onClick={addNotification}
+              onClick={addNotifEntry}
               className={cx(
                 button({ variant: 'secondary' }),
                 css({
@@ -592,7 +637,7 @@ export default function EventForm({
                 }),
               )}
             >
-              + 알림 추가
+              + 직접 추가
             </button>
 
             <p
@@ -602,7 +647,7 @@ export default function EventForm({
                 color: '#666',
               })}
             >
-              ※ 알림은 매년 해당 날짜에 자동으로 발송됩니다.
+              ※ 이벤트 날짜 기준으로 선택한 시간 전에 알림이 발송됩니다.
             </p>
           </div>
         )}
