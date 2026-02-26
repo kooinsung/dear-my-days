@@ -140,27 +140,24 @@ const CATEGORY_LABELS: Record<string, string> = {
   OTHER: '이벤트',
 }
 
-function formatMinutesBefore(minutes: number): string {
-  const PRESETS: Record<number, string> = {
-    10080: '1주 전',
-    4320: '3일 전',
-    1440: '1일 전',
-    720: '12시간 전',
-    180: '3시간 전',
-    60: '1시간 전',
-    30: '30분 전',
+function formatMinutesBefore(total: number): string {
+  const days = Math.floor(total / 1440)
+  const hours = Math.floor((total % 1440) / 60)
+  const minutes = total % 60
+  const parts: string[] = []
+  if (days > 0) {
+    parts.push(`${days}일`)
   }
-
-  if (PRESETS[minutes]) {
-    return PRESETS[minutes]
+  if (hours > 0) {
+    parts.push(`${hours}시간`)
   }
-  if (minutes >= 1440 && minutes % 1440 === 0) {
-    return `${minutes / 1440}일 전`
+  if (minutes > 0) {
+    parts.push(`${minutes}분`)
   }
-  if (minutes >= 60 && minutes % 60 === 0) {
-    return `${minutes / 60}시간 전`
+  if (parts.length === 0) {
+    return '당일'
   }
-  return `${minutes}분 전`
+  return `${parts.join(' ')} 전`
 }
 
 function buildNotificationMessage(

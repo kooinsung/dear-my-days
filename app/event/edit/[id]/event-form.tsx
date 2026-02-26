@@ -6,15 +6,12 @@ import { useCreateEvent, useEvent, useUpdateEvent } from '@/hooks/use-events'
 import { createSupabaseBrowser } from '@/libs/supabase/browser'
 import type { CalendarType, CategoryType } from '@/libs/supabase/database.types'
 import {
-  minutesToUnit,
-  NOTIFICATION_PRESETS,
-  type NotificationUnit,
-  UNIT_OPTIONS,
-  unitToMinutes,
+  entryToMinutesBefore,
+  type NotificationEntry,
 } from '@/libs/utils/notification'
 import { useUIStore } from '@/stores/ui-store'
 import { css, cx } from '@/styled-system/css'
-import { flex, grid, hstack, wrap } from '@/styled-system/patterns'
+import { flex, grid, hstack } from '@/styled-system/patterns'
 import {
   button,
   categoryButton,
@@ -67,9 +64,7 @@ export default function EventForm({
   const [lunarDate, setLunarDate] = useState('')
   const [calendarType, setCalendarType] = useState<CalendarType>('SOLAR')
   const [note, setNote] = useState('')
-  const [notifEntries, setNotifEntries] = useState<
-    { value: number; unit: NotificationUnit }[]
-  >([])
+  const [notifEntries, setNotifEntries] = useState<NotificationEntry[]>([])
 
   useEffect(() => {
     if (existingEvent) {
@@ -154,7 +149,7 @@ export default function EventForm({
       notifEntries.map((entry) => ({
         event_id: createdEventId,
         user_id: user.id,
-        minutes_before: unitToMinutes(entry.value, entry.unit),
+        minutes_before: entryToMinutesBefore(entry),
       })),
     )
 
@@ -226,7 +221,7 @@ export default function EventForm({
   }
 
   const addNotifEntry = () => {
-    setNotifEntries([...notifEntries, { value: 1, unit: 'days' }])
+    setNotifEntries([...notifEntries, { days: 1, hours: 0, minutes: 0 }])
   }
 
   const removeNotifEntry = (index: number) => {
@@ -235,26 +230,12 @@ export default function EventForm({
 
   const updateNotifEntry = (
     index: number,
-    field: 'value' | 'unit',
-    newValue: number | NotificationUnit,
+    field: keyof NotificationEntry,
+    value: number,
   ) => {
     const next = [...notifEntries]
-    if (field === 'value') {
-      next[index] = { ...next[index], value: newValue as number }
-    } else {
-      next[index] = { ...next[index], unit: newValue as NotificationUnit }
-    }
+    next[index] = { ...next[index], [field]: value }
     setNotifEntries(next)
-  }
-
-  const addPreset = (presetMinutes: number) => {
-    const alreadyExists = notifEntries.some(
-      (e) => unitToMinutes(e.value, e.unit) === presetMinutes,
-    )
-    if (alreadyExists) {
-      return
-    }
-    setNotifEntries([...notifEntries, minutesToUnit(presetMinutes)])
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -473,50 +454,6 @@ export default function EventForm({
               알림 설정 (선택)
             </h3>
 
-            {/* 프리셋 바로가기 */}
-            <div className={css({ marginBottom: '12px' })}>
-              <p
-                className={css({
-                  fontSize: '13px',
-                  color: '#666',
-                  marginBottom: '8px',
-                })}
-              >
-                빠른 추가
-              </p>
-              <div className={wrap({ gap: '8px' })}>
-                {NOTIFICATION_PRESETS.map((preset) => {
-                  const isActive = notifEntries.some(
-                    (e) => unitToMinutes(e.value, e.unit) === preset.minutes,
-                  )
-                  return (
-                    <button
-                      key={preset.minutes}
-                      type="button"
-                      onClick={() => addPreset(preset.minutes)}
-                      disabled={isActive}
-                      className={css({
-                        padding: '6px 12px',
-                        fontSize: '13px',
-                        borderRadius: '16px',
-                        border: '1px solid',
-                        cursor: isActive ? 'default' : 'pointer',
-                        borderColor: isActive ? 'primary' : '#ddd',
-                        backgroundColor: isActive ? 'primary' : 'white',
-                        color: isActive ? 'white' : '#333',
-                        opacity: isActive ? 0.7 : 1,
-                        '&:hover': {
-                          borderColor: isActive ? 'primary' : '#bbb',
-                        },
-                      })}
-                    >
-                      {preset.label}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
             {/* 알림 목록 */}
             <div
               className={css({
@@ -542,65 +479,82 @@ export default function EventForm({
               ) : (
                 notifEntries.map((entry, index) => (
                   <div
-                    key={`${index}-${entry.value}-${entry.unit}`}
+                    key={`${index}-${entry.days}-${entry.hours}-${entry.minutes}`}
                     className={flex({
                       align: 'center',
-                      gap: '8px',
+                      gap: '6px',
                       padding: '10px 12px',
                       backgroundColor: 'white',
                       borderRadius: '4px',
+                      flexWrap: 'wrap',
                     })}
                   >
                     <input
                       type="number"
-                      min={1}
-                      max={
-                        entry.unit === 'days'
-                          ? 14
-                          : entry.unit === 'hours'
-                            ? 336
-                            : 20160
-                      }
-                      value={entry.value}
+                      min={0}
+                      max={14}
+                      value={entry.days}
                       onChange={(e) =>
                         updateNotifEntry(
                           index,
-                          'value',
-                          Math.max(1, Number(e.target.value)),
+                          'days',
+                          Math.max(0, Number(e.target.value)),
                         )
                       }
                       className={css({
-                        width: '70px',
-                        padding: '4px 8px',
+                        width: '52px',
+                        padding: '6px 4px',
                         border: '1px solid #ddd',
                         borderRadius: '4px',
                         fontSize: '14px',
                         textAlign: 'center',
                       })}
                     />
-                    <select
-                      value={entry.unit}
+                    <span className={css({ fontSize: '14px' })}>일</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={23}
+                      value={entry.hours}
                       onChange={(e) =>
                         updateNotifEntry(
                           index,
-                          'unit',
-                          e.target.value as NotificationUnit,
+                          'hours',
+                          Math.max(0, Number(e.target.value)),
                         )
                       }
                       className={css({
-                        padding: '4px 8px',
+                        width: '52px',
+                        padding: '6px 4px',
                         border: '1px solid #ddd',
                         borderRadius: '4px',
                         fontSize: '14px',
-                        backgroundColor: 'white',
+                        textAlign: 'center',
                       })}
-                    >
-                      {UNIT_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
+                    />
+                    <span className={css({ fontSize: '14px' })}>시간</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={59}
+                      value={entry.minutes}
+                      onChange={(e) =>
+                        updateNotifEntry(
+                          index,
+                          'minutes',
+                          Math.max(0, Number(e.target.value)),
+                        )
+                      }
+                      className={css({
+                        width: '52px',
+                        padding: '6px 4px',
+                        border: '1px solid #ddd',
+                        borderRadius: '4px',
+                        fontSize: '14px',
+                        textAlign: 'center',
+                      })}
+                    />
+                    <span className={css({ fontSize: '14px' })}>분 전</span>
                     <button
                       type="button"
                       onClick={() => removeNotifEntry(index)}
@@ -637,7 +591,7 @@ export default function EventForm({
                 }),
               )}
             >
-              + 직접 추가
+              + 알림 추가
             </button>
 
             <p

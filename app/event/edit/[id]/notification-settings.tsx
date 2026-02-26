@@ -3,25 +3,32 @@
 import { useEffect, useState } from 'react'
 import { createSupabaseBrowser } from '@/libs/supabase/browser'
 import {
-  formatMinutesBefore,
-  minutesToUnit,
-  NOTIFICATION_PRESETS,
-  type NotificationUnit,
-  UNIT_OPTIONS,
-  unitToMinutes,
+  entryToMinutesBefore,
+  minutesBeforeToEntry,
+  type NotificationEntry,
 } from '@/libs/utils/notification'
 import { css, cx } from '@/styled-system/css'
-import { flex, wrap } from '@/styled-system/patterns'
+import { flex } from '@/styled-system/patterns'
 import { button } from '@/styled-system/recipes'
-
-interface NotificationEntry {
-  value: number
-  unit: NotificationUnit
-}
 
 interface NotificationSettingsProps {
   eventId: string
 }
+
+const numberInputStyle = css({
+  width: '52px',
+  padding: '6px 4px',
+  border: '1px solid #ddd',
+  borderRadius: '4px',
+  fontSize: '14px',
+  textAlign: 'center',
+})
+
+const unitLabelStyle = css({
+  fontSize: '14px',
+  color: '#333',
+  flexShrink: 0,
+})
 
 export function NotificationSettings({ eventId }: NotificationSettingsProps) {
   const [entries, setEntries] = useState<NotificationEntry[]>([])
@@ -42,7 +49,7 @@ export function NotificationSettings({ eventId }: NotificationSettingsProps) {
       }
 
       if (data && data.length > 0) {
-        setEntries(data.map((d) => minutesToUnit(d.minutes_before)))
+        setEntries(data.map((d) => minutesBeforeToEntry(d.minutes_before)))
       }
     }
 
@@ -50,7 +57,7 @@ export function NotificationSettings({ eventId }: NotificationSettingsProps) {
   }, [eventId])
 
   const addEntry = () => {
-    setEntries([...entries, { value: 1, unit: 'days' }])
+    setEntries([...entries, { days: 1, hours: 0, minutes: 0 }])
   }
 
   const removeEntry = (index: number) => {
@@ -59,26 +66,12 @@ export function NotificationSettings({ eventId }: NotificationSettingsProps) {
 
   const updateEntry = (
     index: number,
-    field: 'value' | 'unit',
-    newValue: number | NotificationUnit,
+    field: keyof NotificationEntry,
+    value: number,
   ) => {
     const next = [...entries]
-    if (field === 'value') {
-      next[index] = { ...next[index], value: newValue as number }
-    } else {
-      next[index] = { ...next[index], unit: newValue as NotificationUnit }
-    }
+    next[index] = { ...next[index], [field]: value }
     setEntries(next)
-  }
-
-  const addPreset = (presetMinutes: number) => {
-    const alreadyExists = entries.some(
-      (e) => unitToMinutes(e.value, e.unit) === presetMinutes,
-    )
-    if (alreadyExists) {
-      return
-    }
-    setEntries([...entries, minutesToUnit(presetMinutes)])
   }
 
   const handleSave = async () => {
@@ -113,7 +106,7 @@ export function NotificationSettings({ eventId }: NotificationSettingsProps) {
             entries.map((entry) => ({
               event_id: eventId,
               user_id: user.id,
-              minutes_before: unitToMinutes(entry.value, entry.unit),
+              minutes_before: entryToMinutesBefore(entry),
             })),
           )
 
@@ -167,51 +160,6 @@ export function NotificationSettings({ eventId }: NotificationSettingsProps) {
         </div>
       )}
 
-      {/* 프리셋 바로가기 */}
-      <div className={css({ marginBottom: '16px' })}>
-        <p
-          className={css({
-            fontSize: '13px',
-            color: '#666',
-            marginBottom: '8px',
-          })}
-        >
-          빠른 추가
-        </p>
-        <div className={wrap({ gap: '8px' })}>
-          {NOTIFICATION_PRESETS.map((preset) => {
-            const isActive = entries.some(
-              (e) => unitToMinutes(e.value, e.unit) === preset.minutes,
-            )
-            return (
-              <button
-                key={preset.minutes}
-                type="button"
-                onClick={() => addPreset(preset.minutes)}
-                disabled={isActive}
-                className={css({
-                  padding: '6px 12px',
-                  fontSize: '13px',
-                  borderRadius: '16px',
-                  border: '1px solid',
-                  cursor: isActive ? 'default' : 'pointer',
-                  borderColor: isActive ? 'primary' : '#ddd',
-                  backgroundColor: isActive ? 'primary' : 'white',
-                  color: isActive ? 'white' : '#333',
-                  opacity: isActive ? 0.7 : 1,
-                  '&:hover': {
-                    borderColor: isActive ? 'primary' : '#bbb',
-                  },
-                })}
-              >
-                {preset.label}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* 알림 목록 */}
       <div
         className={css({
           display: 'flex',
@@ -236,70 +184,66 @@ export function NotificationSettings({ eventId }: NotificationSettingsProps) {
         ) : (
           entries.map((entry, index) => (
             <div
-              key={`${index}-${entry.value}-${entry.unit}`}
+              key={`${index}-${entry.days}-${entry.hours}-${entry.minutes}`}
               className={flex({
                 align: 'center',
-                gap: '8px',
+                gap: '6px',
                 padding: '10px 12px',
                 backgroundColor: 'white',
                 borderRadius: '4px',
+                flexWrap: 'wrap',
               })}
             >
               <input
                 type="number"
-                min={1}
-                max={
-                  entry.unit === 'days'
-                    ? 14
-                    : entry.unit === 'hours'
-                      ? 336
-                      : 20160
-                }
-                value={entry.value}
+                min={0}
+                max={14}
+                value={entry.days}
                 onChange={(e) =>
                   updateEntry(
                     index,
-                    'value',
-                    Math.max(1, Number(e.target.value)),
+                    'days',
+                    Math.max(0, Number(e.target.value)),
                   )
                 }
-                className={css({
-                  width: '70px',
-                  padding: '4px 8px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  fontSize: '14px',
-                  textAlign: 'center',
-                })}
+                className={numberInputStyle}
               />
-              <select
-                value={entry.unit}
+              <span className={unitLabelStyle}>일</span>
+              <input
+                type="number"
+                min={0}
+                max={23}
+                value={entry.hours}
                 onChange={(e) =>
-                  updateEntry(index, 'unit', e.target.value as NotificationUnit)
+                  updateEntry(
+                    index,
+                    'hours',
+                    Math.max(0, Number(e.target.value)),
+                  )
                 }
-                className={css({
-                  padding: '4px 8px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  fontSize: '14px',
-                  backgroundColor: 'white',
-                })}
-              >
-                {UNIT_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-              <span
-                className={css({ fontSize: '13px', color: '#999', flex: 1 })}
-              >
-                ({formatMinutesBefore(unitToMinutes(entry.value, entry.unit))})
-              </span>
+                className={numberInputStyle}
+              />
+              <span className={unitLabelStyle}>시간</span>
+              <input
+                type="number"
+                min={0}
+                max={59}
+                value={entry.minutes}
+                onChange={(e) =>
+                  updateEntry(
+                    index,
+                    'minutes',
+                    Math.max(0, Number(e.target.value)),
+                  )
+                }
+                className={numberInputStyle}
+              />
+              <span className={unitLabelStyle}>분 전</span>
               <button
                 type="button"
                 onClick={() => removeEntry(index)}
                 className={css({
+                  marginLeft: 'auto',
                   padding: '4px 10px',
                   fontSize: '13px',
                   color: '#dc3545',
@@ -331,7 +275,7 @@ export function NotificationSettings({ eventId }: NotificationSettingsProps) {
           }),
         )}
       >
-        + 직접 추가
+        + 알림 추가
       </button>
 
       <button
@@ -357,7 +301,7 @@ export function NotificationSettings({ eventId }: NotificationSettingsProps) {
           color: '#666',
         })}
       >
-        ※ 이벤트 날짜 기준으로 선택한 시간 전에 알림이 발송됩니다.
+        ※ 이벤트 날짜 기준으로 설정한 시간 전에 알림이 발송됩니다.
       </p>
     </div>
   )
