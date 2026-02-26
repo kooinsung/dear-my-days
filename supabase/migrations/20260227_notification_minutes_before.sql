@@ -53,6 +53,9 @@ RETURNS TABLE (
   minutes_before INT,
   device_tokens JSONB
 ) AS $$
+DECLARE
+  kst_now TIMESTAMP := (NOW() AT TIME ZONE 'Asia/Seoul');
+  current_year INT := EXTRACT(YEAR FROM kst_now);
 BEGIN
   RETURN QUERY
   SELECT
@@ -73,15 +76,21 @@ BEGIN
   LEFT JOIN notification_logs nl ON (
     nl.event_id = e.id
     AND nl.device_token = dt.token
-    AND nl.sent_at >= (NOW() AT TIME ZONE 'Asia/Seoul')::date
-    AND nl.sent_at < (NOW() AT TIME ZONE 'Asia/Seoul')::date + INTERVAL '1 day'
+    AND nl.sent_at >= kst_now::date
+    AND nl.sent_at < kst_now::date + INTERVAL '1 day'
     AND nl.status = 'SUCCESS'
   )
   WHERE
-    -- 이벤트 날짜 00:00 KST에서 minutes_before만큼 뺀 시각이 현재 분과 일치
+    -- solar_date의 월/일을 올해로 변환 → 00:00 KST 기준 → minutes_before 차감
+    -- 현재 KST 시각(분 단위)과 일치하면 발송
     date_trunc('minute',
-      (e.solar_date::timestamp AT TIME ZONE 'Asia/Seoul') - (ens.minutes_before * INTERVAL '1 minute')
-    ) = date_trunc('minute', NOW() AT TIME ZONE 'Asia/Seoul')
+      make_timestamp(
+        current_year,
+        EXTRACT(MONTH FROM e.solar_date)::INT,
+        EXTRACT(DAY FROM e.solar_date)::INT,
+        0, 0, 0
+      ) - (ens.minutes_before * INTERVAL '1 minute')
+    ) = date_trunc('minute', kst_now)
     AND nl.id IS NULL
   GROUP BY e.user_id, e.id, e.title, e.category, ens.minutes_before;
 END;
