@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { usePushSetup } from '@/hooks/use-push-setup'
 import type { Event } from '@/libs/supabase/database.types'
 import { css, cx } from '@/styled-system/css'
 import { HStack } from '@/styled-system/jsx'
@@ -13,6 +14,8 @@ interface HomePageClientProps {
 }
 
 export function HomePageClient({ upcomingEvents }: HomePageClientProps) {
+  usePushSetup()
+
   return (
     <div
       className={css({
