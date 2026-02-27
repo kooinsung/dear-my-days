@@ -31,10 +31,18 @@ async function getAccessToken(): Promise<string> {
     throw new Error('Firebase credentials not configured')
   }
 
-  const key = await importPKCS8(
-    firebasePrivateKey.replace(/\\n/g, '\n'),
-    'RS256',
-  )
+  // Firebase private key 파싱: 이중 이스케이프, 따옴표, 공백 등 처리
+  let pem = firebasePrivateKey
+    .replace(/\\n/g, '\n')
+    .replace(/^["']|["']$/g, '')
+    .trim()
+
+  // header/footer가 없으면 추가
+  if (!pem.startsWith('-----BEGIN PRIVATE KEY-----')) {
+    pem = `-----BEGIN PRIVATE KEY-----\n${pem}\n-----END PRIVATE KEY-----`
+  }
+
+  const key = await importPKCS8(pem, 'RS256')
 
   const jwt = await new SignJWT({ scope: FCM_SCOPE })
     .setProtectedHeader({ alg: 'RS256', typ: 'JWT' })
