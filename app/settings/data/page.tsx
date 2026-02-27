@@ -3,6 +3,8 @@ import { css, cx } from '@/styled-system/css'
 import { flex, vstack } from '@/styled-system/patterns'
 import { button, card } from '@/styled-system/recipes'
 
+export const dynamic = 'force-dynamic'
+
 export default function SettingsDataPage() {
   return (
     <div className={css({ minHeight: '100vh', backgroundColor: 'background' })}>

@@ -5,6 +5,8 @@ import { button, card } from '@/styled-system/recipes'
 import { DeleteAccountButton } from './delete-account-button'
 import { LogoutButton } from './logout-button'
 
+export const dynamic = 'force-dynamic'
+
 export default function SettingsAccountPage() {
   return (
     <div className={css({ minHeight: '100vh', backgroundColor: 'background' })}>
