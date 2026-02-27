@@ -106,7 +106,7 @@ export async function registerPushNotifications(userId: string): Promise<void> {
         // 이벤트 상세 페이지로 이동
         const eventId = notification.notification.data?.eventId
         if (eventId) {
-          window.location.href = `/event/detail/${eventId}`
+          window.location.href = `/event/detail?id=${eventId}`
         }
       },
     )
