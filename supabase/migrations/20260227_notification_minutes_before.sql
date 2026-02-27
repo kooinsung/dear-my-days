@@ -64,7 +64,18 @@ ALTER TABLE event_notification_settings
 COMMENT ON COLUMN event_notification_settings.minutes_before
   IS '이벤트 날짜 00:00 KST 기준 N분 전 알림 (0 = 당일 00:00, 1440 = 1일 전, 10080 = 1주 전)';
 
--- 9. Rewrite get_pending_notifications function (no parameters, uses NOW())
+-- 9. Add minutes_before column to notification_logs (for dedup per setting)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'notification_logs' AND column_name = 'minutes_before'
+  ) THEN
+    ALTER TABLE notification_logs ADD COLUMN minutes_before INTEGER;
+  END IF;
+END $$;
+
+-- 10. Rewrite get_pending_notifications function (no parameters, uses NOW())
 DROP FUNCTION IF EXISTS get_pending_notifications(INT, INT);
 DROP FUNCTION IF EXISTS get_pending_notifications();
 
@@ -100,6 +111,7 @@ BEGIN
   LEFT JOIN notification_logs nl ON (
     nl.event_id = e.id
     AND nl.device_token = dt.token
+    AND nl.minutes_before = ens.minutes_before
     AND nl.sent_at >= kst_now::date
     AND nl.sent_at < kst_now::date + INTERVAL '1 day'
     AND nl.status = 'SUCCESS'
