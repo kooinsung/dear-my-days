@@ -1,14 +1,11 @@
 'use client'
 
-import type { User } from '@supabase/supabase-js'
 import Link from 'next/link'
+import { SettingsSkeleton } from '@/components/skeletons/SettingsSkeleton'
+import { useAuth } from '@/hooks/use-auth'
 import { css, cx } from '@/styled-system/css'
 import { flex, vstack } from '@/styled-system/patterns'
 import { button, card } from '@/styled-system/recipes'
-
-interface SettingsHomeClientProps {
-  user: User
-}
 
 function SettingsMenuItem({
   title,
@@ -42,7 +39,13 @@ function SettingsMenuItem({
   )
 }
 
-export function SettingsHomeClient({ user }: SettingsHomeClientProps) {
+export function SettingsHomeClient() {
+  const { user, isLoading } = useAuth()
+
+  if (isLoading) {
+    return <SettingsSkeleton />
+  }
+
   return (
     <div
       className={css({

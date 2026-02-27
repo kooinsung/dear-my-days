@@ -1,12 +1,9 @@
 import Link from 'next/link'
-import { requireAuth } from '@/libs/auth/require-auth'
 import { css, cx } from '@/styled-system/css'
 import { flex, vstack } from '@/styled-system/patterns'
 import { button, card } from '@/styled-system/recipes'
 
-export default async function SettingsDataPage() {
-  await requireAuth()
-
+export default function SettingsDataPage() {
   return (
     <div className={css({ minHeight: '100vh', backgroundColor: 'background' })}>
       <header

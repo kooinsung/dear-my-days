@@ -1,12 +1,10 @@
 'use client'
 
-import type { User } from '@supabase/supabase-js'
+import { useAuth } from '@/hooks/use-auth'
 import LoginForm from './login-form'
 
-interface LoginPageClientProps {
-  initialUser: User | null
-}
+export function LoginPageClient() {
+  const { user } = useAuth()
 
-export function LoginPageClient({ initialUser }: LoginPageClientProps) {
-  return <LoginForm initialUser={initialUser} />
+  return <LoginForm initialUser={user} />
 }
