@@ -287,6 +287,7 @@ serve(async (_req) => {
           user_id,
           event_id,
           device_token: device.token,
+          minutes_before: minutes_before ?? 0,
           sent_at: new Date().toISOString(),
           status: fcmResult.success ? 'SUCCESS' : 'FAILED',
           error_message: fcmResult.error ?? null,
