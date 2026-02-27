@@ -2,7 +2,9 @@
 
 import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
+import { SettingsSkeleton } from '@/components/skeletons/SettingsSkeleton'
 import { Button } from '@/components/ui/Button'
+import { useAuth } from '@/hooks/use-auth'
 import {
   getCurrentSubscription,
   getProducts,
@@ -18,17 +20,14 @@ import { css, cx } from '@/styled-system/css'
 import { flex, vstack } from '@/styled-system/patterns'
 import { button, card } from '@/styled-system/recipes'
 
-interface SubscriptionClientProps {
-  userId: string
-}
-
 const PLAN_LABELS: Record<string, string> = {
   FREE: '무료',
   PREMIUM_MONTHLY: '월간 프리미엄',
   PREMIUM_YEARLY: '연간 프리미엄',
 }
 
-export function SubscriptionClient({ userId }: SubscriptionClientProps) {
+export function SubscriptionClient() {
+  const { user, isLoading: authLoading } = useAuth()
   const showToast = useUIStore((s) => s.showToast)
 
   const [nativeAvailable, setNativeAvailable] = useState(false)
@@ -44,7 +43,12 @@ export function SubscriptionClient({ userId }: SubscriptionClientProps) {
   const [subsProducts, setSubsProducts] = useState<Product[]>([])
   const [inappProducts, setInappProducts] = useState<Product[]>([])
 
+  const userId = user?.id ?? ''
+
   const loadData = useCallback(async () => {
+    if (!userId) {
+      return
+    }
     setLoading(true)
     try {
       const [available, subscription, products] = await Promise.all([
@@ -114,6 +118,10 @@ export function SubscriptionClient({ userId }: SubscriptionClientProps) {
 
   const isPremium =
     planType === 'PREMIUM_MONTHLY' || planType === 'PREMIUM_YEARLY'
+
+  if (authLoading) {
+    return <SettingsSkeleton />
+  }
 
   return (
     <div className={css({ minHeight: '100vh', backgroundColor: 'background' })}>

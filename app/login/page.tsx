@@ -1,11 +1,10 @@
-import { createSupabaseServer } from '@/libs/supabase/server'
+import { Suspense } from 'react'
 import { LoginPageClient } from './login-page-client'
 
-export default async function LoginPage() {
-  const supabase = await createSupabaseServer()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  return <LoginPageClient initialUser={user} />
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginPageClient />
+    </Suspense>
+  )
 }

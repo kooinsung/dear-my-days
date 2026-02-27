@@ -1,14 +1,11 @@
 import Link from 'next/link'
-import { requireAuth } from '@/libs/auth/require-auth'
 import { css, cx } from '@/styled-system/css'
 import { flex, vstack } from '@/styled-system/patterns'
 import { button, card } from '@/styled-system/recipes'
 import { DeleteAccountButton } from './delete-account-button'
 import { LogoutButton } from './logout-button'
 
-export default async function SettingsAccountPage() {
-  await requireAuth()
-
+export default function SettingsAccountPage() {
   return (
     <div className={css({ minHeight: '100vh', backgroundColor: 'background' })}>
       <header

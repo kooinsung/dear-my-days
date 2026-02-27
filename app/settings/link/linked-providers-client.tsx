@@ -3,14 +3,12 @@
 import type { User } from '@supabase/supabase-js'
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { SettingsSkeleton } from '@/components/skeletons/SettingsSkeleton'
+import { useAuth } from '@/hooks/use-auth'
 import { createSupabaseBrowser } from '@/libs/supabase/browser'
 import { css, cx } from '@/styled-system/css'
 import { flex, vstack } from '@/styled-system/patterns'
 import { button, card } from '@/styled-system/recipes'
-
-interface LinkedProvidersClientProps {
-  initialUser: User
-}
 
 type UserIdentity = NonNullable<NonNullable<User['identities']>[number]>
 
@@ -31,16 +29,15 @@ function getIdentityLabel(identity: UserIdentity): string {
   return provider
 }
 
-export function LinkedProvidersClient({
-  initialUser,
-}: LinkedProvidersClientProps) {
-  const [user, setUser] = useState<User>(initialUser)
+export function LinkedProvidersClient() {
+  const { user: authUser, isLoading: authLoading } = useAuth()
+  const [user, setUser] = useState<User | null>(null)
   const [error, setError] = useState<string>('')
   const [loading, setLoading] = useState(false)
 
   const identities = useMemo(
-    () => (user.identities ?? []) as UserIdentity[],
-    [user.identities],
+    () => (user?.identities ?? []) as UserIdentity[],
+    [user?.identities],
   )
 
   const canUnlink = identities.length >= 2
@@ -66,9 +63,16 @@ export function LinkedProvidersClient({
   }, [])
 
   useEffect(() => {
-    // identities 포함 user를 다시 동기화
-    refreshUser()
-  }, [refreshUser])
+    if (authUser) {
+      setUser(authUser)
+    }
+  }, [authUser])
+
+  useEffect(() => {
+    if (!authLoading) {
+      refreshUser()
+    }
+  }, [authLoading, refreshUser])
 
   const handleUnlink = async (identity: UserIdentity) => {
     setError('')
@@ -90,6 +94,10 @@ export function LinkedProvidersClient({
     } finally {
       setLoading(false)
     }
+  }
+
+  if (authLoading || !user) {
+    return <SettingsSkeleton />
   }
 
   return (

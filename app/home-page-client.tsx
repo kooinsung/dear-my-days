@@ -1,20 +1,22 @@
 'use client'
 
 import Link from 'next/link'
+import { HomeSkeleton } from '@/components/skeletons/HomeSkeleton'
+import { useUpcomingEvents } from '@/hooks/use-events'
 import { usePushSetup } from '@/hooks/use-push-setup'
-import type { Event } from '@/libs/supabase/database.types'
 import { css, cx } from '@/styled-system/css'
 import { HStack } from '@/styled-system/jsx'
 import { flex } from '@/styled-system/patterns'
 import { button, pageContainer } from '@/styled-system/recipes'
 import { HomeContent } from './home-content'
 
-interface HomePageClientProps {
-  upcomingEvents: Event[]
-}
-
-export function HomePageClient({ upcomingEvents }: HomePageClientProps) {
+export function HomePageClient() {
   usePushSetup()
+  const { data: upcomingEvents, isLoading } = useUpcomingEvents()
+
+  if (isLoading) {
+    return <HomeSkeleton />
+  }
 
   return (
     <div
@@ -72,7 +74,7 @@ export function HomePageClient({ upcomingEvents }: HomePageClientProps) {
 
       {/* 콘텐츠 영역 */}
       <div className={cx(pageContainer(), css({ paddingTop: '24px' }))}>
-        <HomeContent upcomingEvents={upcomingEvents} />
+        <HomeContent upcomingEvents={upcomingEvents ?? []} />
       </div>
     </div>
   )

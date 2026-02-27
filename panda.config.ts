@@ -13,6 +13,12 @@ export default defineConfig({
   // Useful for theme customization
   theme: {
     extend: {
+      keyframes: {
+        pulse: {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.4' },
+        },
+      },
       tokens: {
         colors: {
           primary: { value: '#007bff' },
