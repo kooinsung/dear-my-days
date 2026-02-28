@@ -2,6 +2,8 @@ import { cookies } from 'next/headers'
 import { type NextRequest, NextResponse } from 'next/server'
 import { createNaverMagicLink, findOrCreateNaverUser } from '@/libs/auth/naver'
 import { exchangeNaverToken, getNaverUser } from '@/libs/naver/oauth'
+import { sendSlackNotification } from '@/libs/slack/client'
+import { formatSignupMessage } from '@/libs/slack/formatters'
 import { createSupabaseServer } from '@/libs/supabase/server'
 
 export async function GET(req: NextRequest) {
@@ -36,7 +38,12 @@ export async function GET(req: NextRequest) {
     const { access_token } = await exchangeNaverToken(code, receivedState)
     const naverUser = await getNaverUser(access_token)
 
-    await findOrCreateNaverUser(naverUser)
+    const { isNew } = await findOrCreateNaverUser(naverUser)
+    if (isNew) {
+      await sendSlackNotification(
+        formatSignupMessage(naverUser.email ?? 'unknown', 'naver'),
+      )
+    }
     const token = await createNaverMagicLink(
       naverUser.email ?? `naver_${naverUser.id}@no-email.local`,
     )

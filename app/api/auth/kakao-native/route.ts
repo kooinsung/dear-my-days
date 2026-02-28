@@ -1,4 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server'
+import { sendSlackNotification } from '@/libs/slack/client'
+import { formatSignupMessage } from '@/libs/slack/formatters'
 import { supabaseAdmin } from '@/libs/supabase/admin'
 import { handleApiError } from '@/libs/utils/errors'
 
@@ -68,6 +70,8 @@ export async function POST(req: NextRequest) {
           { status: 500 },
         )
       }
+
+      await sendSlackNotification(formatSignupMessage(email, 'kakao'))
     }
 
     // 3. Magic link 생성 → token_hash 반환

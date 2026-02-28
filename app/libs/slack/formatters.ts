@@ -4,12 +4,13 @@ function kstTimestamp(): string {
   return new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })
 }
 
-export function formatSignupMessage(email: string) {
+export function formatSignupMessage(email: string, provider?: string) {
+  const providerLabel = provider ? ` (${provider})` : ''
   return {
     blocks: [
       {
         type: 'header',
-        text: { type: 'plain_text', text: '🎉 새 회원가입' },
+        text: { type: 'plain_text', text: `🎉 새 회원가입${providerLabel}` },
       },
       {
         type: 'section',

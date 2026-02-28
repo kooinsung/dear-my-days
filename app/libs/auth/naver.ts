@@ -17,7 +17,7 @@ export async function findOrCreateNaverUser(naverUser: {
     .single()
 
   if (providerRow) {
-    return { userId: providerRow.user_id }
+    return { userId: providerRow.user_id, isNew: false }
   }
 
   // auth.users 생성
@@ -41,7 +41,7 @@ export async function findOrCreateNaverUser(naverUser: {
     provider_user_id: naverUser.id,
   })
 
-  return { userId: created.user.id }
+  return { userId: created.user.id, isNew: true }
 }
 
 export async function createNaverMagicLink(email: string) {
