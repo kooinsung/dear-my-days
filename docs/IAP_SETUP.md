@@ -19,11 +19,18 @@ App Store Connect 및 Google Play Console에 다음 상품 ID를 등록하세요
 
 ```typescript
 {
-  PREMIUM_MONTHLY: 'com.dearmydays.premium.monthly',  // ₩4,900/월
-  PREMIUM_YEARLY: 'com.dearmydays.premium.yearly',    // ₩49,000/년
-  ENTERPRISE: 'com.dearmydays.enterprise',            // ₩99,000/년
+  PREMIUM_MONTHLY: 'com.dearmydays.premium.monthly',  // ₩4,900/월 (자동 갱신 구독)
+  PREMIUM_YEARLY: 'com.dearmydays.premium.yearly',    // ₩49,000/년 (자동 갱신 구독)
+  EVENT_SLOT: 'com.dearmydays.event.slot',            // ₩1,900 (소모품 단건 구매)
 }
 ```
+
+**상품 유형:**
+| 상품 | 유형 | iOS | Android |
+|------|------|-----|---------|
+| 월간 프리미엄 | 자동 갱신 구독 | Auto-Renewable Subscription | 정기 결제 (Subscription) |
+| 연간 프리미엄 | 자동 갱신 구독 | Auto-Renewable Subscription | 정기 결제 (Subscription) |
+| 이벤트 슬롯 | 소모품 (단건) | Consumable | 인앱 상품 (One-time product) |
 
 ## 1. iOS 설정 (Apple)
 
@@ -33,12 +40,19 @@ App Store Connect 및 Google Play Console에 다음 상품 ID를 등록하세요
 2. 앱 선택 → **인앱 구입** 메뉴
 3. **+** 버튼을 클릭하여 새 구독 생성
 
-**각 상품별 설정:**
-- 상품 ID: `com.dearmydays.premium.monthly`
+**구독 상품 설정 (월간/연간):**
+- 상품 ID: `com.dearmydays.premium.monthly` / `com.dearmydays.premium.yearly`
 - 유형: **자동 갱신 구독**
 - 구독 그룹: "Premium Subscriptions" 생성
-- 기간: 1개월 (또는 연간은 1년)
-- 가격: ₩4,900 (또는 연간 ₩49,000)
+- 기간: 1개월 / 1년
+- 가격: ₩4,900 / ₩49,000
+- 현지화: 한국어 및 영어 설명 추가
+
+**소모품 상품 설정 (이벤트 슬롯):**
+- 상품 ID: `com.dearmydays.event.slot`
+- 유형: **소모품 (Consumable)**
+- 가격: ₩1,900
+- 설명: "이벤트 등록 슬롯 1개 추가"
 - 현지화: 한국어 및 영어 설명 추가
 
 4. 영수증 검증용 **Shared Secret** 생성:
@@ -69,7 +83,8 @@ public class IAPManager: CAPPlugin {
             do {
                 let productIds = [
                     "com.dearmydays.premium.monthly",
-                    "com.dearmydays.premium.yearly"
+                    "com.dearmydays.premium.yearly",
+                    "com.dearmydays.event.slot"
                 ]
 
                 let products = try await Product.products(for: productIds)
@@ -216,15 +231,40 @@ plugins: {
 ### 1단계: Google Play Console 설정
 
 1. [Google Play Console](https://play.google.com/console) 접속
-2. 앱 선택 → **수익 창출 설정** → **제품** → **정기 결제**
-3. 구독 상품 생성
+2. 앱 선택 → **수익 창출 설정** → **제품**
 
-**각 상품별 설정:**
+#### 정기 결제 (Subscription) 설정
+
+3. **정기 결제** 탭 → **정기 결제 만들기**
+
+**월간 구독 설정:**
 - 상품 ID: `com.dearmydays.premium.monthly`
 - 이름: Premium Monthly
 - 설명: 월간 프리미엄 구독
-- 결제 주기: 월간 (또는 연간)
-- 기본 가격: ₩4,900 (또는 ₩49,000)
+- 기본 요금제 추가:
+  - 요금제 ID: `monthly-plan`
+  - 결제 주기: 1개월
+  - 가격: ₩4,900
+
+**연간 구독 설정:**
+- 상품 ID: `com.dearmydays.premium.yearly`
+- 이름: Premium Yearly
+- 설명: 연간 프리미엄 구독 (2개월 무료)
+- 기본 요금제 추가:
+  - 요금제 ID: `yearly-plan`
+  - 결제 주기: 1년
+  - 가격: ₩49,000
+
+#### 인앱 상품 (One-time product) 설정
+
+4. **인앱 상품** 탭 → **상품 만들기**
+
+**이벤트 슬롯 설정:**
+- 상품 ID: `com.dearmydays.event.slot`
+- 이름: 이벤트 슬롯 추가
+- 설명: 이벤트 등록 슬롯 1개 추가
+- 기본 가격: ₩1,900
+- **참고:** 소모품(Consumable)이므로 사용자가 여러 번 구매 가능
 
 ### 2단계: 서비스 계정 설정
 
@@ -304,7 +344,10 @@ public class IAPManager extends Plugin {
 
     @PluginMethod
     public void getProducts(PluginCall call) {
-        List<QueryProductDetailsParams.Product> productList = Arrays.asList(
+        JSArray allProducts = new JSArray();
+
+        // 1. 구독 상품 조회 (SUBS)
+        List<QueryProductDetailsParams.Product> subsList = Arrays.asList(
             QueryProductDetailsParams.Product.newBuilder()
                 .setProductId("com.dearmydays.premium.monthly")
                 .setProductType(BillingClient.ProductType.SUBS)
@@ -315,84 +358,241 @@ public class IAPManager extends Plugin {
                 .build()
         );
 
-        QueryProductDetailsParams params = QueryProductDetailsParams.newBuilder()
-            .setProductList(productList)
+        // 2. 인앱 상품 조회 (INAPP)
+        List<QueryProductDetailsParams.Product> inappList = Arrays.asList(
+            QueryProductDetailsParams.Product.newBuilder()
+                .setProductId("com.dearmydays.event.slot")
+                .setProductType(BillingClient.ProductType.INAPP)
+                .build()
+        );
+
+        // 구독 상품 조회
+        QueryProductDetailsParams subsParams = QueryProductDetailsParams.newBuilder()
+            .setProductList(subsList)
             .build();
 
-        billingClient.queryProductDetailsAsync(params, (billingResult, productDetailsList) -> {
+        billingClient.queryProductDetailsAsync(subsParams, (billingResult, productDetailsList) -> {
             if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
-                JSArray products = new JSArray();
-                for (ProductDetails productDetails : productDetailsList) {
+                for (ProductDetails details : productDetailsList) {
                     JSObject product = new JSObject();
-                    product.put("id", productDetails.getProductId());
-                    product.put("title", productDetails.getTitle());
-                    product.put("description", productDetails.getDescription());
+                    product.put("id", details.getProductId());
+                    product.put("title", details.getTitle());
+                    product.put("description", details.getDescription());
+                    product.put("type", "SUBS");
 
+                    // 구독 상품은 SubscriptionOfferDetails에서 가격 가져옴
                     ProductDetails.SubscriptionOfferDetails offer =
-                        productDetails.getSubscriptionOfferDetails().get(0);
+                        details.getSubscriptionOfferDetails().get(0);
                     ProductDetails.PricingPhase phase =
                         offer.getPricingPhases().getPricingPhaseList().get(0);
 
                     product.put("price", phase.getFormattedPrice());
                     product.put("priceValue", phase.getPriceAmountMicros() / 1000000);
+                    allProducts.put(product);
+                }
+            }
 
-                    products.put(product);
+            // 인앱 상품 조회
+            QueryProductDetailsParams inappParams = QueryProductDetailsParams.newBuilder()
+                .setProductList(inappList)
+                .build();
+
+            billingClient.queryProductDetailsAsync(inappParams, (inappResult, inappDetailsList) -> {
+                if (inappResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
+                    for (ProductDetails details : inappDetailsList) {
+                        JSObject product = new JSObject();
+                        product.put("id", details.getProductId());
+                        product.put("title", details.getTitle());
+                        product.put("description", details.getDescription());
+                        product.put("type", "INAPP");
+
+                        // 인앱 상품은 OneTimePurchaseOfferDetails에서 가격 가져옴
+                        ProductDetails.OneTimePurchaseOfferDetails oneTime =
+                            details.getOneTimePurchaseOfferDetails();
+                        if (oneTime != null) {
+                            product.put("price", oneTime.getFormattedPrice());
+                            product.put("priceValue", oneTime.getPriceAmountMicros() / 1000000);
+                        }
+
+                        allProducts.put(product);
+                    }
                 }
 
                 JSObject result = new JSObject();
-                result.put("products", products);
+                result.put("products", allProducts);
                 call.resolve(result);
-            } else {
-                call.reject("상품 조회 실패");
-            }
+            });
         });
     }
 
     @PluginMethod
     public void purchase(PluginCall call) {
         String productId = call.getString("productId");
+        if (productId == null) {
+            call.reject("상품 ID가 필요합니다");
+            return;
+        }
 
-        // 구매 플로우 구현
-        // 성공 시 구매 토큰을 서버로 전송
+        // 상품 유형 판별
+        boolean isSubscription = productId.contains("premium");
+        String productType = isSubscription
+            ? BillingClient.ProductType.SUBS
+            : BillingClient.ProductType.INAPP;
+
+        List<QueryProductDetailsParams.Product> productList = Arrays.asList(
+            QueryProductDetailsParams.Product.newBuilder()
+                .setProductId(productId)
+                .setProductType(productType)
+                .build()
+        );
+
+        QueryProductDetailsParams params = QueryProductDetailsParams.newBuilder()
+            .setProductList(productList)
+            .build();
+
+        billingClient.queryProductDetailsAsync(params, (billingResult, productDetailsList) -> {
+            if (billingResult.getResponseCode() != BillingClient.BillingResponseCode.OK
+                || productDetailsList.isEmpty()) {
+                call.reject("상품을 찾을 수 없습니다");
+                return;
+            }
+
+            ProductDetails productDetails = productDetailsList.get(0);
+
+            BillingFlowParams.ProductDetailsParams.Builder detailsParamsBuilder =
+                BillingFlowParams.ProductDetailsParams.newBuilder()
+                    .setProductDetails(productDetails);
+
+            // 구독 상품은 offerToken이 필요
+            if (isSubscription && productDetails.getSubscriptionOfferDetails() != null) {
+                detailsParamsBuilder.setOfferToken(
+                    productDetails.getSubscriptionOfferDetails().get(0).getOfferToken()
+                );
+            }
+
+            BillingFlowParams billingFlowParams = BillingFlowParams.newBuilder()
+                .setProductDetailsParamsList(Arrays.asList(detailsParamsBuilder.build()))
+                .build();
+
+            billingClient.launchBillingFlow(getActivity(), billingFlowParams);
+            // 결과는 purchaseUpdatedListener에서 처리
+        });
     }
 
     @PluginMethod
     public void restore(PluginCall call) {
-        QueryPurchasesParams params = QueryPurchasesParams.newBuilder()
+        JSArray allPurchases = new JSArray();
+
+        // 1. 구독 구매 내역 조회
+        QueryPurchasesParams subsParams = QueryPurchasesParams.newBuilder()
             .setProductType(BillingClient.ProductType.SUBS)
             .build();
 
-        billingClient.queryPurchasesAsync(params, (billingResult, purchases) -> {
-            if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
-                // 복원된 구매 처리
-                call.resolve();
-            } else {
-                call.reject("복원 실패");
+        billingClient.queryPurchasesAsync(subsParams, (subsResult, subsPurchases) -> {
+            if (subsResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
+                for (Purchase purchase : subsPurchases) {
+                    JSObject p = new JSObject();
+                    p.put("purchaseToken", purchase.getPurchaseToken());
+                    p.put("productId", purchase.getProducts().get(0));
+                    p.put("type", "SUBS");
+                    allPurchases.put(p);
+                }
             }
+
+            // 2. 인앱 상품 구매 내역 조회
+            QueryPurchasesParams inappParams = QueryPurchasesParams.newBuilder()
+                .setProductType(BillingClient.ProductType.INAPP)
+                .build();
+
+            billingClient.queryPurchasesAsync(inappParams, (inappResult, inappPurchases) -> {
+                if (inappResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
+                    for (Purchase purchase : inappPurchases) {
+                        JSObject p = new JSObject();
+                        p.put("purchaseToken", purchase.getPurchaseToken());
+                        p.put("productId", purchase.getProducts().get(0));
+                        p.put("type", "INAPP");
+                        allPurchases.put(p);
+                    }
+                }
+
+                JSObject result = new JSObject();
+                result.put("purchases", allPurchases);
+                call.resolve(result);
+            });
         });
     }
 
     private PurchaseUpdatedListener purchaseUpdatedListener =
         (billingResult, purchases) -> {
-            // 구매 업데이트 처리
+            if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK
+                && purchases != null) {
+                for (Purchase purchase : purchases) {
+                    // 구매 토큰을 서버로 전송하여 검증
+                    JSObject purchaseData = new JSObject();
+                    purchaseData.put("purchaseToken", purchase.getPurchaseToken());
+                    purchaseData.put("productId", purchase.getProducts().get(0));
+                    purchaseData.put("transactionId", purchase.getOrderId());
+
+                    notifyListeners("purchaseCompleted", purchaseData);
+
+                    // 소모품(INAPP)인 경우 소비 처리 필요
+                    if (!purchase.getProducts().get(0).contains("premium")) {
+                        ConsumeParams consumeParams = ConsumeParams.newBuilder()
+                            .setPurchaseToken(purchase.getPurchaseToken())
+                            .build();
+                        billingClient.consumeAsync(consumeParams, (result, token) -> {
+                            // 소비 완료 - 사용자가 다시 구매 가능
+                        });
+                    } else {
+                        // 구독은 승인 처리
+                        AcknowledgePurchaseParams ackParams =
+                            AcknowledgePurchaseParams.newBuilder()
+                                .setPurchaseToken(purchase.getPurchaseToken())
+                                .build();
+                        if (!purchase.isAcknowledged()) {
+                            billingClient.acknowledgePurchase(ackParams, ackResult -> {
+                                // 승인 완료
+                            });
+                        }
+                    }
+                }
+            }
         };
 }
 ```
 
 ### 5단계: 테스트
 
-1. **라이선스 테스터로 테스트:**
-   - Play Console → 설정 → 라이선스 테스트
-   - 테스트용 Google 계정 추가
+1. **라이선스 테스터 설정:**
+   - Play Console → **설정** → **라이선스 테스트**
+   - 테스트용 Google 계정 이메일 추가
    - 해당 계정으로 실제 결제 없이 테스트 구매 가능
 
-2. **테스트 플로우:**
+2. **구독 테스트:**
    ```bash
    pnpm dev:android
    # /settings/subscription으로 이동
-   # "구독하기" 클릭
+   # "월간 구독" 또는 "연간 구독" 클릭
    # Google Play 결제 다이얼로그가 표시되어야 함
+   # 테스트 카드로 결제 → 서버 검증 로그 확인
    ```
+
+3. **이벤트 슬롯 (소모품) 테스트:**
+   ```bash
+   pnpm dev:android
+   # /settings/subscription으로 이동
+   # "이벤트 슬롯 추가" 클릭
+   # Google Play 결제 다이얼로그가 표시되어야 함
+   # 결제 완료 후:
+   #   - 소비(consume) 처리가 되었는지 확인
+   #   - user_plans.extra_event_slots가 증가했는지 확인
+   #   - 동일 상품을 다시 구매할 수 있는지 확인 (소모품)
+   ```
+
+4. **주의사항:**
+   - 인앱 상품은 Play Console에 등록 후 **활성화까지 최대 24시간** 소요
+   - 앱이 내부 테스트 트랙 이상에 **한 번 이상 업로드**되어야 결제 테스트 가능
+   - 소모품은 `consumeAsync()` 호출 후에만 재구매 가능
 
 ## 3. 전체 플로우 테스트
 
