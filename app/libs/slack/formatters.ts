@@ -49,7 +49,7 @@ export function formatFirstLaunchMessage(info: {
     blocks: [
       {
         type: 'header',
-        text: { type: 'plain_text', text: `${icon} 새 앱 다운로드` },
+        text: { type: 'plain_text', text: `${icon} 앱 첫 실행` },
       },
       { type: 'section', fields },
     ],
