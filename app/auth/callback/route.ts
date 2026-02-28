@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { env } from '@/libs/config/env'
 import { sendSlackNotification } from '@/libs/slack/client'
 import { formatSignupMessage } from '@/libs/slack/formatters'
+import { supabaseAdmin } from '@/libs/supabase/admin'
 import { createSupabaseServer } from '@/libs/supabase/server'
 
 type OtpType = 'signup' | 'magiclink' | 'recovery' | 'invite' | 'email_change'
@@ -59,18 +60,23 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(`${baseUrl}/login?${params.toString()}`)
     }
 
-    // 신규 가입 체크 (created_at이 30초 이내)
+    // 신규 가입 체크 (created_at이 5분 이내 + 중복 방지)
     const {
       data: { user },
     } = await supabase.auth.getUser()
     if (user) {
-      const isNewUser = Date.now() - new Date(user.created_at).getTime() < 30000
-      if (isNewUser) {
+      const isNew =
+        Date.now() - new Date(user.created_at).getTime() < 5 * 60 * 1000
+      if (isNew && !user.user_metadata?.signup_notified) {
         const provider =
           user.app_metadata?.provider ?? user.app_metadata?.providers?.[0]
         await sendSlackNotification(
           formatSignupMessage(user.email ?? 'unknown', provider),
         )
+        const admin = supabaseAdmin()
+        await admin.auth.admin.updateUserById(user.id, {
+          user_metadata: { ...user.user_metadata, signup_notified: true },
+        })
       }
     }
 

@@ -93,6 +93,10 @@ export async function googleLogin() {
     }
 
     console.log('✅ Supabase session created')
+
+    // 신규 가입 알림 체크
+    fetch('/api/tracking/check-new-signup', { method: 'POST' }).catch(() => {})
+
     return { success: true, data }
   } catch (error) {
     console.error('❌ Google login error:', error)
