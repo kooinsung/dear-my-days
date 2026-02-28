@@ -51,11 +51,22 @@ GOOGLE_PACKAGE_NAME=com.dearmydays.app
 GOOGLE_SERVICE_ACCOUNT_TOKEN=xxx
 ```
 
-#### 선택 (푸시 알림 - 구현 시)
+#### 선택 (푸시 알림)
 ```env
 FIREBASE_PROJECT_ID=your-project
 FIREBASE_CLIENT_EMAIL=firebase-adminsdk@xxx.iam.gserviceaccount.com
 FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nxxx\n-----END PRIVATE KEY-----\n"
+```
+
+#### 선택 (Slack Webhook)
+```env
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/xxx    # 회원가입 알림
+SLACK_WEBHOOK_URL_ERRORS=https://hooks.slack.com/services/xxx  # 에러 알림
+```
+
+#### 선택 (Sentry)
+```env
+NEXT_PUBLIC_SENTRY_DSN=https://xxx@sentry.io/xxx
 ```
 
 ### 3. Supabase 설정
@@ -100,6 +111,10 @@ FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nxxx\n-----END PRIVATE KEY----
 
 - [ ] GitHub 저장소를 Vercel에 연결
 - [ ] Vercel에서 환경 변수 설정
+- [ ] Sentry 환경 변수 설정 (Vercel Integration 또는 수동):
+  - `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN`
+  - `NEXT_PUBLIC_SENTRY_DSN`
+- [ ] Slack Webhook URL 설정: `SLACK_WEBHOOK_URL`, `SLACK_WEBHOOK_URL_ERRORS`
 - [ ] 빌드 명령어 설정: `next build`
 - [ ] 출력 디렉토리 설정: `.next`
 - [ ] 프로덕션 빌드 배포
@@ -286,10 +301,11 @@ FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nxxx\n-----END PRIVATE KEY----
 
 ### 10. 모니터링 & 분석
 
-#### 에러 추적
-- [ ] Sentry 또는 유사 도구 설정
-- [ ] Error Boundary 설정
-- [ ] 에러 리포팅 테스트
+#### 에러 추적 (Sentry)
+- [ ] Sentry 프로젝트 생성 및 DSN 설정
+- [ ] `sentry.client.config.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts` 확인
+- [ ] `global-error.tsx` Error Boundary 동작 확인
+- [ ] Slack 에러 알림 수신 확인
 
 #### 분석 (선택)
 - [ ] Google Analytics 또는 유사 도구 설정
@@ -397,5 +413,5 @@ vercel rollback
 
 ---
 
-**마지막 업데이트:** 2026-02-07
-**버전:** 1.0.0
+**마지막 업데이트:** 2026-02-28
+**버전:** 1.1.0

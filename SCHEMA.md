@@ -33,6 +33,9 @@
 #### `notification_logs`
 푸시 알림 발송 이력을 저장합니다 (중복 발송 방지).
 
+#### `kv_store`
+범용 키-값 저장소입니다 (설정값, 상태 플래그 등).
+
 ## Custom Types (Enums)
 
 ### `category_type`
@@ -248,9 +251,7 @@ CREATE TABLE public.event_notification_settings (
   id UUID NOT NULL DEFAULT gen_random_uuid(),
   event_id UUID NOT NULL,
   user_id UUID NOT NULL,
-  days_before INTEGER NOT NULL,
-  notification_hour INTEGER NOT NULL,
-  notification_minute INTEGER NOT NULL,
+  minutes_before INTEGER NOT NULL DEFAULT 1440,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
 
@@ -259,9 +260,7 @@ CREATE TABLE public.event_notification_settings (
     REFERENCES events (id) ON DELETE CASCADE,
   CONSTRAINT event_notification_settings_user_id_fkey FOREIGN KEY (user_id)
     REFERENCES auth.users (id) ON DELETE CASCADE,
-  CONSTRAINT valid_hour CHECK (notification_hour >= 0 AND notification_hour <= 23),
-  CONSTRAINT valid_minute CHECK (notification_minute >= 0 AND notification_minute <= 59),
-  CONSTRAINT valid_days_before CHECK (days_before >= 0 AND days_before <= 365)
+  CONSTRAINT chk_minutes_before CHECK (minutes_before >= 0 AND minutes_before <= 20160)
 );
 
 -- 인덱스
@@ -272,7 +271,7 @@ CREATE INDEX idx_event_notification_settings_user
 
 -- 중복 방지
 CREATE UNIQUE INDEX idx_event_notification_settings_unique
-  ON event_notification_settings(event_id, days_before, notification_hour, notification_minute);
+  ON event_notification_settings(event_id, minutes_before);
 
 -- RLS
 ALTER TABLE event_notification_settings ENABLE ROW LEVEL SECURITY;
@@ -283,12 +282,8 @@ CREATE POLICY "Users can manage their own notification settings"
 -- 코멘트
 COMMENT ON TABLE event_notification_settings IS
   '이벤트별 알림 스케줄 설정 (사용자가 동적으로 추가/삭제 가능)';
-COMMENT ON COLUMN event_notification_settings.days_before IS
-  '이벤트 며칠 전 알림 (0 = 당일, 최대 365)';
-COMMENT ON COLUMN event_notification_settings.notification_hour IS
-  '알림 시간 (0-23시)';
-COMMENT ON COLUMN event_notification_settings.notification_minute IS
-  '알림 분 (0-59분)';
+COMMENT ON COLUMN event_notification_settings.minutes_before IS
+  '이벤트 날짜 00:00 KST 기준 N분 전 알림 (0 = 당일 00:00, 1440 = 1일 전, 10080 = 1주 전)';
 ```
 
 ### `notification_logs`
@@ -300,6 +295,7 @@ CREATE TABLE public.notification_logs (
   user_id UUID NOT NULL,
   event_id UUID NOT NULL,
   device_token TEXT NOT NULL,
+  minutes_before INTEGER NULL,
   sent_at TIMESTAMPTZ NOT NULL,
   status TEXT NOT NULL CHECK (status IN ('SUCCESS', 'FAILED')),
   error_message TEXT NULL,
@@ -326,6 +322,20 @@ CREATE POLICY "Users can view their own notification logs"
 
 CREATE POLICY "Service role can insert notification logs"
   ON notification_logs FOR INSERT WITH CHECK (true);
+```
+
+### `kv_store`
+범용 키-값 저장소
+
+```sql
+CREATE TABLE IF NOT EXISTS kv_store (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- RLS
+ALTER TABLE kv_store ENABLE ROW LEVEL SECURITY;
 ```
 
 ### `user_providers`
@@ -447,26 +457,30 @@ END;
 $$ LANGUAGE plpgsql;
 ```
 
-### `get_pending_notifications(current_hour INT, current_minute INT)`
-현재 시간에 발송해야 할 알림 목록을 반환합니다.
+### `get_pending_notifications()`
+현재 KST 시각 기준으로 발송해야 할 알림 목록을 반환합니다 (파라미터 없음, `NOW()` 사용).
 
 ```sql
-CREATE OR REPLACE FUNCTION get_pending_notifications(
-  current_hour INT,
-  current_minute INT
-)
+CREATE OR REPLACE FUNCTION get_pending_notifications()
 RETURNS TABLE (
   user_id UUID,
   event_id UUID,
   event_title TEXT,
+  event_category TEXT,
+  minutes_before INT,
   device_tokens JSONB
 ) AS $$
+DECLARE
+  kst_now TIMESTAMP := (NOW() AT TIME ZONE 'Asia/Seoul');
+  current_year INT := EXTRACT(YEAR FROM kst_now);
 BEGIN
   RETURN QUERY
   SELECT
     e.user_id,
     e.id AS event_id,
     e.title AS event_title,
+    e.category::TEXT AS event_category,
+    ens.minutes_before,
     jsonb_agg(
       jsonb_build_object(
         'token', dt.token,
@@ -479,26 +493,30 @@ BEGIN
   LEFT JOIN notification_logs nl ON (
     nl.event_id = e.id
     AND nl.device_token = dt.token
-    AND DATE(nl.sent_at) = CURRENT_DATE
+    AND nl.minutes_before = ens.minutes_before
+    AND nl.sent_at >= kst_now::date
+    AND nl.sent_at < kst_now::date + INTERVAL '1 day'
     AND nl.status = 'SUCCESS'
   )
   WHERE
-    -- 오늘이 알림 발송일 (이벤트 날짜 - days_before)
-    DATE(e.solar_date) - ens.days_before = CURRENT_DATE
-    -- 설정된 시간/분과 일치
-    AND ens.notification_hour = current_hour
-    AND ens.notification_minute = current_minute
-    -- 오늘 아직 발송하지 않음
+    date_trunc('minute',
+      make_timestamp(
+        current_year,
+        EXTRACT(MONTH FROM e.solar_date)::INT,
+        EXTRACT(DAY FROM e.solar_date)::INT,
+        0, 0, 0
+      ) - (ens.minutes_before * INTERVAL '1 minute')
+    ) = date_trunc('minute', kst_now)
     AND nl.id IS NULL
-  GROUP BY e.user_id, e.id, e.title;
+  GROUP BY e.user_id, e.id, e.title, e.category, ens.minutes_before;
 END;
 $$ LANGUAGE plpgsql;
 ```
 
 **사용 예시:**
 ```sql
--- 오전 9시 0분에 발송할 알림 조회
-SELECT * FROM get_pending_notifications(9, 0);
+-- 현재 KST 시각에 발송할 알림 조회
+SELECT * FROM get_pending_notifications();
 ```
 
 ## 마이그레이션 파일
@@ -523,7 +541,21 @@ SELECT * FROM get_pending_notifications(9, 0);
    - `get_user_event_limit()`, `check_event_limit()`, `increment_event_slots()` 함수 생성
    - 이벤트 제한 트리거 생성
 
+5. **`20260226_update_get_pending_notifications.sql`**
+   - `get_pending_notifications()` 함수 업데이트 (category, days_before 반환)
+
+6. **`20260227_notification_minutes_before.sql`**
+   - `event_notification_settings`에서 `days_before`, `notification_hour`, `notification_minute` → `minutes_before` 마이그레이션
+   - `notification_logs`에 `minutes_before` 컬럼 추가
+   - `get_pending_notifications()` 함수 재작성 (파라미터 없음, KST 기반)
+
+7. **`20260227_create_kv_store.sql`**
+   - `kv_store` 테이블 생성
+
+8. **`20260227_cleanup_past_notifications.sql`**
+   - 과거 알림 데이터 정리
+
 ---
 
-**마지막 업데이트:** 2026-02-07
-**버전:** 2.0.0 (Capacitor IAP + 알림 시스템 포함)
+**마지막 업데이트:** 2026-02-28
+**버전:** 3.0.0 (minutes_before 마이그레이션 + kv_store)

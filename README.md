@@ -37,6 +37,7 @@ Dear My Days는 생일, 기념일, 기일 등의 특별한 날을 관리하는 �
 
 ### DevOps
 - **Hosting**: Vercel (Web)
+- **Monitoring**: Sentry (`@sentry/nextjs`)
 - **Linting**: Biome
 - **Environment**: @t3-oss/env-nextjs
 - **CI/CD**: GitHub Actions + Husky
@@ -147,7 +148,7 @@ cd android
 ## 📚 Documentation
 
 - [프로젝트 가이드](./CLAUDE.md) - 아키텍처, 컨벤션, 가이드라인
-- [OAuth 설정](./docs/OAUTH_SETUP.md) - OAuth 및 딥링크 설정
+- [데이터베이스 스키마](./SCHEMA.md) - DB 테이블, 함수, 마이그레이션
 - [IAP 설정](./docs/IAP_SETUP.md) - 인앱결제 구현 가이드
 - [푸시 알림 설정](./docs/PUSH_NOTIFICATIONS_SETUP.md) - Firebase 푸시 알림
 - [배포 체크리스트](./docs/DEPLOYMENT_CHECKLIST.md) - 전체 배포 가이드
@@ -163,7 +164,9 @@ dear-my-days/
 │   │   ├── events/              # Event CRUD
 │   │   ├── iap/                 # In-App Purchases
 │   │   ├── lunar/               # Lunar calendar
-│   │   └── notifications/       # Push notifications
+│   │   ├── notifications/       # Push notifications
+│   │   ├── provider/            # OAuth provider link/unlink
+│   │   └── tracking/            # Signup tracking
 │   ├── auth/                    # Auth pages
 │   ├── calendar/                # Calendar view
 │   ├── event/                   # Event pages
@@ -175,6 +178,8 @@ dear-my-days/
 │   ├── libs/                    # Libraries & utilities
 │   │   ├── capacitor/           # Capacitor utilities
 │   │   ├── config/              # Environment config
+│   │   ├── fcm/                 # Firebase Cloud Messaging
+│   │   ├── slack/               # Slack Webhook client
 │   │   ├── supabase/            # Supabase clients
 │   │   └── utils/               # Helper functions
 │   └── stores/                  # Zustand stores
@@ -218,13 +223,20 @@ KASI_SERVICE_KEY=xxx
 # OAuth
 NEXT_PUBLIC_NAVER_CLIENT_ID=xxx
 NAVER_CLIENT_SECRET=xxx
+NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID=xxx
+NEXT_PUBLIC_GOOGLE_IOS_CLIENT_ID=xxx
 
-# IAP (if implementing)
+# Monitoring & Notifications
+NEXT_PUBLIC_SENTRY_DSN=https://xxx@sentry.io/xxx
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/xxx
+SLACK_WEBHOOK_URL_ERRORS=https://hooks.slack.com/services/xxx
+
+# IAP
 APPLE_SHARED_SECRET=xxx
 GOOGLE_PACKAGE_NAME=com.dearmydays.app
 GOOGLE_SERVICE_ACCOUNT_TOKEN=xxx
 
-# Push Notifications (if implementing)
+# Push Notifications
 FIREBASE_PROJECT_ID=xxx
 FIREBASE_CLIENT_EMAIL=xxx
 FIREBASE_PRIVATE_KEY=xxx
@@ -309,7 +321,7 @@ This project is proprietary and confidential.
 ## 👥 Authors
 
 - **Developer**: @a17050
-- **Co-Author**: Claude Sonnet 4.5
+- **Co-Author**: Claude Opus 4.6
 
 ## 📞 Support
 
