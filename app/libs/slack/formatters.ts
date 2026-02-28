@@ -4,31 +4,70 @@ function kstTimestamp(): string {
   return new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })
 }
 
+const PROVIDER_LABELS: Record<string, string> = {
+  google: 'Google',
+  kakao: 'Kakao',
+  naver: 'Naver',
+  apple: 'Apple',
+  email: 'Email',
+}
+
+function providerTag(provider?: string): string {
+  if (!provider) {
+    return ''
+  }
+  return `\`${PROVIDER_LABELS[provider] ?? provider}\``
+}
+
+function platformTag(platform?: 'web' | 'app'): string {
+  if (!platform) {
+    return ''
+  }
+  return platform === 'app' ? '`📱 App`' : '`🌐 Web`'
+}
+
+function tags(...items: string[]): string {
+  return items.filter(Boolean).join('  ')
+}
+
 export function formatSignupMessage(
   email: string,
   provider?: string,
   platform?: 'web' | 'app',
 ) {
-  const providerLabel = provider ? ` (${provider})` : ''
-  const fields = [
-    { type: 'mrkdwn' as const, text: `*이메일:*\n${email}` },
-    { type: 'mrkdwn' as const, text: `*시간:*\n${kstTimestamp()}` },
-  ]
-  if (platform) {
-    fields.push({
-      type: 'mrkdwn',
-      text: `*플랫폼:*\n${platform === 'app' ? '📱 앱' : '🌐 웹'}`,
-    })
-  }
   return {
     blocks: [
       {
-        type: 'header',
-        text: { type: 'plain_text', text: `🎉 새 회원가입${providerLabel}` },
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: `*🎉  새 회원가입*\n${email}`,
+        },
+        ...(tags(providerTag(provider), platformTag(platform))
+          ? {
+              accessory: {
+                type: 'button',
+                text: {
+                  type: 'plain_text',
+                  text: tags(providerTag(provider), platformTag(platform))
+                    .replace(/`/g, '')
+                    .trim(),
+                },
+                style: 'primary',
+              },
+            }
+          : {}),
       },
       {
-        type: 'section',
-        fields,
+        type: 'context',
+        elements: [
+          {
+            type: 'mrkdwn',
+            text: [providerTag(provider), platformTag(platform), kstTimestamp()]
+              .filter(Boolean)
+              .join('  ·  '),
+          },
+        ],
       },
     ],
   }
@@ -42,35 +81,31 @@ export function formatIAPMessage(info: {
   userId: string
   transactionId: string
 }) {
-  const icons: Record<string, string> = {
-    subscription: '⭐',
-    purchase: '💰',
-    restore: '🔄',
+  const config: Record<string, { icon: string; label: string }> = {
+    subscription: { icon: '⭐', label: '구독' },
+    purchase: { icon: '💳', label: '구매' },
+    restore: { icon: '🔄', label: '복원' },
   }
-  const labels: Record<string, string> = {
-    subscription: '구독',
-    purchase: '구매',
-    restore: '복원',
-  }
-  const icon = icons[info.type] ?? '💰'
-  const label = labels[info.type] ?? info.type
+  const { icon, label } = config[info.type] ?? { icon: '💳', label: info.type }
 
   return {
     blocks: [
       {
-        type: 'header',
-        text: { type: 'plain_text', text: `${icon} IAP ${label}` },
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: `*${icon}  IAP ${label}*\n\`${info.productId}\`  ·  *${info.amount.toLocaleString()}원*`,
+        },
       },
+      { type: 'divider' },
       {
         type: 'section',
         fields: [
-          { type: 'mrkdwn', text: `*상품:*\n${info.productId}` },
+          { type: 'mrkdwn', text: `*제공자*\n${info.provider}` },
           {
             type: 'mrkdwn',
-            text: `*금액:*\n${info.amount.toLocaleString()}원`,
+            text: `*유저*\n\`${info.userId.slice(0, 8)}...\``,
           },
-          { type: 'mrkdwn', text: `*제공자:*\n${info.provider}` },
-          { type: 'mrkdwn', text: `*유저:*\n${info.userId.slice(0, 8)}...` },
         ],
       },
       {
@@ -78,7 +113,7 @@ export function formatIAPMessage(info: {
         elements: [
           {
             type: 'mrkdwn',
-            text: `거래 ID: ${info.transactionId} | ${kstTimestamp()}`,
+            text: `txn \`${info.transactionId}\`  ·  ${kstTimestamp()}`,
           },
         ],
       },
@@ -93,37 +128,42 @@ export function formatReviewMessage(info: {
   body?: string
   author?: string
 }) {
-  const stars = '⭐'.repeat(info.rating)
+  const stars = '★'.repeat(info.rating) + '☆'.repeat(5 - info.rating)
   const storeLabel = info.store === 'apple' ? '🍎 App Store' : '🤖 Google Play'
-  const fields = [
-    { type: 'mrkdwn' as const, text: `*스토어:*\n${storeLabel}` },
-    { type: 'mrkdwn' as const, text: `*평점:*\n${stars} (${info.rating}/5)` },
-  ]
-  if (info.author) {
-    fields.push({ type: 'mrkdwn', text: `*작성자:*\n${info.author}` })
-  }
 
   const blocks: Record<string, unknown>[] = [
     {
-      type: 'header',
-      text: { type: 'plain_text', text: '📝 새 리뷰' },
-    },
-    { type: 'section', fields },
-  ]
-  if (info.title || info.body) {
-    blocks.push({
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: [info.title ? `*${info.title}*` : '', info.body ?? '']
-          .filter(Boolean)
-          .join('\n'),
+        text: `*📝  새 리뷰*  ${stars}  *(${info.rating}/5)*`,
       },
+    },
+  ]
+
+  if (info.title || info.body) {
+    const content = [
+      info.title ? `> *${info.title}*` : '',
+      info.body ? `> ${info.body}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n')
+    blocks.push({
+      type: 'section',
+      text: { type: 'mrkdwn', text: content },
     })
   }
+
   blocks.push({
     type: 'context',
-    elements: [{ type: 'mrkdwn', text: kstTimestamp() }],
+    elements: [
+      {
+        type: 'mrkdwn',
+        text: [storeLabel, info.author, kstTimestamp()]
+          .filter(Boolean)
+          .join('  ·  '),
+      },
+    ],
   })
 
   return { blocks }
@@ -135,32 +175,25 @@ export function formatServerErrorMessage(info: {
   method?: string
   statusCode?: number
 }) {
+  const status = info.statusCode ?? 500
+  const request =
+    info.method && info.url ? `\`${info.method} ${info.url}\`` : undefined
+
   return {
     blocks: [
       {
-        type: 'header',
-        text: { type: 'plain_text', text: '🚨 서버 에러' },
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: `*🚨  서버 에러*  \`${status}\`${request ? `\n${request}` : ''}`,
+        },
       },
       {
         type: 'section',
-        fields: [
-          {
-            type: 'mrkdwn',
-            text: `*에러:*\n${info.error.slice(0, 200)}`,
-          },
-          {
-            type: 'mrkdwn',
-            text: `*상태:*\n${info.statusCode ?? 500}`,
-          },
-          ...(info.method && info.url
-            ? [
-                {
-                  type: 'mrkdwn' as const,
-                  text: `*요청:*\n${info.method} ${info.url}`,
-                },
-              ]
-            : []),
-        ],
+        text: {
+          type: 'mrkdwn',
+          text: `\`\`\`${info.error.slice(0, 500)}\`\`\``,
+        },
       },
       {
         type: 'context',
