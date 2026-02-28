@@ -157,7 +157,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    sendSlackNotification(
+    await sendSlackNotification(
       formatIAPMessage({
         type: product.type === 'SUBSCRIPTION' ? 'subscription' : 'purchase',
         provider,
@@ -173,6 +173,6 @@ export async function POST(req: NextRequest) {
       expiresAt: verificationResult.expiresAt,
     })
   } catch (error) {
-    return handleApiError(error)
+    return await handleApiError(error)
   }
 }

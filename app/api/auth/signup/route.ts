@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    sendSlackNotification(formatSignupMessage(email))
+    await sendSlackNotification(formatSignupMessage(email))
 
     return NextResponse.json({ success: true })
   } catch {

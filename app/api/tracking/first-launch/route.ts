@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ isNew: false }, { status: 500 })
     }
 
-    sendSlackNotification(
+    await sendSlackNotification(
       formatFirstLaunchMessage({ platform, deviceModel, osVersion }),
     )
 

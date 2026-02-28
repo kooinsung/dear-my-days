@@ -85,6 +85,6 @@ export async function POST(req: NextRequest) {
 
     return successResponse({ registered: true })
   } catch (error) {
-    return handleApiError(error)
+    return await handleApiError(error)
   }
 }

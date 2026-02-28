@@ -22,7 +22,7 @@ export function createLunarApiRoute<T>(handler: LunarApiHandler<T>) {
       const result = await handler(params.year, params.month, params.day)
       return successResponse(result)
     } catch (error) {
-      return handleApiError(error)
+      return await handleApiError(error)
     }
   }
 }

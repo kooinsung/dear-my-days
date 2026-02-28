@@ -28,6 +28,6 @@ export async function GET(req: Request) {
     )
     return successResponse(result)
   } catch (error) {
-    return handleApiError(error)
+    return await handleApiError(error)
   }
 }

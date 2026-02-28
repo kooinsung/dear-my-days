@@ -23,10 +23,10 @@ type ErrorContext = {
 }
 
 // 통합 에러 핸들러
-export function handleApiError(
+export async function handleApiError(
   error: unknown,
   context?: ErrorContext,
-): NextResponse {
+): Promise<NextResponse> {
   // Zod 검증 에러 (클라이언트 입력 에러 — Sentry/Slack 불필요)
   if (error instanceof ZodError) {
     const firstError = error.issues[0]
@@ -40,7 +40,7 @@ export function handleApiError(
   if (error instanceof AppError) {
     if (error.statusCode >= 500) {
       Sentry.captureException(error)
-      sendSlackErrorNotification(
+      await sendSlackErrorNotification(
         formatServerErrorMessage({
           error: error.message,
           url: context?.url,
@@ -60,7 +60,7 @@ export function handleApiError(
     error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다'
 
   Sentry.captureException(error)
-  sendSlackErrorNotification(
+  await sendSlackErrorNotification(
     formatServerErrorMessage({
       error: message,
       url: context?.url,

@@ -63,6 +63,6 @@ export async function POST() {
       results,
     })
   } catch (error) {
-    return handleApiError(error)
+    return await handleApiError(error)
   }
 }

@@ -88,6 +88,6 @@ export async function POST(req: NextRequest) {
       tokenHash: linkData.properties.hashed_token,
     })
   } catch (error) {
-    return handleApiError(error)
+    return await handleApiError(error)
   }
 }

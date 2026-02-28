@@ -58,6 +58,6 @@ export async function GET(_req: NextRequest) {
       eventLimit,
     })
   } catch (error) {
-    return handleApiError(error)
+    return await handleApiError(error)
   }
 }
