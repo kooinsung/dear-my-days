@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
       const provider =
         user.app_metadata?.provider ?? user.app_metadata?.providers?.[0]
       await sendSlackNotification(
-        formatSignupMessage(user.email ?? 'unknown', provider),
+        formatSignupMessage(user.email ?? 'unknown', provider, 'web'),
       )
       const admin = supabaseAdmin()
       await admin.auth.admin.updateUserById(user.id, {

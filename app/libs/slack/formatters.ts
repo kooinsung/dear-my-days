@@ -4,8 +4,22 @@ function kstTimestamp(): string {
   return new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })
 }
 
-export function formatSignupMessage(email: string, provider?: string) {
+export function formatSignupMessage(
+  email: string,
+  provider?: string,
+  platform?: 'web' | 'app',
+) {
   const providerLabel = provider ? ` (${provider})` : ''
+  const fields = [
+    { type: 'mrkdwn' as const, text: `*이메일:*\n${email}` },
+    { type: 'mrkdwn' as const, text: `*시간:*\n${kstTimestamp()}` },
+  ]
+  if (platform) {
+    fields.push({
+      type: 'mrkdwn',
+      text: `*플랫폼:*\n${platform === 'app' ? '📱 앱' : '🌐 웹'}`,
+    })
+  }
   return {
     blocks: [
       {
@@ -14,10 +28,7 @@ export function formatSignupMessage(email: string, provider?: string) {
       },
       {
         type: 'section',
-        fields: [
-          { type: 'mrkdwn', text: `*이메일:*\n${email}` },
-          { type: 'mrkdwn', text: `*시간:*\n${kstTimestamp()}` },
-        ],
+        fields,
       },
     ],
   }

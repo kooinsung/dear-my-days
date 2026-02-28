@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
         )
       }
 
-      await sendSlackNotification(formatSignupMessage(email, 'kakao'))
+      await sendSlackNotification(formatSignupMessage(email, 'kakao', 'app'))
     }
 
     // 3. Magic link 생성 → token_hash 반환
