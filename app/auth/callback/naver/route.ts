@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
     const { isNew } = await findOrCreateNaverUser(naverUser)
     if (isNew) {
       await sendSlackNotification(
-        formatSignupMessage(naverUser.email ?? 'unknown', 'naver'),
+        formatSignupMessage(naverUser.email ?? 'unknown', 'naver', 'web'),
       )
     }
     const token = await createNaverMagicLink(

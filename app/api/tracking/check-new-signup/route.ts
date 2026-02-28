@@ -24,7 +24,7 @@ export async function POST() {
       user.app_metadata?.provider ?? user.app_metadata?.providers?.[0]
 
     await sendSlackNotification(
-      formatSignupMessage(user.email ?? 'unknown', provider),
+      formatSignupMessage(user.email ?? 'unknown', provider, 'app'),
     )
 
     // 중복 방지 플래그 설정
