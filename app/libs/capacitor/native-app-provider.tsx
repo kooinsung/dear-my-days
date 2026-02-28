@@ -28,8 +28,10 @@ function trackFirstLaunch() {
           osVersion: info.osVersion,
         }),
       })
-        .then(() => {
-          localStorage.setItem(FIRST_LAUNCH_KEY, '1')
+        .then((res) => {
+          if (res.ok) {
+            localStorage.setItem(FIRST_LAUNCH_KEY, '1')
+          }
         })
         .catch(() => {})
     })
