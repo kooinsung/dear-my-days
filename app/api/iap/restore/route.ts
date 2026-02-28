@@ -127,7 +127,7 @@ export async function POST(req: NextRequest) {
         // 필요시 extra_event_slots를 다시 확인하고 동기화
       }
 
-      sendSlackNotification(
+      await sendSlackNotification(
         formatIAPMessage({
           type: 'restore',
           provider,
@@ -217,7 +217,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    sendSlackNotification(
+    await sendSlackNotification(
       formatIAPMessage({
         type: 'restore',
         provider,
@@ -234,6 +234,6 @@ export async function POST(req: NextRequest) {
       expiresAt: verificationResult.expiresAt,
     })
   } catch (error) {
-    return handleApiError(error)
+    return await handleApiError(error)
   }
 }
