@@ -4,6 +4,8 @@ import {
   sendEmailVerificationMail,
 } from '@/libs/auth/email-verification'
 import { env } from '@/libs/config/env'
+import { sendSlackNotification } from '@/libs/slack/client'
+import { formatSignupMessage } from '@/libs/slack/formatters'
 import { supabaseAdmin } from '@/libs/supabase/admin'
 
 export async function POST(req: NextRequest) {
@@ -84,6 +86,8 @@ export async function POST(req: NextRequest) {
         { status: 500 },
       )
     }
+
+    sendSlackNotification(formatSignupMessage(email))
 
     return NextResponse.json({ success: true })
   } catch {

@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { verifyAppleReceipt, verifyGoogleReceipt } from '@/libs/iap/verify'
+import { sendSlackNotification } from '@/libs/slack/client'
+import { formatIAPMessage } from '@/libs/slack/formatters'
 import { supabaseAdmin } from '@/libs/supabase/admin'
 import type { PaymentProvider } from '@/libs/supabase/database.types'
 import { handleApiError, successResponse } from '@/libs/utils/errors'
@@ -154,6 +156,17 @@ export async function POST(req: NextRequest) {
         }
       }
     }
+
+    sendSlackNotification(
+      formatIAPMessage({
+        type: product.type === 'SUBSCRIPTION' ? 'subscription' : 'purchase',
+        provider,
+        productId: finalProductId,
+        amount: product.amount,
+        userId,
+        transactionId,
+      }),
+    )
 
     return successResponse({
       transactionId,

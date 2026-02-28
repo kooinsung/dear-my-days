@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { verifyAppleReceipt, verifyGoogleReceipt } from '@/libs/iap/verify'
+import { sendSlackNotification } from '@/libs/slack/client'
+import { formatIAPMessage } from '@/libs/slack/formatters'
 import { supabaseAdmin } from '@/libs/supabase/admin'
 import type { PaymentProvider } from '@/libs/supabase/database.types'
 import { createSupabaseServer } from '@/libs/supabase/server'
@@ -125,6 +127,17 @@ export async function POST(req: NextRequest) {
         // 필요시 extra_event_slots를 다시 확인하고 동기화
       }
 
+      sendSlackNotification(
+        formatIAPMessage({
+          type: 'restore',
+          provider,
+          productId: finalProductId,
+          amount: product.amount,
+          userId: user.id,
+          transactionId,
+        }),
+      )
+
       return successResponse({
         restored: true,
         transactionId,
@@ -203,6 +216,17 @@ export async function POST(req: NextRequest) {
         }
       }
     }
+
+    sendSlackNotification(
+      formatIAPMessage({
+        type: 'restore',
+        provider,
+        productId: finalProductId,
+        amount: product.amount,
+        userId: user.id,
+        transactionId,
+      }),
+    )
 
     return successResponse({
       restored: true,
