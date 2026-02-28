@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
         type: 'SUBSCRIPTION',
         planType: 'PREMIUM_YEARLY',
       },
-      'com.dearmydays.event.slot': { amount: 990, type: 'EVENT_SLOT' },
+      'com.dearmydays.event.slot': { amount: 1900, type: 'EVENT_SLOT' },
     }
 
     const finalProductId = verificationResult.productId || productId
