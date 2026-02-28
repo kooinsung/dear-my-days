@@ -23,39 +23,6 @@ export function formatSignupMessage(email: string, provider?: string) {
   }
 }
 
-export function formatFirstLaunchMessage(info: {
-  platform: string
-  deviceModel?: string
-  osVersion?: string
-}) {
-  const icon = info.platform === 'ios' ? '🍎' : '🤖'
-  const fields = [
-    { type: 'mrkdwn' as const, text: `*플랫폼:*\n${icon} ${info.platform}` },
-    { type: 'mrkdwn' as const, text: `*시간:*\n${kstTimestamp()}` },
-  ]
-  if (info.deviceModel) {
-    fields.push({
-      type: 'mrkdwn',
-      text: `*디바이스:*\n${info.deviceModel}`,
-    })
-  }
-  if (info.osVersion) {
-    fields.push({
-      type: 'mrkdwn',
-      text: `*OS:*\n${info.osVersion}`,
-    })
-  }
-  return {
-    blocks: [
-      {
-        type: 'header',
-        text: { type: 'plain_text', text: `${icon} 앱 첫 실행` },
-      },
-      { type: 'section', fields },
-    ],
-  }
-}
-
 export function formatIAPMessage(info: {
   type: 'subscription' | 'purchase' | 'restore'
   provider: string
