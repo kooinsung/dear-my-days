@@ -24,6 +24,10 @@ export const env = createEnv({
     FIREBASE_PROJECT_ID: z.string().optional(),
     FIREBASE_CLIENT_EMAIL: z.string().optional(),
     FIREBASE_PRIVATE_KEY: z.string().optional(),
+
+    // Slack Webhook - 선택사항
+    SLACK_WEBHOOK_URL: z.string().url().optional(),
+    SLACK_WEBHOOK_URL_ERRORS: z.string().url().optional(),
   },
 
   /**
@@ -41,6 +45,9 @@ export const env = createEnv({
     // Google OAuth (네이티브 로그인용, 선택사항)
     NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID: z.string().optional(),
     NEXT_PUBLIC_GOOGLE_IOS_CLIENT_ID: z.string().optional(),
+
+    // Sentry - 선택사항
+    NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional(),
   },
 
   /**
@@ -60,6 +67,8 @@ export const env = createEnv({
     FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID,
     FIREBASE_CLIENT_EMAIL: process.env.FIREBASE_CLIENT_EMAIL,
     FIREBASE_PRIVATE_KEY: process.env.FIREBASE_PRIVATE_KEY,
+    SLACK_WEBHOOK_URL: process.env.SLACK_WEBHOOK_URL,
+    SLACK_WEBHOOK_URL_ERRORS: process.env.SLACK_WEBHOOK_URL_ERRORS,
 
     // Client
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -71,6 +80,7 @@ export const env = createEnv({
       process.env.NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID,
     NEXT_PUBLIC_GOOGLE_IOS_CLIENT_ID:
       process.env.NEXT_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
   },
 
   /**

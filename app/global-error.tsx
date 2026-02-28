@@ -3,7 +3,7 @@
 import * as Sentry from '@sentry/nextjs'
 import { useEffect } from 'react'
 
-export default function ErrorPage({
+export default function GlobalError({
   error,
 }: {
   error: Error & { digest?: string }
@@ -12,5 +12,11 @@ export default function ErrorPage({
     Sentry.captureException(error)
   }, [error])
 
-  return <div>예상치 못한 오류가 발생했습니다.</div>
+  return (
+    <html lang="ko">
+      <body>
+        <div>예상치 못한 오류가 발생했습니다.</div>
+      </body>
+    </html>
+  )
 }

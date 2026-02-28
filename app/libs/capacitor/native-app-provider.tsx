@@ -6,6 +6,36 @@ import { useDeepLinks } from './deep-link'
 import { isNativeSync } from './platform'
 import { useAppState, useNativeBackButton } from './use-native-navigation'
 
+const FIRST_LAUNCH_KEY = 'dmd_first_launch_tracked'
+
+function trackFirstLaunch() {
+  if (!isNativeSync()) {
+    return
+  }
+  if (localStorage.getItem(FIRST_LAUNCH_KEY)) {
+    return
+  }
+
+  import('@capacitor/device').then(({ Device }) => {
+    Promise.all([Device.getId(), Device.getInfo()]).then(([idResult, info]) => {
+      fetch('/api/tracking/first-launch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          deviceId: idResult.identifier,
+          platform: info.platform === 'ios' ? 'ios' : 'android',
+          deviceModel: info.model,
+          osVersion: info.osVersion,
+        }),
+      })
+        .then(() => {
+          localStorage.setItem(FIRST_LAUNCH_KEY, '1')
+        })
+        .catch(() => {})
+    })
+  })
+}
+
 /**
  * Capacitor 네이티브 앱 통합 프로바이더
  * - 네이티브 뒤로가기 버튼 처리
@@ -31,6 +61,11 @@ export function NativeAppProvider({ children }: { children: React.ReactNode }) {
       console.log('App became inactive')
     },
   )
+
+  // 첫 실행 트래킹
+  useEffect(() => {
+    trackFirstLaunch()
+  }, [])
 
   // Status Bar 스타일 설정
   useEffect(() => {
