@@ -60,24 +60,20 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(`${baseUrl}/login?${params.toString()}`)
     }
 
-    // 신규 가입 체크 (created_at이 5분 이내 + 중복 방지)
+    // 신규 가입 체크 (signup_notified 플래그로 중복 방지)
     const {
       data: { user },
     } = await supabase.auth.getUser()
-    if (user) {
-      const isNew =
-        Date.now() - new Date(user.created_at).getTime() < 5 * 60 * 1000
-      if (isNew && !user.user_metadata?.signup_notified) {
-        const provider =
-          user.app_metadata?.provider ?? user.app_metadata?.providers?.[0]
-        await sendSlackNotification(
-          formatSignupMessage(user.email ?? 'unknown', provider),
-        )
-        const admin = supabaseAdmin()
-        await admin.auth.admin.updateUserById(user.id, {
-          user_metadata: { ...user.user_metadata, signup_notified: true },
-        })
-      }
+    if (user && !user.user_metadata?.signup_notified) {
+      const provider =
+        user.app_metadata?.provider ?? user.app_metadata?.providers?.[0]
+      await sendSlackNotification(
+        formatSignupMessage(user.email ?? 'unknown', provider),
+      )
+      const admin = supabaseAdmin()
+      await admin.auth.admin.updateUserById(user.id, {
+        user_metadata: { ...user.user_metadata, signup_notified: true },
+      })
     }
 
     // OAuth 성공: 홈으로 리다이렉트
