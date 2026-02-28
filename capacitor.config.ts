@@ -27,7 +27,7 @@ const serverUrlMap = {
 
 const config: CapacitorConfig = {
   appId: 'com.dearmydays.app',
-  appName: 'DMD',
+  appName: 'DeayMyDays',
 
   // webDir is required but not used (dummy directory)
   webDir: 'public',
