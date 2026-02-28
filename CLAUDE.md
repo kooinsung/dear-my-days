@@ -12,6 +12,10 @@ Capacitor 기반 모바일 앱으로 웹과 동일한 기능을 제공하며, �
 - 🌙 **음력 지원**: KASI API를 활용한 양력↔음력 변환, 윤달 처리
 - 📅 **달력 뷰**: 월별 이벤트 캘린더, 과거 이벤트 조회
 - 🔐 **다중 인증**: 이메일, Google, Kakao, Naver, Apple OAuth
+- 🔔 **푸시 알림**: FCM 기반 이벤트 리마인더 (커스텀 시간 설정)
+- 💳 **구독/IAP**: 프리미엄 구독 및 이벤트 슬롯 단건 구매
+- 🚨 **에러 모니터링**: Sentry를 통한 실시간 에러 추적
+- 📊 **운영 알림**: Slack Webhook을 통한 회원가입/에러 알림
 - ⚙️ **설정**: 계정 관리, 데이터 내보내기
 
 ---
@@ -35,6 +39,8 @@ Capacitor 기반 모바일 앱으로 웹과 동일한 기능을 제공하며, �
 - **Authentication**: Supabase Auth (Email, OAuth)
 - **Email**: Resend (트랜잭션 이메일)
 - **Push Notifications**: Firebase Cloud Messaging
+- **Error Monitoring**: Sentry (`@sentry/nextjs`)
+- **Slack**: Incoming Webhooks (회원가입 알림, 에러 알림)
 - **External APIs**:
   - KASI (한국천문연구원) - 음력 변환
   - Naver/Kakao/Google/Apple OAuth
@@ -52,11 +58,13 @@ Capacitor 기반 모바일 앱으로 웹과 동일한 기능을 제공하며, �
 프로젝트 루트/
 ├── app/                      # Next.js 앱
 │   ├── api/                  # API 라우트 (Route Handlers)
-│   │   ├── auth/            # 인증 관련 API
+│   │   ├── auth/            # 인증 관련 API (signup, reset-password, kakao-native)
 │   │   ├── events/          # 이벤트 CRUD API
-│   │   ├── iap/             # 인앱결제 검증 API
+│   │   ├── iap/             # 인앱결제 검증 API (verify, subscription, restore)
 │   │   ├── lunar/           # 음력 변환 API
-│   │   └── provider/        # OAuth 제공자 연결/해제
+│   │   ├── notifications/   # 푸시 알림 API (register-token, send 등)
+│   │   ├── provider/        # OAuth 제공자 연결/해제
+│   │   └── tracking/        # 회원가입 추적 API
 │   ├── auth/                # 인증 페이지 (로그인, 회원가입, 이메일 인증, 비밀번호 리셋)
 │   ├── calendar/            # 캘린더 뷰 페이지
 │   ├── event/               # 이벤트 상세/편집 페이지
@@ -75,12 +83,17 @@ Capacitor 기반 모바일 앱으로 웹과 동일한 기능을 제공하며, �
 │   │   ├── capacitor/      # Capacitor 네이티브 통합
 │   │   ├── config/         # 환경 변수 검증
 │   │   ├── constants/      # 상수 (카테고리, 메시지)
+│   │   ├── fcm/            # Firebase Cloud Messaging 클라이언트
+│   │   ├── helpers/        # 비즈니스 로직 헬퍼
 │   │   ├── iap/            # 인앱결제 영수증 검증
 │   │   ├── kasi/           # KASI API 클라이언트
 │   │   ├── naver/          # Naver OAuth 클라이언트
 │   │   ├── oauth/          # OAuth URL 헬퍼
+│   │   ├── providers/      # OAuth 프로바이더 유틸리티
 │   │   ├── resend/         # Resend 이메일 클라이언트
+│   │   ├── slack/          # Slack Webhook 클라이언트 및 포매터
 │   │   ├── supabase/       # Supabase 클라이언트
+│   │   ├── transitions/    # 페이지 전환 유틸리티
 │   │   ├── utils/          # 공통 유틸리티
 │   │   └── validation/     # Zod 스키마
 │   ├── hooks/              # React 커스텀 훅
@@ -92,11 +105,16 @@ Capacitor 기반 모바일 앱으로 웹과 동일한 기능을 제공하며, �
 │
 ├── supabase/               # Supabase 설정 및 마이그레이션
 │   ├── functions/         # Edge Functions
+│   │   ├── poll-app-reviews/           # 앱 리뷰 수집
+│   │   └── send-scheduled-notifications/ # 예약 푸시 알림 발송
 │   └── migrations/        # DB 마이그레이션 SQL 파일
 │
 ├── docs/                   # 프로젝트 문서
-│   └── SCHEMA.md          # 데이터베이스 스키마 문서
 │
+├── sentry.client.config.ts # Sentry 클라이언트 설정
+├── sentry.server.config.ts # Sentry 서버 설정
+├── sentry.edge.config.ts   # Sentry Edge 설정
+├── instrumentation.ts      # Next.js Instrumentation (Sentry 초기화)
 ├── middleware.ts           # Next.js 미들웨어 (인증 체크)
 ├── proxy.ts                # 인증 프록시
 └── package.json            # 프로젝트 의존성 및 스크립트
@@ -199,8 +217,8 @@ export async function POST(req: NextRequest) {
     // 3. 성공 응답
     return successResponse(result)
   } catch (error) {
-    // 4. 통합 에러 처리
-    return handleApiError(error)
+    // 4. 통합 에러 처리 (await 필수 — Sentry/Slack 전송 대기)
+    return await handleApiError(error)
   }
 }
 ```
@@ -234,8 +252,17 @@ const { finalSolar, finalLunar, finalIsLeapMonth } = await convertCalendarDates(
 **계층별 에러 처리**:
 
 1. **API 계층**: `handleApiError()` - Zod, AppError, 일반 에러 통합 처리
-2. **UI 계층**: React Error Boundary
+   - `async` 함수, `Promise<NextResponse>` 반환
+   - 500 에러 시 자동으로 Sentry 캡처 + Slack 알림 전송
+   - 사용법: `return await handleApiError(error)` (`await` 필수)
+2. **UI 계층**: React Error Boundary + `global-error.tsx` (Sentry 연동)
 3. **폼 검증**: Zod 스키마 + 클라이언트 측 검증
+
+**Sentry + Slack 통합**:
+- `@sentry/nextjs`로 클라이언트/서버/에지 런타임 에러 자동 캡처
+- `handleApiError()` 내부에서 500 에러 발생 시:
+  - `Sentry.captureException(error)` 호출
+  - `sendSlackErrorNotification()` 호출 (Slack Webhook)
 
 **에러 메시지**:
 - 모든 에러 메시지는 한글로 통일
@@ -347,8 +374,8 @@ goBack()
 - ✅ 햅틱 피드백 (`@capacitor/haptics`)
 - ✅ 상태바 제어 (`@capacitor/status-bar`)
 - ✅ 스플래시 화면 (`@capacitor/splash-screen`)
-- 📦 푸시 알림 (`@capacitor/push-notifications`) - 설정 필요
-- 📦 인앱결제 (서드파티 플러그인) - 설정 필요
+- ✅ 푸시 알림 (`@capacitor/push-notifications`)
+- ✅ 인앱결제 (서드파티 플러그인)
 
 **자세한 문서**:
 - Capacitor 명령어: [docs/CAPACITOR_COMMANDS.md](docs/CAPACITOR_COMMANDS.md)
@@ -425,6 +452,7 @@ chore: 빌드 설정, 패키지 매니저 등
 | `/api/auth/signup` | POST | 이메일 회원가입 | `{ email, password }` |
 | `/api/auth/reset-password` | POST | 비밀번호 리셋 요청 | `{ email }` |
 | `/api/auth/reset-password/confirm` | POST | 비밀번호 리셋 확인 | `{ uid, token, password }` |
+| `/api/auth/kakao-native` | POST | Kakao 네이티브 로그인 | `{ access_token }` |
 
 ### 이벤트 API
 
@@ -467,6 +495,29 @@ GET /api/lunar/lunar-to-solar?year=2024&month=1&day=1
 | `/api/provider/connect` | POST | OAuth 제공자 연결 |
 | `/api/provider/disconnect` | POST | OAuth 제공자 해제 |
 
+### 푸시 알림 API
+
+| 엔드포인트 | 메서드 | 설명 |
+|----------|--------|------|
+| `/api/notifications/register-token` | POST | 디바이스 토큰 등록 |
+| `/api/notifications/unregister-token` | POST | 디바이스 토큰 해제 |
+| `/api/notifications/send` | POST | 알림 발송 |
+| `/api/notifications/test-send` | POST | 테스트 알림 발송 |
+
+### IAP API
+
+| 엔드포인트 | 메서드 | 설명 |
+|----------|--------|------|
+| `/api/iap/verify` | POST | 영수증 검증 |
+| `/api/iap/subscription` | GET/POST | 구독 상태 조회/관리 |
+| `/api/iap/restore` | POST | 구매 복원 |
+
+### 트래킹 API
+
+| 엔드포인트 | 메서드 | 설명 |
+|----------|--------|------|
+| `/api/tracking/check-new-signup` | POST | 신규 회원가입 확인 (Slack 알림) |
+
 ---
 
 ## 보안 고려사항
@@ -487,13 +538,36 @@ RESEND_FROM_EMAIL=
 # KASI (음력 변환)
 KASI_SERVICE_KEY=                    # ⚠️ 서버 전용
 
+# 기타
+NEXT_PUBLIC_WEB_BASE_URL=
+```
+
+**선택 환경 변수**:
+```env
 # OAuth
 NEXT_PUBLIC_NAVER_CLIENT_ID=
 NAVER_CLIENT_SECRET=                 # ⚠️ 서버 전용
 
-# 기타
-NEXT_PUBLIC_WEB_BASE_URL=
-NEXT_PUBLIC_SITE_URL=
+# Google OAuth (네이티브 로그인용)
+NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID=
+NEXT_PUBLIC_GOOGLE_IOS_CLIENT_ID=
+
+# Slack Webhook
+SLACK_WEBHOOK_URL=                   # ⚠️ 서버 전용 (회원가입 알림)
+SLACK_WEBHOOK_URL_ERRORS=            # ⚠️ 서버 전용 (에러 알림)
+
+# Sentry
+NEXT_PUBLIC_SENTRY_DSN=
+
+# Firebase (Push Notifications)
+FIREBASE_PROJECT_ID=                 # ⚠️ 서버 전용
+FIREBASE_CLIENT_EMAIL=               # ⚠️ 서버 전용
+FIREBASE_PRIVATE_KEY=                # ⚠️ 서버 전용
+
+# IAP (In-App Purchases)
+APPLE_SHARED_SECRET=                 # ⚠️ 서버 전용
+GOOGLE_PACKAGE_NAME=                 # ⚠️ 서버 전용
+GOOGLE_SERVICE_ACCOUNT_TOKEN=        # ⚠️ 서버 전용
 ```
 
 **검증**:
@@ -564,7 +638,7 @@ export async function POST(req: NextRequest) {
 
     return successResponse(result)
   } catch (error) {
-    return handleApiError(error)
+    return await handleApiError(error)
   }
 }
 ```
@@ -754,16 +828,17 @@ pnpm dev:android           # Android 라이브 리로드 개발
 
 ## 프로젝트 상태
 
-**최근 작업** (2026-02-09):
-- ✅ React Native에서 Capacitor로 롤백
-- ✅ 웹 코드 23개 파일 마이그레이션 (SmartLink → Link, useRouter 전환)
-- ✅ app/libs/capacitor/ 복원 (6개 파일)
-- ✅ OAuth 플로우 Capacitor Browser API로 변경
-- ✅ mobile/ 디렉토리 제거 (14,000줄 코드 감소)
-- ✅ Capacitor 의존성 13개 패키지 설치
-- ✅ 타입 체크 및 빌드 검증 완료
+**최근 작업** (2026-02-28):
+- ✅ Sentry 에러 모니터링 통합 (`@sentry/nextjs`)
+- ✅ Slack Webhook 알림 (회원가입, 서버 에러)
+- ✅ 푸시 알림 구현 (FCM + Capacitor Push Notifications)
+- ✅ 인앱결제 구현 (Apple IAP + Google Play Billing)
+- ✅ 알림 설정 minutes_before 컬럼 마이그레이션
+- ✅ Kakao 네이티브 로그인 API
+- ✅ 회원가입 추적 및 Slack 알림
 
-**이전 작업** (2026-02-06 ~ 2026-02-08):
+**이전 작업** (2026-02-06 ~ 2026-02-09):
+- ✅ Capacitor 기반 크로스 플랫폼 앱 구축
 - ✅ 환경 변수 검증 시스템 구축 (@t3-oss/env-nextjs)
 - ✅ Zod 입력 검증 전면 적용
 - ✅ 통합 에러 처리 시스템
@@ -771,16 +846,12 @@ pnpm dev:android           # Android 라이브 리로드 개발
 - ✅ Biome 린팅 100% 통과
 
 **다음 단계 권장사항**:
-1. iOS/Android 네이티브 프로젝트 생성 (`pnpm cap:add ios/android`)
-2. 실제 디바이스에서 모바일 앱 테스트
-3. Universal Links (iOS) / App Links (Android) 설정
-4. 푸시 알림 구현 (Capacitor Push Notifications)
-5. 인앱결제 구현 (Capacitor 플러그인)
-6. 유닛 테스트 추가 (Vitest + React Testing Library)
-7. 에러 모니터링 도구 통합 (Sentry)
+1. 유닛 테스트 추가 (Vitest + React Testing Library)
+2. Universal Links (iOS) / App Links (Android) 설정
+3. 앱 스토어 배포 (iOS App Store, Google Play)
 
 ---
 
-**마지막 업데이트**: 2026-02-09 (Capacitor 롤백 완료)
+**마지막 업데이트**: 2026-02-28
 **메인테이너**: @a17050
-**Co-Author**: Claude Sonnet 4.5
+**Co-Author**: Claude Opus 4.6
