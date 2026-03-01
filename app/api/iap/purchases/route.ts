@@ -22,9 +22,9 @@ export async function GET() {
 
     const { data: purchases, error } = await admin
       .from('event_purchases')
-      .select('id, purchase_type, product_id, amount, currency, purchased_at')
+      .select('id, purchase_type, product_id, amount, currency, created_at')
       .eq('user_id', user.id)
-      .order('purchased_at', { ascending: false })
+      .order('created_at', { ascending: false })
 
     if (error) {
       return NextResponse.json(

@@ -162,7 +162,7 @@ export async function POST(req: NextRequest) {
         purchase_type: product.type,
         amount: product.amount,
         currency: 'KRW',
-        purchased_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
       })
 
     if (purchaseError) {
