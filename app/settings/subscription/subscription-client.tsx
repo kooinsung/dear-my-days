@@ -43,6 +43,11 @@ interface PurchaseRecord {
   refunded_at?: string | null
 }
 
+async function fetchPurchases() {
+  const response = await fetch('/api/iap/purchases')
+  return response.ok ? await response.json() : { data: [] }
+}
+
 export function SubscriptionClient() {
   const { user, isLoading: authLoading } = useAuth()
   const showToast = useUIStore((s) => s.showToast)
@@ -79,10 +84,7 @@ export function SubscriptionClient() {
         isIAPAvailable(),
         getCurrentSubscription(userId),
         getProducts(),
-        (async () => {
-          const r = await fetch('/api/iap/purchases')
-          return r.ok ? await r.json() : { data: [] }
-        })(),
+        fetchPurchases(),
       ])
 
       const available =
