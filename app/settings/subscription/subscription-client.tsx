@@ -129,6 +129,23 @@ export function SubscriptionClient() {
         })
       }
 
+      // 버튼 노출 조건 디버깅: 어떤 조건이 실패하는지 추적
+      const subsPlan = subscription.planType
+      const subsPremium =
+        subsPlan === 'PREMIUM_MONTHLY' || subsPlan === 'PREMIUM_YEARLY'
+      if (subsFiltered.length === 0 || subsPremium) {
+        Sentry.captureMessage('[Subscription] purchase buttons hidden', {
+          level: 'error',
+          extra: {
+            planType: subsPlan,
+            isPremium: subsPremium,
+            subsCount: subsFiltered.length,
+            inappCount: inappFiltered.length,
+            totalProducts: products.length,
+          },
+        })
+      }
+
       setPlanType(subscription.planType)
       setExpiresAt(subscription.expiresAt)
       setExtraEventSlots(subscription.extraEventSlots)

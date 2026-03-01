@@ -24,6 +24,7 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isNativeApp, setIsNativeApp] = useState(false)
+  const [isSessionReady, setIsSessionReady] = useState(!!initialUser)
 
   const [user, setUser] = useState<User | null>(initialUser)
   const [email, setEmail] = useState('')
@@ -36,7 +37,7 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
   const [isResetModalOpen, setIsResetModalOpen] = useState(false)
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false)
 
-  const isAnyPending = isLoginPending || isOAuthPending
+  const isAnyPending = isLoginPending || isOAuthPending || !isSessionReady
 
   const clearMessages = useCallback(() => {
     setMessage('')
@@ -63,9 +64,11 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
       setUser(session?.user ?? null)
     })
 
-    // 서버에서 유저 없음 확인 시, stale 클라이언트 세션 정리
+    // 서버에서 유저 없음 확인 시, stale 클라이언트 세션 정리 (완료 후 로그인 허용)
     if (!initialUser) {
-      supabase.auth.signOut()
+      supabase.auth.signOut().then(() => {
+        setIsSessionReady(true)
+      })
     }
 
     return () => data.subscription.unsubscribe()
@@ -121,7 +124,9 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
         const result =
           provider === 'google' ? await googleLogin() : await kakaoLogin()
         if (result.success) {
-          router.replace('/')
+          // 네이티브 로그인은 signInWithIdToken/verifyOtp로 document.cookie에 세션 저장
+          // WKWebView에서 쿠키 동기화를 보장하기 위해 전체 페이지 리로드 사용
+          window.location.href = '/'
           return
         }
       } else {
