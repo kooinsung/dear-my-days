@@ -151,31 +151,8 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // 새 거래로 기록
-    const { error: purchaseError } = await admin
-      .from('event_purchases')
-      .insert({
-        user_id: user.id,
-        provider: provider as PaymentProvider,
-        transaction_id: transactionId,
-        product_id: finalProductId,
-        purchase_type: product.type,
-        amount: product.amount,
-        currency: 'KRW',
-        created_at: new Date().toISOString(),
-      })
-
-    if (purchaseError) {
-      console.error('Failed to insert restored purchase:', purchaseError)
-      return NextResponse.json(
-        { success: false, error: 'Failed to record purchase' },
-        { status: 500 },
-      )
-    }
-
-    // 구독 또는 이벤트 슬롯에 따라 처리
+    // user_plans 먼저 업데이트
     if (product.type === 'SUBSCRIPTION') {
-      // 구독: user_plans 테이블 업데이트
       const { error: planError } = await admin.from('user_plans').upsert({
         user_id: user.id,
         plan_type: product.planType,
@@ -191,14 +168,12 @@ export async function POST(req: NextRequest) {
         )
       }
     } else if (product.type === 'EVENT_SLOT') {
-      // 이벤트 슬롯: extra_event_slots 증가
       const { error: slotError } = await admin.rpc('increment_event_slots', {
         user_id_param: user.id,
         increment_by: 1,
       })
 
       if (slotError) {
-        // RPC 함수가 없으면 직접 업데이트
         const { data: currentPlan } = await admin
           .from('user_plans')
           .select('extra_event_slots')
@@ -221,6 +196,23 @@ export async function POST(req: NextRequest) {
           )
         }
       }
+    }
+
+    // event_purchases에 구매 기록 (실패해도 플랜 업데이트는 이미 완료)
+    const { error: purchaseError } = await admin
+      .from('event_purchases')
+      .insert({
+        user_id: user.id,
+        provider: provider as PaymentProvider,
+        transaction_id: transactionId,
+        product_id: finalProductId,
+        purchase_type: product.type,
+        amount: product.amount,
+        currency: 'KRW',
+      })
+
+    if (purchaseError) {
+      console.error('Failed to insert purchase record:', purchaseError)
     }
 
     await sendSlackNotification(
