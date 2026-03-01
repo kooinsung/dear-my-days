@@ -6,6 +6,7 @@ import type {
   Event,
 } from '@/libs/supabase/database.types'
 import { getApiUrl, getUpcomingEventsThisYear } from '@/libs/utils'
+import { eventLimitKey } from './use-event-limit'
 
 // Query Keys
 export const eventKeys = {
@@ -227,6 +228,7 @@ export function useCreateEvent() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: eventKeys.all })
+      queryClient.invalidateQueries({ queryKey: eventLimitKey })
     },
   })
 }
@@ -270,6 +272,7 @@ export function useDeleteEvent() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: eventKeys.all })
+      queryClient.invalidateQueries({ queryKey: eventLimitKey })
     },
   })
 }

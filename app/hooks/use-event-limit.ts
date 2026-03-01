@@ -3,6 +3,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { createSupabaseBrowser } from '@/libs/supabase/browser'
 
+export const eventLimitKey = ['event-limit'] as const
+
 interface EventLimitInfo {
   eventCount: number
   eventLimit: number
@@ -13,7 +15,8 @@ export function useEventLimit() {
   const supabase = createSupabaseBrowser()
 
   return useQuery({
-    queryKey: ['event-limit'],
+    queryKey: eventLimitKey,
+    staleTime: 0,
     queryFn: async (): Promise<EventLimitInfo> => {
       const [countResult, subscriptionRes] = await Promise.all([
         supabase.from('events').select('*', { count: 'exact', head: true }),
