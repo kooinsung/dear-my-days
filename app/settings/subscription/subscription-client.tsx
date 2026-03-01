@@ -70,15 +70,37 @@ export function SubscriptionClient() {
     }
     setLoading(true)
     try {
-      const [available, subscription, products, purchasesRes] =
-        await Promise.all([
-          isIAPAvailable(),
-          getCurrentSubscription(userId),
-          getProducts(),
-          fetch('/api/iap/purchases').then((r) =>
-            r.ok ? r.json() : { data: [] },
-          ),
-        ])
+      const [
+        availableResult,
+        subscriptionResult,
+        productsResult,
+        purchasesResult,
+      ] = await Promise.allSettled([
+        isIAPAvailable(),
+        getCurrentSubscription(userId),
+        getProducts(),
+        fetch('/api/iap/purchases').then((r) =>
+          r.ok ? r.json() : { data: [] },
+        ),
+      ])
+
+      const available =
+        availableResult.status === 'fulfilled' ? availableResult.value : false
+      const subscription =
+        subscriptionResult.status === 'fulfilled'
+          ? subscriptionResult.value
+          : {
+              planType: null as PlanType | null,
+              expiresAt: null,
+              extraEventSlots: 0,
+              eventLimit: 3,
+            }
+      const products =
+        productsResult.status === 'fulfilled' ? productsResult.value : []
+      const purchasesRes =
+        purchasesResult.status === 'fulfilled'
+          ? purchasesResult.value
+          : { data: [] }
 
       setNativeAvailable(available)
       setPlanType(subscription.planType)
