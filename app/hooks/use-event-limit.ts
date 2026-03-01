@@ -17,10 +17,14 @@ export function useEventLimit() {
   return useQuery({
     queryKey: eventLimitKey,
     queryFn: async (): Promise<EventLimitInfo> => {
-      const [countResult, subscriptionRes] = await Promise.all([
+      const [countResult, subscriptionResponse] = await Promise.all([
         supabase.from('events').select('*', { count: 'exact', head: true }),
-        fetch('/api/iap/subscription').then((r) => (r.ok ? r.json() : null)),
+        fetch('/api/iap/subscription'),
       ])
+
+      const subscriptionRes = subscriptionResponse.ok
+        ? await subscriptionResponse.json()
+        : null
 
       const eventCount = countResult.count ?? 0
       const eventLimit = subscriptionRes?.data?.eventLimit ?? 3

@@ -79,9 +79,10 @@ export function SubscriptionClient() {
         isIAPAvailable(),
         getCurrentSubscription(userId),
         getProducts(),
-        fetch('/api/iap/purchases').then((r) =>
-          r.ok ? r.json() : { data: [] },
-        ),
+        (async () => {
+          const r = await fetch('/api/iap/purchases')
+          return r.ok ? await r.json() : { data: [] }
+        })(),
       ])
 
       const available =
