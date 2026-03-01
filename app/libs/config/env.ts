@@ -17,8 +17,10 @@ export const env = createEnv({
 
     // IAP (In-App Purchases) - 선택사항
     APPLE_SHARED_SECRET: z.string().optional(),
+    APPLE_BUNDLE_ID: z.string().optional(),
     GOOGLE_PACKAGE_NAME: z.string().optional(),
     GOOGLE_SERVICE_ACCOUNT_TOKEN: z.string().optional(),
+    GOOGLE_RTDN_AUTH_TOKEN: z.string().optional(),
 
     // Firebase (Push Notifications) - 선택사항
     FIREBASE_PROJECT_ID: z.string().optional(),
@@ -62,8 +64,10 @@ export const env = createEnv({
     KASI_SERVICE_KEY: process.env.KASI_SERVICE_KEY,
     NAVER_CLIENT_SECRET: process.env.NAVER_CLIENT_SECRET,
     APPLE_SHARED_SECRET: process.env.APPLE_SHARED_SECRET,
+    APPLE_BUNDLE_ID: process.env.APPLE_BUNDLE_ID,
     GOOGLE_PACKAGE_NAME: process.env.GOOGLE_PACKAGE_NAME,
     GOOGLE_SERVICE_ACCOUNT_TOKEN: process.env.GOOGLE_SERVICE_ACCOUNT_TOKEN,
+    GOOGLE_RTDN_AUTH_TOKEN: process.env.GOOGLE_RTDN_AUTH_TOKEN,
     FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID,
     FIREBASE_CLIENT_EMAIL: process.env.FIREBASE_CLIENT_EMAIL,
     FIREBASE_PRIVATE_KEY: process.env.FIREBASE_PRIVATE_KEY,
