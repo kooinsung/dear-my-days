@@ -89,11 +89,24 @@ export async function isIAPAvailable(): Promise<boolean> {
   }
   try {
     const { NativePurchases } = await import('@capgo/native-purchases')
-    return await withTimeout(
-      NativePurchases.isBillingSupported().then((r) => r.isBillingSupported),
-      10000,
-      false,
-    )
+    const MAX_RETRIES = 5
+    const INTERVAL_MS = 2000
+
+    for (let i = 0; i < MAX_RETRIES; i++) {
+      try {
+        const { isBillingSupported } =
+          await NativePurchases.isBillingSupported()
+        if (isBillingSupported) {
+          return true
+        }
+      } catch {
+        // 플러그인 초기화 중일 수 있으므로 재시도
+      }
+      if (i < MAX_RETRIES - 1) {
+        await new Promise((r) => setTimeout(r, INTERVAL_MS))
+      }
+    }
+    return false
   } catch {
     return false
   }
