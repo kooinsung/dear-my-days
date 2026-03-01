@@ -85,8 +85,7 @@ function withTimeout<T>(
 }
 
 export async function isIAPAvailable(): Promise<boolean> {
-  const native = await isNative()
-  if (!native) {
+  if (!(await isNative())) {
     return false
   }
   try {
@@ -159,16 +158,22 @@ export async function getProducts(): Promise<Product[]> {
       })
     }
 
-    Sentry.addBreadcrumb({
-      category: 'iap',
-      message: `getProducts: ${products.length} products loaded (subs: ${subsResult.products.length}, inapp: ${inappResult.products.length})`,
-      level: 'info',
-    })
+    if (products.length === 0) {
+      Sentry.captureMessage('[IAP] getProducts returned 0 products', {
+        level: 'error',
+        extra: {
+          subsRaw: subsResult.products.length,
+          inappRaw: inappResult.products.length,
+          requestedSubs: subsIds,
+          requestedInapp: inappIds,
+        },
+      })
+    }
 
     return products
   } catch (error) {
     Sentry.captureException(error, {
-      extra: { context: 'getProducts', fallback: 'MOCK_PRODUCTS' },
+      extra: { context: 'getProducts' },
     })
     return MOCK_PRODUCTS
   }
@@ -213,6 +218,15 @@ export async function purchaseProduct(
         : result.purchaseToken
 
     if (!receipt || !transactionId) {
+      Sentry.captureMessage('[IAP] purchase missing receipt or transactionId', {
+        level: 'error',
+        extra: {
+          productId,
+          hasReceipt: !!receipt,
+          hasTransactionId: !!transactionId,
+          platform,
+        },
+      })
       return { success: false, error: '구매 정보를 가져올 수 없습니다.' }
     }
 
@@ -233,6 +247,16 @@ export async function purchaseProduct(
     const data = await response.json()
 
     if (!response.ok || !data.success) {
+      Sentry.captureMessage('[IAP] server verification failed', {
+        level: 'error',
+        extra: {
+          productId,
+          transactionId,
+          provider,
+          status: response.status,
+          serverError: data.error,
+        },
+      })
       return {
         success: false,
         error: data.error || '서버 검증에 실패했습니다.',
@@ -247,6 +271,9 @@ export async function purchaseProduct(
     if (message.includes('cancel') || message.includes('Cancel')) {
       return { success: false, error: '구매가 취소되었습니다.' }
     }
+    Sentry.captureException(error, {
+      extra: { context: 'purchaseProduct', productId },
+    })
     return { success: false, error: message }
   }
 }
@@ -306,11 +333,18 @@ export async function restorePurchases(
     }
 
     if (restoredCount === 0) {
+      Sentry.captureMessage('[IAP] restore found purchases but none valid', {
+        level: 'warning',
+        extra: { totalPurchases: purchases.length },
+      })
       return { success: false, error: '유효한 구매 내역을 찾을 수 없습니다.' }
     }
 
     return { success: true }
   } catch (error) {
+    Sentry.captureException(error, {
+      extra: { context: 'restorePurchases' },
+    })
     const message =
       error instanceof Error ? error.message : '복원에 실패했습니다.'
     return { success: false, error: message }
@@ -342,7 +376,10 @@ export async function getCurrentSubscription(_userId: string): Promise<{
         eventLimit: 3,
       }
     )
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error, {
+      extra: { context: 'getCurrentSubscription' },
+    })
     return {
       planType: null,
       expiresAt: null,
