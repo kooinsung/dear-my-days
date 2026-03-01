@@ -26,6 +26,8 @@ export const ERROR_MESSAGES = {
     updateFailed: '이벤트 수정에 실패했습니다',
     deleteFailed: '이벤트 삭제에 실패했습니다',
     notFound: '이벤트를 찾을 수 없습니다',
+    limitExceeded:
+      '이벤트 등록 가능 개수를 초과했습니다. 프리미엄 구독 또는 추가 슬롯을 구매해 주세요.',
     solarDateRequired: 'solar_date is required when calendar_type is SOLAR',
     lunarDateRequired: 'lunar_date is required when calendar_type is LUNAR',
   },

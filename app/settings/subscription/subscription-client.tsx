@@ -26,6 +26,21 @@ const PLAN_LABELS: Record<string, string> = {
   PREMIUM_YEARLY: '연간 프리미엄',
 }
 
+const PRODUCT_LABELS: Record<string, string> = {
+  'com.dearmydays.premium.monthly': '월간 프리미엄 구독',
+  'com.dearmydays.premium.yearly': '연간 프리미엄 구독',
+  'com.dearmydays.event.slot': '이벤트 슬롯 추가',
+}
+
+interface PurchaseRecord {
+  id: string
+  purchase_type: string
+  product_id: string
+  amount: number
+  currency: string
+  purchased_at: string
+}
+
 export function SubscriptionClient() {
   const { user, isLoading: authLoading } = useAuth()
   const showToast = useUIStore((s) => s.showToast)
@@ -42,6 +57,7 @@ export function SubscriptionClient() {
 
   const [subsProducts, setSubsProducts] = useState<Product[]>([])
   const [inappProducts, setInappProducts] = useState<Product[]>([])
+  const [purchases, setPurchases] = useState<PurchaseRecord[]>([])
 
   const userId = user?.id ?? ''
 
@@ -51,11 +67,15 @@ export function SubscriptionClient() {
     }
     setLoading(true)
     try {
-      const [available, subscription, products] = await Promise.all([
-        isIAPAvailable(),
-        getCurrentSubscription(userId),
-        getProducts(),
-      ])
+      const [available, subscription, products, purchasesRes] =
+        await Promise.all([
+          isIAPAvailable(),
+          getCurrentSubscription(userId),
+          getProducts(),
+          fetch('/api/iap/purchases').then((r) =>
+            r.ok ? r.json() : { data: [] },
+          ),
+        ])
 
       setNativeAvailable(available)
       setPlanType(subscription.planType)
@@ -64,6 +84,7 @@ export function SubscriptionClient() {
       setEventLimit(subscription.eventLimit)
       setSubsProducts(products.filter((p) => p.type === 'SUBS'))
       setInappProducts(products.filter((p) => p.type === 'INAPP'))
+      setPurchases(purchasesRes.data ?? [])
     } catch {
       showToast('데이터를 불러오는데 실패했습니다.', 'error')
     } finally {
@@ -400,6 +421,69 @@ export function SubscriptionClient() {
                       >
                         {product.price}
                       </Button>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* 구매 기록 */}
+            {purchases.length > 0 && (
+              <section className={card()}>
+                <h2
+                  className={css({
+                    fontSize: '18px',
+                    fontWeight: 'bold',
+                    marginTop: 0,
+                    marginBottom: '16px',
+                  })}
+                >
+                  구매 기록
+                </h2>
+                <div className={vstack({ gap: '8px', alignItems: 'stretch' })}>
+                  {purchases.map((purchase) => (
+                    <div
+                      key={purchase.id}
+                      className={css({
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '10px 12px',
+                        backgroundColor: '#F9FAFB',
+                        borderRadius: '8px',
+                      })}
+                    >
+                      <div>
+                        <div
+                          className={css({
+                            fontWeight: 600,
+                            fontSize: '14px',
+                          })}
+                        >
+                          {PRODUCT_LABELS[purchase.product_id] ||
+                            purchase.product_id}
+                        </div>
+                        <div
+                          className={css({
+                            color: '#666',
+                            fontSize: '12px',
+                            marginTop: '2px',
+                          })}
+                        >
+                          {new Date(purchase.purchased_at).toLocaleDateString(
+                            'ko-KR',
+                          )}
+                        </div>
+                      </div>
+                      <div
+                        className={css({
+                          fontWeight: 600,
+                          fontSize: '14px',
+                          color: '#333',
+                        })}
+                      >
+                        {purchase.amount.toLocaleString('ko-KR')}원
+                      </div>
                     </div>
                   ))}
                 </div>

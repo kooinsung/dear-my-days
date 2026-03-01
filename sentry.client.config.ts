@@ -19,4 +19,25 @@ Sentry.init({
     /^TypeError: cancelled$/,
     /^TypeError: NetworkError/,
   ],
+
+  beforeSend(event) {
+    if (event.level === 'error' || event.level === 'fatal') {
+      const message =
+        event.exception?.values?.[0]?.type &&
+        event.exception?.values?.[0]?.value
+          ? `${event.exception.values[0].type}: ${event.exception.values[0].value}`
+          : event.message || 'Unknown client error'
+
+      fetch('/api/error-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message,
+          url: event.request?.url || window.location.href,
+          source: 'sentry-client',
+        }),
+      }).catch(() => {})
+    }
+    return event
+  },
 })

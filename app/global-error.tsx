@@ -10,6 +10,16 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     Sentry.captureException(error)
+
+    fetch('/api/error-report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: `${error.name}: ${error.message}`,
+        url: window.location.href,
+        source: 'global-error',
+      }),
+    }).catch(() => {})
   }, [error])
 
   return (
