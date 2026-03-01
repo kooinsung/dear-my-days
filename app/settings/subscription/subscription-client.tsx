@@ -38,7 +38,7 @@ interface PurchaseRecord {
   product_id: string
   amount: number
   currency: string
-  purchased_at: string
+  created_at: string
 }
 
 export function SubscriptionClient() {
@@ -470,7 +470,7 @@ export function SubscriptionClient() {
                             marginTop: '2px',
                           })}
                         >
-                          {new Date(purchase.purchased_at).toLocaleDateString(
+                          {new Date(purchase.created_at).toLocaleDateString(
                             'ko-KR',
                           )}
                         </div>
