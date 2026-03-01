@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { useAuth } from '@/hooks/use-auth'
 import { createSupabaseBrowser } from '@/libs/supabase/browser'
 import {
   entryToMinutesBefore,
@@ -31,6 +33,7 @@ const unitLabelStyle = css({
 })
 
 export function NotificationSettings({ eventId }: NotificationSettingsProps) {
+  const { user, isLoading: authLoading } = useAuth()
   const [entries, setEntries] = useState<NotificationEntry[]>([])
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
@@ -79,15 +82,12 @@ export function NotificationSettings({ eventId }: NotificationSettingsProps) {
     setMessage('')
 
     try {
-      const supabase = createSupabaseBrowser()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
       if (!user) {
         setMessage('로그인이 필요합니다.')
         return
       }
 
+      const supabase = createSupabaseBrowser()
       const { error: deleteError } = await supabase
         .from('event_notification_settings')
         .delete()
@@ -124,6 +124,30 @@ export function NotificationSettings({ eventId }: NotificationSettingsProps) {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (authLoading) {
+    return (
+      <div
+        className={css({
+          padding: '20px',
+          backgroundColor: '#f8f9fa',
+          borderRadius: '8px',
+          marginTop: '20px',
+        })}
+      >
+        <Skeleton width="80px" height="20px" />
+        <div className={css({ marginTop: '16px' })}>
+          <Skeleton height="48px" borderRadius="4px" />
+        </div>
+        <div className={css({ marginTop: '8px' })}>
+          <Skeleton height="40px" borderRadius="4px" />
+        </div>
+        <div className={css({ marginTop: '12px' })}>
+          <Skeleton height="40px" borderRadius="4px" />
+        </div>
+      </div>
+    )
   }
 
   return (

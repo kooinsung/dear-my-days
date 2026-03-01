@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
+import { useAuth } from '@/hooks/use-auth'
 import { useCreateEvent, useEvent, useUpdateEvent } from '@/hooks/use-events'
 import { createSupabaseBrowser } from '@/libs/supabase/browser'
 import type { CalendarType, CategoryType } from '@/libs/supabase/database.types'
@@ -52,6 +53,7 @@ export default function EventForm({
   showNotifications = false,
 }: EventFormProps) {
   const router = useRouter()
+  const { user } = useAuth()
   const showToast = useUIStore((state) => state.showToast)
 
   const { data: existingEvent, isLoading: isLoadingEvent } = useEvent(
@@ -132,23 +134,16 @@ export default function EventForm({
     return data.candidates ?? []
   }
 
-  async function saveNotifications(createdEventId: string) {
+  async function saveNotifications(createdEventId: string, userId: string) {
     if (notifEntries.length === 0) {
       return
     }
 
     const supabase = createSupabaseBrowser()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) {
-      return
-    }
-
     const { error } = await supabase.from('event_notification_settings').insert(
       notifEntries.map((entry) => ({
         event_id: createdEventId,
-        user_id: user.id,
+        user_id: userId,
         minutes_before: entryToMinutesBefore(entry),
       })),
     )
@@ -209,8 +204,8 @@ export default function EventForm({
       createdEventId = result.id
 
       // 새 이벤트 생성 시 알림 설정 저장
-      if (createdEventId && showNotifications) {
-        await saveNotifications(createdEventId)
+      if (createdEventId && showNotifications && user) {
+        await saveNotifications(createdEventId, user.id)
       }
 
       showToast('이벤트가 생성되었습니다', 'success')
