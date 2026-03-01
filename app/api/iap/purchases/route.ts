@@ -22,9 +22,7 @@ export async function GET() {
 
     const { data: purchases, error } = await admin
       .from('event_purchases')
-      .select(
-        'id, purchase_type, product_id, amount, currency, created_at, status, refunded_at',
-      )
+      .select('id, purchase_type, product_id, amount, currency, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 

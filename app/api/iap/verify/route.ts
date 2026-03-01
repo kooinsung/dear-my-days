@@ -1,11 +1,28 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { PRODUCT_INFO } from '@/libs/iap/products'
 import { verifyAppleReceipt, verifyGoogleReceipt } from '@/libs/iap/verify'
 import { sendSlackNotification } from '@/libs/slack/client'
 import { formatIAPMessage } from '@/libs/slack/formatters'
 import { supabaseAdmin } from '@/libs/supabase/admin'
 import type { PaymentProvider } from '@/libs/supabase/database.types'
 import { handleApiError, successResponse } from '@/libs/utils/errors'
+
+// 상품 정보 매핑
+const PRODUCT_INFO: Record<
+  string,
+  { amount: number; type: 'SUBSCRIPTION' | 'EVENT_SLOT'; planType?: string }
+> = {
+  'com.dearmydays.premium.monthly': {
+    amount: 4900,
+    type: 'SUBSCRIPTION',
+    planType: 'PREMIUM_MONTHLY',
+  },
+  'com.dearmydays.premium.yearly': {
+    amount: 49000,
+    type: 'SUBSCRIPTION',
+    planType: 'PREMIUM_YEARLY',
+  },
+  'com.dearmydays.event.slot': { amount: 1900, type: 'EVENT_SLOT' },
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -132,7 +149,6 @@ export async function POST(req: NextRequest) {
         purchase_type: product.type,
         amount: product.amount,
         currency: 'KRW',
-        status: 'COMPLETED',
       })
 
     if (purchaseError) {

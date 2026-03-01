@@ -121,55 +121,6 @@ export function formatIAPMessage(info: {
   }
 }
 
-export function formatIAPRefundMessage(info: {
-  provider: string
-  productId: string
-  amount: number
-  userId: string
-  transactionId: string
-  reason?: string
-}) {
-  return {
-    blocks: [
-      {
-        type: 'section',
-        text: {
-          type: 'mrkdwn',
-          text: `*🔴  IAP 환불*\n\`${info.productId}\`  ·  *${info.amount.toLocaleString()}원*`,
-        },
-      },
-      { type: 'divider' },
-      {
-        type: 'section',
-        fields: [
-          { type: 'mrkdwn', text: `*제공자*\n${info.provider}` },
-          {
-            type: 'mrkdwn',
-            text: `*유저*\n\`${info.userId.slice(0, 8)}...\``,
-          },
-        ],
-      },
-      ...(info.reason
-        ? [
-            {
-              type: 'section',
-              text: { type: 'mrkdwn', text: `*사유*\n${info.reason}` },
-            },
-          ]
-        : []),
-      {
-        type: 'context',
-        elements: [
-          {
-            type: 'mrkdwn',
-            text: `txn \`${info.transactionId}\`  ·  ${kstTimestamp()}`,
-          },
-        ],
-      },
-    ],
-  }
-}
-
 export function formatReviewMessage(info: {
   store: string
   rating: number
