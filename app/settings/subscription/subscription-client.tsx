@@ -108,26 +108,26 @@ export function SubscriptionClient() {
       const subsFiltered = products.filter((p) => p.type === 'SUBS')
       const inappFiltered = products.filter((p) => p.type === 'INAPP')
 
-      Sentry.captureMessage('[Subscription] loadData completed', {
-        level: 'info',
-        extra: {
-          availableStatus:
-            availableResult.status === 'fulfilled' ? 'ok' : 'failed',
-          subscriptionStatus:
-            subscriptionResult.status === 'fulfilled' ? 'ok' : 'failed',
-          productsStatus:
-            productsResult.status === 'fulfilled' ? 'ok' : 'failed',
-          purchasesStatus:
-            purchasesResult.status === 'fulfilled' ? 'ok' : 'failed',
-          nativeAvailable: available,
-          planType: subscription.planType,
-          totalProducts: products.length,
-          subsProducts: subsFiltered.length,
-          inappProducts: inappFiltered.length,
-          productIds: products.map((p) => p.id),
-          purchaseCount: (purchasesRes.data ?? []).length,
-        },
-      })
+      // Promise.allSettled에서 실패한 항목이 있으면 Sentry에 기록
+      const failures: Record<string, string> = {}
+      if (availableResult.status === 'rejected') {
+        failures.available = String(availableResult.reason)
+      }
+      if (subscriptionResult.status === 'rejected') {
+        failures.subscription = String(subscriptionResult.reason)
+      }
+      if (productsResult.status === 'rejected') {
+        failures.products = String(productsResult.reason)
+      }
+      if (purchasesResult.status === 'rejected') {
+        failures.purchases = String(purchasesResult.reason)
+      }
+      if (Object.keys(failures).length > 0) {
+        Sentry.captureMessage('[Subscription] loadData partial failure', {
+          level: 'error',
+          extra: failures,
+        })
+      }
 
       setPlanType(subscription.planType)
       setExpiresAt(subscription.expiresAt)
