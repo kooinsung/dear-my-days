@@ -72,41 +72,14 @@ const MOCK_PRODUCTS: Product[] = [
   },
 ]
 
-function withTimeout<T>(
-  promise: Promise<T>,
-  ms: number,
-  fallback: T,
-): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
-  ])
-}
-
 export async function isIAPAvailable(): Promise<boolean> {
   if (!(await isNative())) {
     return false
   }
   try {
     const { NativePurchases } = await import('@capgo/native-purchases')
-    const MAX_RETRIES = 5
-    const INTERVAL_MS = 3000
-
-    for (let i = 0; i < MAX_RETRIES; i++) {
-      try {
-        const { isBillingSupported } =
-          await NativePurchases.isBillingSupported()
-        if (isBillingSupported) {
-          return true
-        }
-      } catch {
-        // 플러그인 초기화 중일 수 있으므로 재시도
-      }
-      if (i < MAX_RETRIES - 1) {
-        await new Promise((r) => setTimeout(r, INTERVAL_MS))
-      }
-    }
-    return false
+    const { isBillingSupported } = await NativePurchases.isBillingSupported()
+    return isBillingSupported
   } catch {
     return false
   }
@@ -126,20 +99,16 @@ export async function getProducts(): Promise<Product[]> {
     const subsIds = [PRODUCT_IDS.PREMIUM_MONTHLY, PRODUCT_IDS.PREMIUM_YEARLY]
     const inappIds = [PRODUCT_IDS.EVENT_SLOT]
 
-    const [subsResult, inappResult] = await withTimeout(
-      Promise.all([
-        NativePurchases.getProducts({
-          productIdentifiers: [...subsIds],
-          productType: PURCHASE_TYPE.SUBS,
-        }),
-        NativePurchases.getProducts({
-          productIdentifiers: [...inappIds],
-          productType: PURCHASE_TYPE.INAPP,
-        }),
-      ]),
-      10000,
-      [{ products: [] }, { products: [] }],
-    )
+    const [subsResult, inappResult] = await Promise.all([
+      NativePurchases.getProducts({
+        productIdentifiers: [...subsIds],
+        productType: PURCHASE_TYPE.SUBS,
+      }),
+      NativePurchases.getProducts({
+        productIdentifiers: [...inappIds],
+        productType: PURCHASE_TYPE.INAPP,
+      }),
+    ])
 
     const products: Product[] = []
 

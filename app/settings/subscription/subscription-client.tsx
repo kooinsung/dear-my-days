@@ -168,32 +168,15 @@ export function SubscriptionClient() {
     }
     setLoading(true)
     try {
-      // isIAPAvailable()은 최대 15초 폴링 → 메인 로딩과 분리하여 비동기 처리
-      isIAPAvailable().then(setNativeAvailable)
-
-      const [subscriptionResult, productsResult, purchasesResult] =
-        await Promise.allSettled([
+      const [available, subscription, products, purchasesRes] =
+        await Promise.all([
+          isIAPAvailable(),
           getCurrentSubscription(userId),
           getProducts(),
           fetchPurchases(),
         ])
 
-      const subscription =
-        subscriptionResult.status === 'fulfilled'
-          ? subscriptionResult.value
-          : {
-              planType: null as PlanType | null,
-              expiresAt: null,
-              extraEventSlots: 0,
-              eventLimit: 3,
-            }
-      const products =
-        productsResult.status === 'fulfilled' ? productsResult.value : []
-      const purchasesRes =
-        purchasesResult.status === 'fulfilled'
-          ? purchasesResult.value
-          : { data: [] }
-
+      setNativeAvailable(available)
       setPlanType(subscription.planType)
       setExpiresAt(subscription.expiresAt)
       setExtraEventSlots(subscription.extraEventSlots)
