@@ -1,5 +1,6 @@
 'use client'
 
+import * as Sentry from '@sentry/nextjs'
 import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import { SettingsSkeleton } from '@/components/skeletons/SettingsSkeleton'
@@ -103,14 +104,42 @@ export function SubscriptionClient() {
           : { data: [] }
 
       setNativeAvailable(available)
+
+      const subsFiltered = products.filter((p) => p.type === 'SUBS')
+      const inappFiltered = products.filter((p) => p.type === 'INAPP')
+
+      Sentry.captureMessage('[Subscription] loadData completed', {
+        level: 'info',
+        extra: {
+          availableStatus:
+            availableResult.status === 'fulfilled' ? 'ok' : 'failed',
+          subscriptionStatus:
+            subscriptionResult.status === 'fulfilled' ? 'ok' : 'failed',
+          productsStatus:
+            productsResult.status === 'fulfilled' ? 'ok' : 'failed',
+          purchasesStatus:
+            purchasesResult.status === 'fulfilled' ? 'ok' : 'failed',
+          nativeAvailable: available,
+          planType: subscription.planType,
+          totalProducts: products.length,
+          subsProducts: subsFiltered.length,
+          inappProducts: inappFiltered.length,
+          productIds: products.map((p) => p.id),
+          purchaseCount: (purchasesRes.data ?? []).length,
+        },
+      })
+
       setPlanType(subscription.planType)
       setExpiresAt(subscription.expiresAt)
       setExtraEventSlots(subscription.extraEventSlots)
       setEventLimit(subscription.eventLimit)
-      setSubsProducts(products.filter((p) => p.type === 'SUBS'))
-      setInappProducts(products.filter((p) => p.type === 'INAPP'))
+      setSubsProducts(subsFiltered)
+      setInappProducts(inappFiltered)
       setPurchases(purchasesRes.data ?? [])
-    } catch {
+    } catch (error) {
+      Sentry.captureException(error, {
+        extra: { context: 'subscription-loadData' },
+      })
       showToast('데이터를 불러오는데 실패했습니다.', 'error')
     } finally {
       setLoading(false)
