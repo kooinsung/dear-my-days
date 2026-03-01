@@ -1,12 +1,74 @@
 'use client'
 
 import Link from 'next/link'
+import { useEventLimit } from '@/hooks/use-event-limit'
 import { css } from '@/styled-system/css'
-import { flex } from '@/styled-system/patterns'
-import { card } from '@/styled-system/recipes'
+import { flex, vstack } from '@/styled-system/patterns'
+import { button, card } from '@/styled-system/recipes'
 import EventForm from '../edit/[id]/event-form'
 
+function EventLimitReached({
+  eventCount,
+  eventLimit,
+}: {
+  eventCount: number
+  eventLimit: number
+}) {
+  return (
+    <div className={card()}>
+      <div
+        className={vstack({
+          gap: '16px',
+          alignItems: 'center',
+          padding: '24px 0',
+        })}
+      >
+        <div
+          className={css({
+            fontSize: '48px',
+            lineHeight: 1,
+          })}
+        >
+          🔒
+        </div>
+        <h2
+          className={css({
+            fontSize: '18px',
+            fontWeight: 'bold',
+            margin: 0,
+            textAlign: 'center',
+          })}
+        >
+          이벤트 등록 제한에 도달했습니다
+        </h2>
+        <p
+          className={css({
+            color: '#666',
+            fontSize: '14px',
+            margin: 0,
+            textAlign: 'center',
+            lineHeight: 1.6,
+          })}
+        >
+          현재 {eventCount}개 / 최대 {eventLimit}개 등록됨
+          <br />
+          프리미엄 구독 또는 추가 슬롯을 구매하면
+          <br />더 많은 이벤트를 등록할 수 있습니다.
+        </p>
+        <Link
+          href="/settings/subscription"
+          className={button({ variant: 'primary' })}
+        >
+          구독 관리로 이동
+        </Link>
+      </div>
+    </div>
+  )
+}
+
 export function EventNewPageClient() {
+  const { data: limitInfo, isLoading } = useEventLimit()
+
   return (
     <div className={css({ minHeight: '100vh', backgroundColor: 'background' })}>
       <header
@@ -59,9 +121,26 @@ export function EventNewPageClient() {
           padding: '24px 20px',
         })}
       >
-        <div className={card()}>
-          <EventForm showNotifications={true} />
-        </div>
+        {isLoading ? (
+          <div
+            className={css({
+              textAlign: 'center',
+              padding: '40px 0',
+              color: '#666',
+            })}
+          >
+            확인 중...
+          </div>
+        ) : limitInfo && !limitInfo.canCreate ? (
+          <EventLimitReached
+            eventCount={limitInfo.eventCount}
+            eventLimit={limitInfo.eventLimit}
+          />
+        ) : (
+          <div className={card()}>
+            <EventForm showNotifications={true} />
+          </div>
+        )}
       </div>
     </div>
   )
