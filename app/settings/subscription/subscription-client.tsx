@@ -39,6 +39,8 @@ interface PurchaseRecord {
   amount: number
   currency: string
   created_at: string
+  status?: 'COMPLETED' | 'REFUNDED'
+  refunded_at?: string | null
 }
 
 export function SubscriptionClient() {
@@ -442,51 +444,83 @@ export function SubscriptionClient() {
                   구매 기록
                 </h2>
                 <div className={vstack({ gap: '8px', alignItems: 'stretch' })}>
-                  {purchases.map((purchase) => (
-                    <div
-                      key={purchase.id}
-                      className={css({
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '10px 12px',
-                        backgroundColor: '#F9FAFB',
-                        borderRadius: '8px',
-                      })}
-                    >
-                      <div>
+                  {purchases.map((purchase) => {
+                    const isRefunded = purchase.status === 'REFUNDED'
+                    return (
+                      <div
+                        key={purchase.id}
+                        className={css({
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '10px 12px',
+                          backgroundColor: isRefunded ? '#FEF2F2' : '#F9FAFB',
+                          borderRadius: '8px',
+                        })}
+                      >
+                        <div>
+                          <div
+                            className={css({
+                              fontWeight: 600,
+                              fontSize: '14px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                            })}
+                          >
+                            {PRODUCT_LABELS[purchase.product_id] ||
+                              purchase.product_id}
+                            {isRefunded && (
+                              <span
+                                className={css({
+                                  fontSize: '11px',
+                                  fontWeight: 600,
+                                  color: '#DC2626',
+                                  backgroundColor: '#FEE2E2',
+                                  padding: '1px 6px',
+                                  borderRadius: '4px',
+                                })}
+                              >
+                                환불됨
+                              </span>
+                            )}
+                          </div>
+                          <div
+                            className={css({
+                              color: '#666',
+                              fontSize: '12px',
+                              marginTop: '2px',
+                            })}
+                          >
+                            {new Date(purchase.created_at).toLocaleDateString(
+                              'ko-KR',
+                            )}
+                            {isRefunded && purchase.refunded_at && (
+                              <span className={css({ color: '#DC2626' })}>
+                                {' '}
+                                · 환불{' '}
+                                {new Date(
+                                  purchase.refunded_at,
+                                ).toLocaleDateString('ko-KR')}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                         <div
                           className={css({
                             fontWeight: 600,
                             fontSize: '14px',
+                            color: isRefunded ? '#DC2626' : '#333',
+                            textDecoration: isRefunded
+                              ? 'line-through'
+                              : 'none',
                           })}
                         >
-                          {PRODUCT_LABELS[purchase.product_id] ||
-                            purchase.product_id}
-                        </div>
-                        <div
-                          className={css({
-                            color: '#666',
-                            fontSize: '12px',
-                            marginTop: '2px',
-                          })}
-                        >
-                          {new Date(purchase.created_at).toLocaleDateString(
-                            'ko-KR',
-                          )}
+                          {purchase.amount.toLocaleString('ko-KR')}원
                         </div>
                       </div>
-                      <div
-                        className={css({
-                          fontWeight: 600,
-                          fontSize: '14px',
-                          color: '#333',
-                        })}
-                      >
-                        {purchase.amount.toLocaleString('ko-KR')}원
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </section>
             )}
