@@ -10,10 +10,20 @@ export function useAuth() {
 
   useEffect(() => {
     const supabase = createSupabaseBrowser()
+
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user)
       setIsLoading(false)
     })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+      setIsLoading(false)
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
 
   return { user, isLoading }

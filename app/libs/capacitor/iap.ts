@@ -1,5 +1,6 @@
 'use client'
 
+import * as Sentry from '@sentry/nextjs'
 import type { PlanType } from '@/libs/supabase/database.types'
 import { getPlatform, isNative } from './platform'
 
@@ -84,7 +85,8 @@ function withTimeout<T>(
 }
 
 export async function isIAPAvailable(): Promise<boolean> {
-  if (!(await isNative())) {
+  const native = await isNative()
+  if (!native) {
     return false
   }
   try {
@@ -157,8 +159,17 @@ export async function getProducts(): Promise<Product[]> {
       })
     }
 
+    Sentry.addBreadcrumb({
+      category: 'iap',
+      message: `getProducts: ${products.length} products loaded (subs: ${subsResult.products.length}, inapp: ${inappResult.products.length})`,
+      level: 'info',
+    })
+
     return products
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error, {
+      extra: { context: 'getProducts', fallback: 'MOCK_PRODUCTS' },
+    })
     return MOCK_PRODUCTS
   }
 }
