@@ -16,7 +16,6 @@ export function useEventLimit() {
 
   return useQuery({
     queryKey: eventLimitKey,
-    staleTime: 0,
     queryFn: async (): Promise<EventLimitInfo> => {
       const [countResult, subscriptionRes] = await Promise.all([
         supabase.from('events').select('*', { count: 'exact', head: true }),
