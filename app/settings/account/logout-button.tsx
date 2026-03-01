@@ -2,6 +2,8 @@
 
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
+import { isNative } from '@/libs/capacitor/platform'
+import { googleLogout, kakaoLogout } from '@/libs/capacitor/social-login'
 import { logout } from '@/login/actions'
 import { css, cx } from '@/styled-system/css'
 import { button } from '@/styled-system/recipes'
@@ -15,11 +17,15 @@ export function LogoutButton() {
     setError('')
     startTransition(async () => {
       try {
+        // 네이티브 소셜 로그인 세션 정리 (실패해도 로그아웃 진행)
+        if (await isNative()) {
+          await Promise.allSettled([googleLogout(), kakaoLogout()])
+        }
+
         await logout()
 
-        // Capacitor handles navigation automatically
-        router.push('/login')
-        router.refresh()
+        // 전체 페이지 리로드로 모든 클라이언트 상태 초기화
+        window.location.href = '/login'
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : '로그아웃에 실패했습니다.'
         setError(msg)
