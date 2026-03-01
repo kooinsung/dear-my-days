@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import { SettingsSkeleton } from '@/components/skeletons/SettingsSkeleton'
 import { Button } from '@/components/ui/Button'
+import { Skeleton } from '@/components/ui/Skeleton'
 import { useAuth } from '@/hooks/use-auth'
 import {
   getCurrentSubscription,
@@ -41,6 +42,99 @@ interface PurchaseRecord {
   created_at: string
   status?: 'COMPLETED' | 'REFUNDED'
   refunded_at?: string | null
+}
+
+function SubscriptionSkeleton() {
+  return (
+    <div className={vstack({ gap: '16px', alignItems: 'stretch' })}>
+      {/* 현재 플랜 카드 */}
+      <div className={card()}>
+        <Skeleton width="80px" height="20px" />
+        <div className={css({ marginTop: '12px' })}>
+          <Skeleton width="140px" height="28px" />
+        </div>
+        <div className={css({ marginTop: '8px' })}>
+          <Skeleton width="200px" height="16px" />
+        </div>
+      </div>
+
+      {/* 상품 카드 1 */}
+      <div className={card()}>
+        <Skeleton width="120px" height="20px" />
+        <div className={css({ marginTop: '8px' })}>
+          <Skeleton width="280px" height="14px" />
+        </div>
+        <div
+          className={css({
+            marginTop: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+          })}
+        >
+          {Array.from({ length: 2 }, (_, idx) => `subs-${idx}`).map((key) => (
+            <div
+              key={key}
+              className={css({
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px',
+                border: '1px solid',
+                borderColor: 'border',
+                borderRadius: '8px',
+              })}
+            >
+              <div>
+                <Skeleton width="140px" height="16px" />
+                <div className={css({ marginTop: '4px' })}>
+                  <Skeleton width="100px" height="14px" />
+                </div>
+              </div>
+              <Skeleton width="72px" height="36px" borderRadius="6px" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 구매 기록 카드 */}
+      <div className={card()}>
+        <Skeleton width="80px" height="20px" />
+        <div
+          className={css({
+            marginTop: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+          })}
+        >
+          {Array.from({ length: 2 }, (_, idx) => `purchase-${idx}`).map(
+            (key) => (
+              <div
+                key={key}
+                className={css({
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '10px 12px',
+                  backgroundColor: '#F9FAFB',
+                  borderRadius: '8px',
+                })}
+              >
+                <div>
+                  <Skeleton width="160px" height="14px" />
+                  <div className={css({ marginTop: '4px' })}>
+                    <Skeleton width="80px" height="12px" />
+                  </div>
+                </div>
+                <Skeleton width="60px" height="14px" />
+              </div>
+            ),
+          )}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 async function fetchPurchases() {
@@ -214,15 +308,7 @@ export function SubscriptionClient() {
         })}
       >
         {loading ? (
-          <div
-            className={css({
-              textAlign: 'center',
-              padding: '40px 0',
-              color: '#666',
-            })}
-          >
-            불러오는 중...
-          </div>
+          <SubscriptionSkeleton />
         ) : (
           <div className={vstack({ gap: '16px', alignItems: 'stretch' })}>
             {/* 현재 플랜 */}
