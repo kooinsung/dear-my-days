@@ -9,11 +9,15 @@ export function useAuth() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const supabase = createSupabaseBrowser()
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    const fetchUser = async () => {
+      const supabase = createSupabaseBrowser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       setUser(user)
       setIsLoading(false)
-    })
+    }
+    fetchUser()
   }, [])
 
   return { user, isLoading }
