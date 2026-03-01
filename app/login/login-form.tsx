@@ -124,8 +124,11 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
           router.replace('/')
           return
         }
+        // 네이티브 로그인 실패 시 pending 해제
+        setMessage('로그인에 실패했습니다. 다시 시도해 주세요.')
+        setIsOAuthPending(false)
       } else {
-        // 웹 또는 네이티브 미지원 제공자: Supabase OAuth 플로우
+        // 웹 또는 네이티브 미지원 제공자: Supabase OAuth 플로우 (페이지 리다이렉트)
         const supabase = createSupabaseBrowser()
         await supabase.auth.signInWithOAuth({
           provider,
