@@ -90,7 +90,7 @@ export async function isIAPAvailable(): Promise<boolean> {
   try {
     const { NativePurchases } = await import('@capgo/native-purchases')
     const MAX_RETRIES = 5
-    const INTERVAL_MS = 2000
+    const INTERVAL_MS = 3000
 
     for (let i = 0; i < MAX_RETRIES; i++) {
       try {
