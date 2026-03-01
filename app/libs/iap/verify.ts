@@ -1,5 +1,7 @@
 import { env } from '@/libs/config/env'
 
+export type PurchaseType = 'SUBSCRIPTION' | 'EVENT_SLOT'
+
 /**
  * 영수증 검증 결과
  */
@@ -13,9 +15,11 @@ export interface VerificationResult {
 /**
  * Apple 영수증 검증
  * App Store Server API 사용
+ * 구독과 소모품(INAPP) 모두 지원
  */
 export async function verifyAppleReceipt(
   receipt: string,
+  purchaseType: PurchaseType = 'SUBSCRIPTION',
 ): Promise<VerificationResult> {
   try {
     // Apple의 verifyReceipt API 사용
@@ -55,23 +59,37 @@ export async function verifyAppleReceipt(
       }
     }
 
-    // 최신 구독 정보 추출
+    // 구독: latest_receipt_info에서 추출
     const latestReceipt = data.latest_receipt_info?.[0]
-    if (!latestReceipt) {
+    if (latestReceipt) {
+      const expiresMs = latestReceipt.expires_date_ms
+      const productId = latestReceipt.product_id
+
       return {
-        isValid: false,
-        expiresAt: null,
-        error: 'No receipt info found',
+        isValid: true,
+        expiresAt: expiresMs ? new Date(Number(expiresMs)) : null,
+        productId,
       }
     }
 
-    const expiresMs = latestReceipt.expires_date_ms
-    const productId = latestReceipt.product_id
+    // 소모품(INAPP): receipt.in_app에서 추출
+    if (purchaseType === 'EVENT_SLOT') {
+      const inAppReceipts = data.receipt?.in_app
+      if (inAppReceipts && inAppReceipts.length > 0) {
+        // 가장 최근 거래를 사용
+        const latestInApp = inAppReceipts[inAppReceipts.length - 1]
+        return {
+          isValid: true,
+          expiresAt: null,
+          productId: latestInApp.product_id,
+        }
+      }
+    }
 
     return {
-      isValid: true,
-      expiresAt: expiresMs ? new Date(Number(expiresMs)) : null,
-      productId,
+      isValid: false,
+      expiresAt: null,
+      error: 'No receipt info found',
     }
   } catch (error) {
     console.error('Apple verification error:', error)
@@ -86,20 +104,57 @@ export async function verifyAppleReceipt(
 /**
  * Google 영수증 검증
  * Google Play Developer API 사용
+ * 구독과 소모품(INAPP) 모두 지원
  */
 export async function verifyGoogleReceipt(
   receipt: string,
   productId: string,
+  purchaseType: PurchaseType = 'SUBSCRIPTION',
 ): Promise<VerificationResult> {
   try {
-    // Google Play Developer API 사용
+    const baseUrl = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${env.GOOGLE_PACKAGE_NAME}`
+    const headers = {
+      Authorization: `Bearer ${env.GOOGLE_SERVICE_ACCOUNT_TOKEN}`,
+    }
+
+    // 소모품(INAPP): products API 사용
+    if (purchaseType === 'EVENT_SLOT') {
+      const response = await fetch(
+        `${baseUrl}/purchases/products/${productId}/tokens/${receipt}`,
+        { headers },
+      )
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        return {
+          isValid: false,
+          expiresAt: null,
+          error: `Google API error: ${response.status} - ${errorText}`,
+        }
+      }
+
+      const data = await response.json()
+
+      // purchaseState: 0 = Purchased, 1 = Canceled, 2 = Pending
+      if (data.purchaseState !== 0) {
+        return {
+          isValid: false,
+          expiresAt: null,
+          error: `Purchase not completed: state ${data.purchaseState}`,
+        }
+      }
+
+      return {
+        isValid: true,
+        expiresAt: null,
+        productId,
+      }
+    }
+
+    // 구독: subscriptionsv2 API 사용 (기존 로직)
     const response = await fetch(
-      `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${env.GOOGLE_PACKAGE_NAME}/purchases/subscriptionsv2/tokens/${receipt}`,
-      {
-        headers: {
-          Authorization: `Bearer ${env.GOOGLE_SERVICE_ACCOUNT_TOKEN}`,
-        },
-      },
+      `${baseUrl}/purchases/subscriptionsv2/tokens/${receipt}`,
+      { headers },
     )
 
     if (!response.ok) {

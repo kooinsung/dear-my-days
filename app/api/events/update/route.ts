@@ -55,7 +55,10 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return await handleApiError(error, {
+        url: '/api/events/update',
+        method: 'POST',
+      })
     }
 
     return successResponse(data)

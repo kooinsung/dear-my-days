@@ -7,8 +7,26 @@ import type { PaymentProvider } from '@/libs/supabase/database.types'
 import { createSupabaseServer } from '@/libs/supabase/server'
 import { handleApiError, successResponse } from '@/libs/utils/errors'
 
+// 상품 정보 매핑
+const PRODUCT_INFO: Record<
+  string,
+  { amount: number; type: 'SUBSCRIPTION' | 'EVENT_SLOT'; planType?: string }
+> = {
+  'com.dearmydays.premium.monthly': {
+    amount: 4900,
+    type: 'SUBSCRIPTION',
+    planType: 'PREMIUM_MONTHLY',
+  },
+  'com.dearmydays.premium.yearly': {
+    amount: 49000,
+    type: 'SUBSCRIPTION',
+    planType: 'PREMIUM_YEARLY',
+  },
+  'com.dearmydays.event.slot': { amount: 1900, type: 'EVENT_SLOT' },
+}
+
 /**
- * 구독 복원
+ * 구매 복원
  */
 export async function POST(req: NextRequest) {
   try {
@@ -47,10 +65,16 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // productId로 구독/소모품 타입 결정
+    const purchaseType =
+      productId && PRODUCT_INFO[productId]?.type === 'EVENT_SLOT'
+        ? 'EVENT_SLOT'
+        : 'SUBSCRIPTION'
+
     const verificationResult =
       provider === 'APPLE'
-        ? await verifyAppleReceipt(receipt)
-        : await verifyGoogleReceipt(receipt, productId)
+        ? await verifyAppleReceipt(receipt, purchaseType)
+        : await verifyGoogleReceipt(receipt, productId, purchaseType)
 
     if (!verificationResult.isValid) {
       return NextResponse.json(
@@ -69,26 +93,8 @@ export async function POST(req: NextRequest) {
       .eq('transaction_id', transactionId)
       .single()
 
-    // 상품 정보 매핑
-    const productInfo: Record<
-      string,
-      { amount: number; type: 'SUBSCRIPTION' | 'EVENT_SLOT'; planType?: string }
-    > = {
-      'com.dearmydays.premium.monthly': {
-        amount: 4900,
-        type: 'SUBSCRIPTION',
-        planType: 'PREMIUM_MONTHLY',
-      },
-      'com.dearmydays.premium.yearly': {
-        amount: 49000,
-        type: 'SUBSCRIPTION',
-        planType: 'PREMIUM_YEARLY',
-      },
-      'com.dearmydays.event.slot': { amount: 1900, type: 'EVENT_SLOT' },
-    }
-
     const finalProductId = verificationResult.productId || productId
-    const product = productInfo[finalProductId]
+    const product = finalProductId ? PRODUCT_INFO[finalProductId] : undefined
 
     if (!product) {
       return NextResponse.json(
