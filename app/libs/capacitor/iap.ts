@@ -91,7 +91,7 @@ export async function isIAPAvailable(): Promise<boolean> {
     const { NativePurchases } = await import('@capgo/native-purchases')
     return await withTimeout(
       NativePurchases.isBillingSupported().then((r) => r.isBillingSupported),
-      5000,
+      10000,
       false,
     )
   } catch {
