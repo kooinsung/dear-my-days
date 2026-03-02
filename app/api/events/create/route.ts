@@ -46,14 +46,23 @@ export async function POST(req: NextRequest) {
         .eq('user_id', user.id),
       admin
         .from('user_plans')
-        .select('plan_type, extra_event_slots, started_at')
+        .select('plan_type, extra_event_slots, started_at, expired_at')
         .eq('user_id', user.id)
         .single(),
     ])
 
     const planType = userPlan?.plan_type ?? 'FREE'
-    const isPremium =
+    let isPremium =
       planType === 'PREMIUM_MONTHLY' || planType === 'PREMIUM_YEARLY'
+
+    // expired_at이 과거이면 만료된 구독 → FREE로 처리
+    if (
+      isPremium &&
+      userPlan?.expired_at &&
+      new Date(userPlan.expired_at) < new Date()
+    ) {
+      isPremium = false
+    }
 
     if (isPremium) {
       // 프리미엄: 구독 시작 이후 이벤트만 카운트, 경과월 x 10개 제한
