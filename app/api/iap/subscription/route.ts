@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/nextjs'
 import { type NextRequest, NextResponse } from 'next/server'
+import { supabaseAdmin } from '@/libs/supabase/admin'
 import { createSupabaseServer } from '@/libs/supabase/server'
 import { handleApiError, successResponse } from '@/libs/utils/errors'
 
@@ -65,12 +66,22 @@ export async function GET(_req: NextRequest) {
       new Date(plan.expired_at) < new Date()
     ) {
       isPremium = false
-      // DB도 FREE로 업데이트 (비동기, 응답 차단 안 함)
-      supabase
+      const admin = supabaseAdmin()
+      const { error: downgradeError } = await admin
         .from('user_plans')
         .update({ plan_type: 'FREE' })
         .eq('user_id', user.id)
-        .then()
+
+      if (downgradeError) {
+        Sentry.captureMessage('[IAP] failed to downgrade expired plan', {
+          level: 'error',
+          extra: {
+            userId: user.id,
+            expiredAt: plan.expired_at,
+            error: downgradeError.message,
+          },
+        })
+      }
     }
 
     Sentry.addBreadcrumb({
