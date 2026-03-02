@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import { SettingsSkeleton } from '@/components/skeletons/SettingsSkeleton'
 import { Button } from '@/components/ui/Button'
-import { Skeleton } from '@/components/ui/Skeleton'
 import { useAuth } from '@/hooks/use-auth'
 import {
   getCurrentSubscription,
@@ -40,104 +39,8 @@ interface PurchaseRecord {
   amount: number
   currency: string
   created_at: string
-}
-
-function SubscriptionSkeleton() {
-  return (
-    <div className={vstack({ gap: '16px', alignItems: 'stretch' })}>
-      {/* 현재 플랜 카드 */}
-      <div className={card()}>
-        <Skeleton width="80px" height="20px" />
-        <div className={css({ marginTop: '12px' })}>
-          <Skeleton width="140px" height="28px" />
-        </div>
-        <div className={css({ marginTop: '8px' })}>
-          <Skeleton width="200px" height="16px" />
-        </div>
-      </div>
-
-      {/* 상품 카드 1 */}
-      <div className={card()}>
-        <Skeleton width="120px" height="20px" />
-        <div className={css({ marginTop: '8px' })}>
-          <Skeleton width="280px" height="14px" />
-        </div>
-        <div
-          className={css({
-            marginTop: '16px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
-          })}
-        >
-          {Array.from({ length: 2 }, (_, idx) => `subs-${idx}`).map((key) => (
-            <div
-              key={key}
-              className={css({
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '12px',
-                border: '1px solid',
-                borderColor: 'border',
-                borderRadius: '8px',
-              })}
-            >
-              <div>
-                <Skeleton width="140px" height="16px" />
-                <div className={css({ marginTop: '4px' })}>
-                  <Skeleton width="100px" height="14px" />
-                </div>
-              </div>
-              <Skeleton width="72px" height="36px" borderRadius="6px" />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 구매 기록 카드 */}
-      <div className={card()}>
-        <Skeleton width="80px" height="20px" />
-        <div
-          className={css({
-            marginTop: '16px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-          })}
-        >
-          {Array.from({ length: 2 }, (_, idx) => `purchase-${idx}`).map(
-            (key) => (
-              <div
-                key={key}
-                className={css({
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '10px 12px',
-                  backgroundColor: '#F9FAFB',
-                  borderRadius: '8px',
-                })}
-              >
-                <div>
-                  <Skeleton width="160px" height="14px" />
-                  <div className={css({ marginTop: '4px' })}>
-                    <Skeleton width="80px" height="12px" />
-                  </div>
-                </div>
-                <Skeleton width="60px" height="14px" />
-              </div>
-            ),
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-async function fetchPurchases() {
-  const response = await fetch('/api/iap/purchases')
-  return response.ok ? await response.json() : { data: [] }
+  status?: 'COMPLETED' | 'REFUNDED'
+  refunded_at?: string | null
 }
 
 export function SubscriptionClient() {
@@ -162,17 +65,42 @@ export function SubscriptionClient() {
 
   const loadData = useCallback(async () => {
     if (!userId) {
+      setLoading(false)
       return
     }
     setLoading(true)
     try {
-      const [available, subscription, products, purchasesRes] =
-        await Promise.all([
-          isIAPAvailable(),
-          getCurrentSubscription(userId),
-          getProducts(),
-          fetchPurchases(),
-        ])
+      const [
+        availableResult,
+        subscriptionResult,
+        productsResult,
+        purchasesResult,
+      ] = await Promise.allSettled([
+        isIAPAvailable(),
+        getCurrentSubscription(userId),
+        getProducts(),
+        fetch('/api/iap/purchases').then((r) =>
+          r.ok ? r.json() : { data: [] },
+        ),
+      ])
+
+      const available =
+        availableResult.status === 'fulfilled' ? availableResult.value : false
+      const subscription =
+        subscriptionResult.status === 'fulfilled'
+          ? subscriptionResult.value
+          : {
+              planType: null as PlanType | null,
+              expiresAt: null,
+              extraEventSlots: 0,
+              eventLimit: 3,
+            }
+      const products =
+        productsResult.status === 'fulfilled' ? productsResult.value : []
+      const purchasesRes =
+        purchasesResult.status === 'fulfilled'
+          ? purchasesResult.value
+          : { data: [] }
 
       setNativeAvailable(available)
       setPlanType(subscription.planType)
@@ -283,7 +211,15 @@ export function SubscriptionClient() {
         })}
       >
         {loading ? (
-          <SubscriptionSkeleton />
+          <div
+            className={css({
+              textAlign: 'center',
+              padding: '40px 0',
+              color: '#666',
+            })}
+          >
+            불러오는 중...
+          </div>
         ) : (
           <div className={vstack({ gap: '16px', alignItems: 'stretch' })}>
             {/* 현재 플랜 */}
@@ -530,51 +466,83 @@ export function SubscriptionClient() {
                   구매 기록
                 </h2>
                 <div className={vstack({ gap: '8px', alignItems: 'stretch' })}>
-                  {purchases.map((purchase) => (
-                    <div
-                      key={purchase.id}
-                      className={css({
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '10px 12px',
-                        backgroundColor: '#F9FAFB',
-                        borderRadius: '8px',
-                      })}
-                    >
-                      <div>
+                  {purchases.map((purchase) => {
+                    const isRefunded = purchase.status === 'REFUNDED'
+                    return (
+                      <div
+                        key={purchase.id}
+                        className={css({
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '10px 12px',
+                          backgroundColor: isRefunded ? '#FEF2F2' : '#F9FAFB',
+                          borderRadius: '8px',
+                        })}
+                      >
+                        <div>
+                          <div
+                            className={css({
+                              fontWeight: 600,
+                              fontSize: '14px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                            })}
+                          >
+                            {PRODUCT_LABELS[purchase.product_id] ||
+                              purchase.product_id}
+                            {isRefunded && (
+                              <span
+                                className={css({
+                                  fontSize: '11px',
+                                  fontWeight: 600,
+                                  color: '#DC2626',
+                                  backgroundColor: '#FEE2E2',
+                                  padding: '1px 6px',
+                                  borderRadius: '4px',
+                                })}
+                              >
+                                환불됨
+                              </span>
+                            )}
+                          </div>
+                          <div
+                            className={css({
+                              color: '#666',
+                              fontSize: '12px',
+                              marginTop: '2px',
+                            })}
+                          >
+                            {new Date(purchase.created_at).toLocaleDateString(
+                              'ko-KR',
+                            )}
+                            {isRefunded && purchase.refunded_at && (
+                              <span className={css({ color: '#DC2626' })}>
+                                {' '}
+                                · 환불{' '}
+                                {new Date(
+                                  purchase.refunded_at,
+                                ).toLocaleDateString('ko-KR')}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                         <div
                           className={css({
                             fontWeight: 600,
                             fontSize: '14px',
+                            color: isRefunded ? '#DC2626' : '#333',
+                            textDecoration: isRefunded
+                              ? 'line-through'
+                              : 'none',
                           })}
                         >
-                          {PRODUCT_LABELS[purchase.product_id] ||
-                            purchase.product_id}
-                        </div>
-                        <div
-                          className={css({
-                            color: '#666',
-                            fontSize: '12px',
-                            marginTop: '2px',
-                          })}
-                        >
-                          {new Date(purchase.created_at).toLocaleDateString(
-                            'ko-KR',
-                          )}
+                          {purchase.amount.toLocaleString('ko-KR')}원
                         </div>
                       </div>
-                      <div
-                        className={css({
-                          fontWeight: 600,
-                          fontSize: '14px',
-                          color: '#333',
-                        })}
-                      >
-                        {purchase.amount.toLocaleString('ko-KR')}원
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </section>
             )}

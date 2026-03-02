@@ -72,14 +72,28 @@ const MOCK_PRODUCTS: Product[] = [
   },
 ]
 
+function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  fallback: T,
+): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ])
+}
+
 export async function isIAPAvailable(): Promise<boolean> {
   if (!(await isNative())) {
     return false
   }
   try {
     const { NativePurchases } = await import('@capgo/native-purchases')
-    const { isBillingSupported } = await NativePurchases.isBillingSupported()
-    return isBillingSupported
+    return await withTimeout(
+      NativePurchases.isBillingSupported().then((r) => r.isBillingSupported),
+      5000,
+      false,
+    )
   } catch {
     return false
   }
@@ -99,16 +113,20 @@ export async function getProducts(): Promise<Product[]> {
     const subsIds = [PRODUCT_IDS.PREMIUM_MONTHLY, PRODUCT_IDS.PREMIUM_YEARLY]
     const inappIds = [PRODUCT_IDS.EVENT_SLOT]
 
-    const [subsResult, inappResult] = await Promise.all([
-      NativePurchases.getProducts({
-        productIdentifiers: [...subsIds],
-        productType: PURCHASE_TYPE.SUBS,
-      }),
-      NativePurchases.getProducts({
-        productIdentifiers: [...inappIds],
-        productType: PURCHASE_TYPE.INAPP,
-      }),
-    ])
+    const [subsResult, inappResult] = await withTimeout(
+      Promise.all([
+        NativePurchases.getProducts({
+          productIdentifiers: [...subsIds],
+          productType: PURCHASE_TYPE.SUBS,
+        }),
+        NativePurchases.getProducts({
+          productIdentifiers: [...inappIds],
+          productType: PURCHASE_TYPE.INAPP,
+        }),
+      ]),
+      10000,
+      [{ products: [] }, { products: [] }],
+    )
 
     const products: Product[] = []
 
