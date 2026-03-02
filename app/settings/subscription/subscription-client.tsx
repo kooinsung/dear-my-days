@@ -3,8 +3,8 @@
 import * as Sentry from '@sentry/nextjs'
 import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
-import { SettingsSkeleton } from '@/components/skeletons/SettingsSkeleton'
 import { Button } from '@/components/ui/Button'
+import { Skeleton } from '@/components/ui/Skeleton'
 import { useAuth } from '@/hooks/use-auth'
 import {
   getCurrentSubscription,
@@ -211,9 +211,7 @@ export function SubscriptionClient() {
   const isPremium =
     planType === 'PREMIUM_MONTHLY' || planType === 'PREMIUM_YEARLY'
 
-  if (authLoading) {
-    return <SettingsSkeleton />
-  }
+  const isLoading = authLoading || loading
 
   return (
     <div className={css({ minHeight: '100vh', backgroundColor: 'background' })}>
@@ -256,15 +254,31 @@ export function SubscriptionClient() {
           padding: '24px',
         })}
       >
-        {loading ? (
-          <div
-            className={css({
-              textAlign: 'center',
-              padding: '40px 0',
-              color: '#666',
-            })}
-          >
-            불러오는 중...
+        {isLoading ? (
+          <div className={vstack({ gap: '16px', alignItems: 'stretch' })}>
+            {/* 현재 플랜 스켈레톤 */}
+            <div className={card()}>
+              <Skeleton width="80px" height="18px" />
+              <div className={css({ marginTop: '12px' })}>
+                <Skeleton width="160px" height="28px" />
+              </div>
+              <div className={css({ marginTop: '8px' })}>
+                <Skeleton width="200px" height="14px" />
+              </div>
+            </div>
+            {/* 상품 카드 스켈레톤 */}
+            <div className={card()}>
+              <Skeleton width="120px" height="18px" />
+              <div className={css({ marginTop: '16px' })}>
+                <Skeleton width="100%" height="14px" />
+              </div>
+              <div className={css({ marginTop: '12px' })}>
+                <Skeleton width="100%" height="48px" borderRadius="8px" />
+              </div>
+              <div className={css({ marginTop: '12px' })}>
+                <Skeleton width="100%" height="48px" borderRadius="8px" />
+              </div>
+            </div>
           </div>
         ) : (
           <div className={vstack({ gap: '16px', alignItems: 'stretch' })}>

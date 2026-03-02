@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import { type NextRequest, NextResponse } from 'next/server'
 import { verifyAppleReceipt, verifyGoogleReceipt } from '@/libs/iap/verify'
 import { sendSlackNotification } from '@/libs/slack/client'
@@ -114,17 +115,26 @@ export async function POST(req: NextRequest) {
       })
 
       if (slotError) {
+        Sentry.captureMessage(
+          '[IAP] increment_event_slots RPC failed, using fallback',
+          {
+            level: 'warning',
+            extra: { userId, slotError: slotError.message },
+          },
+        )
+
         const { data: currentPlan } = await admin
           .from('user_plans')
-          .select('extra_event_slots')
+          .select('extra_event_slots, plan_type')
           .eq('user_id', userId)
           .single()
 
         const currentSlots = currentPlan?.extra_event_slots || 0
+        const currentPlanType = currentPlan?.plan_type ?? 'FREE'
 
         const { error: updateError } = await admin.from('user_plans').upsert({
           user_id: userId,
-          plan_type: 'FREE',
+          plan_type: currentPlanType,
           extra_event_slots: currentSlots + 1,
         })
 

@@ -59,6 +59,20 @@ export async function verifyAppleReceipt(
       }
     }
 
+    // 소모품(INAPP): EVENT_SLOT이면 in_app 분기를 먼저 처리
+    // (구독 이력이 있는 사용자의 경우 latest_receipt_info가 존재하여 구독 정보를 반환하므로)
+    if (purchaseType === 'EVENT_SLOT') {
+      const inAppReceipts = data.receipt?.in_app
+      if (inAppReceipts && inAppReceipts.length > 0) {
+        const latestInApp = inAppReceipts[inAppReceipts.length - 1]
+        return {
+          isValid: true,
+          expiresAt: null,
+          productId: latestInApp.product_id,
+        }
+      }
+    }
+
     // 구독: latest_receipt_info에서 추출
     const latestReceipt = data.latest_receipt_info?.[0]
     if (latestReceipt) {
@@ -69,20 +83,6 @@ export async function verifyAppleReceipt(
         isValid: true,
         expiresAt: expiresMs ? new Date(Number(expiresMs)) : null,
         productId,
-      }
-    }
-
-    // 소모품(INAPP): receipt.in_app에서 추출
-    if (purchaseType === 'EVENT_SLOT') {
-      const inAppReceipts = data.receipt?.in_app
-      if (inAppReceipts && inAppReceipts.length > 0) {
-        // 가장 최근 거래를 사용
-        const latestInApp = inAppReceipts[inAppReceipts.length - 1]
-        return {
-          isValid: true,
-          expiresAt: null,
-          productId: latestInApp.product_id,
-        }
       }
     }
 
