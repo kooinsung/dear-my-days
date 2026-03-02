@@ -12,7 +12,7 @@ export type CategoryType =
 
 export type CalendarType = 'SOLAR' | 'LUNAR'
 
-export type PaymentProvider = 'APPLE' | 'GOOGLE' | 'STRIPE'
+export type PaymentProvider = 'APPLE' | 'GOOGLE'
 
 export type NotificationStatus = 'PENDING' | 'SENT' | 'FAILED' | 'CANCELLED'
 

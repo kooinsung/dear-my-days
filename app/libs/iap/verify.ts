@@ -262,10 +262,6 @@ export async function acknowledgeGooglePurchase(
       return false
     }
 
-    Sentry.captureMessage('[IAP] Google purchase acknowledged', {
-      level: 'info',
-      extra: { productId, purchaseType },
-    })
     return true
   } catch (error) {
     Sentry.captureException(error, {

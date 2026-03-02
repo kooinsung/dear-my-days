@@ -16,6 +16,9 @@
 - ✅ 구독 상태 API (`/api/iap/subscription`)
 - ✅ 구독 관리 UI (`/settings/subscription`)
 - ✅ 서버 측 영수증 검증 (`app/libs/iap/verify.ts`)
+- ✅ Google Play 구매 확인 (Acknowledge)
+- ✅ Google RTDN 실시간 알림 (자동 갱신, 만료, 환불)
+- ✅ 환불 자동 처리 (구독/소모품)
 
 ## 상품 ID
 
@@ -144,29 +147,23 @@ pnpm cap:sync:prod
    - IAM 및 관리자 → 서비스 계정
    - 앱용 서비스 계정 생성
    - "소유자" 또는 "편집자" 역할 부여
-   - JSON 키 생성 후 다운로드
+   - JSON 키 생성 후 다운로드 → `client_email`과 `private_key` 확인
 
 2. **Play Console에 연결:**
    - Play Console → 설정 → API 액세스
    - 서비스 계정 연결
    - "재무 데이터 보기" 권한 부여
 
-3. **액세스 토큰 생성:**
-   ```bash
-   # gcloud CLI 설치
-   gcloud auth activate-service-account --key-file=service-account-key.json
-   gcloud auth print-access-token
-   ```
-
 ### 3단계: 환경 변수
 
 `.env.local`에 추가:
 ```env
 GOOGLE_PACKAGE_NAME=com.dearmydays.app
-GOOGLE_SERVICE_ACCOUNT_TOKEN=your_access_token_here
+GOOGLE_SERVICE_ACCOUNT_EMAIL=your-service-account@project.iam.gserviceaccount.com
+GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 ```
 
-**참고:** 액세스 토큰은 1시간 후 만료됩니다. 프로덕션에서는 서비스 계정 키를 사용한 자동 토큰 갱신을 구현하세요.
+**참고:** 서버에서 JWT → OAuth2 액세스 토큰을 자동으로 생성합니다 (`app/libs/iap/google-auth.ts`). gcloud CLI나 수동 토큰 생성이 필요 없습니다.
 
 ### 4단계: Capacitor 플러그인 동기화
 
@@ -362,7 +359,90 @@ import { NativePurchases, PURCHASE_TYPE } from '@capgo/native-purchases'
 - `getProducts()` → Mock 상품 목록 (가격 포함)
 - `purchaseProduct()` → `{ success: false, error: '모바일 앱에서만 구매할 수 있습니다.' }`
 
-## 9. 참고 자료
+## 9. Google Play 구매 확인 (Acknowledge)
+
+Google Play는 구매 후 일정 시간 내에 서버에서 **acknowledge(확인)**하지 않으면 자동으로 환불 처리합니다.
+
+- **테스트 환경**: 3분 내 acknowledge 필요
+- **프로덕션 환경**: 3일 내 acknowledge 필요
+
+### 구현
+
+서버에서 영수증 검증(`/api/iap/verify`) 성공 후 자동으로 `acknowledgeGooglePurchase()` 호출:
+
+```typescript
+// app/libs/iap/verify.ts
+export async function acknowledgeGooglePurchase(
+  purchaseToken: string,
+  productId: string,
+  purchaseType: PurchaseType,
+): Promise<boolean>
+```
+
+- 구독: `purchases/subscriptions/{productId}/tokens/{token}:acknowledge`
+- 소모품: `purchases/products/{productId}/tokens/{token}:acknowledge`
+- acknowledge 실패 시 경고 로그를 남기되, 검증 자체는 성공으로 처리 (재시도 가능)
+
+## 10. Google RTDN (실시간 개발자 알림)
+
+Google Play Real-Time Developer Notifications (RTDN)을 통해 구독 상태 변경을 실시간으로 수신합니다.
+
+### 설정 절차
+
+1. **Google Cloud Pub/Sub 토픽 생성:**
+   - Google Cloud Console → Pub/Sub → 토픽 만들기
+   - 토픽 이름: `play-rtdn` (예시)
+
+2. **Google Play 서비스 계정에 Publisher 역할 부여:**
+   - 토픽의 IAM 권한에 `google-play-developer-notifications@system.gserviceaccount.com` 추가
+   - 역할: **Pub/Sub Publisher**
+
+3. **Push 구독 생성:**
+   - Pub/Sub → 구독 만들기
+   - 전달 유형: **Push**
+   - 엔드포인트 URL: `https://your-domain.com/api/iap/google-rtdn`
+
+4. **Play Console에서 RTDN 토픽 연결:**
+   - Play Console → 설정 → API 액세스 → 실시간 알림
+   - 토픽 이름: `projects/{project-id}/topics/play-rtdn`
+
+### 처리하는 알림 타입
+
+| 타입 | 코드 | 처리 |
+|------|------|------|
+| RECOVERED | 1 | 만료일 업데이트 + 갱신 결제 기록 |
+| RENEWED | 2 | 만료일 업데이트 + 갱신 결제 기록 |
+| CANCELED | 3 | 로깅만 (만료까지 사용 가능) |
+| EXPIRED | 13 | `user_plans.plan_type = 'FREE'` 다운그레이드 |
+| REVOKED | 12 | 환불 처리 (아래 "환불 처리" 참조) |
+| ONE_TIME_REFUNDED | 2 (소모품) | 환불 처리 (아래 "환불 처리" 참조) |
+
+### 엔드포인트
+
+`POST /api/iap/google-rtdn` - Pub/Sub 메시지를 수신하여 자동 처리
+
+## 11. 환불 처리
+
+RTDN을 통해 환불을 자동으로 감지하고 처리합니다.
+
+### 구독 환불 (REVOKED)
+
+1. `event_purchases.status` → `'REFUNDED'`, `refunded_at` 기록
+2. `user_plans.plan_type` → `'FREE'` 다운그레이드
+3. Slack 알림 발송
+
+### 소모품 환불 (ONE_TIME_REFUNDED)
+
+1. `event_purchases.status` → `'REFUNDED'`, `refunded_at` 기록
+2. `user_plans.extra_event_slots` 1 감소 (최소 0)
+3. Slack 알림 발송
+
+### 환불 확인
+
+- 구독 관리 페이지(`/settings/subscription`)에서 구매 기록에 "환불됨" 표시
+- 환불된 구매는 빨간색 배경으로 표시
+
+## 12. 참고 자료
 
 - [@capgo/native-purchases](https://github.com/Cap-go/native-purchases) - Capacitor IAP 플러그인
 - [Apple StoreKit 2](https://developer.apple.com/storekit/)

@@ -1,21 +1,9 @@
 import * as Sentry from '@sentry/nextjs'
 import { type NextRequest, NextResponse } from 'next/server'
+import { getMonthsElapsed, PREMIUM_MONTHLY_LIMIT } from '@/libs/iap/constants'
 import { supabaseAdmin } from '@/libs/supabase/admin'
 import { createSupabaseServer } from '@/libs/supabase/server'
 import { handleApiError, successResponse } from '@/libs/utils/errors'
-
-const PREMIUM_MONTHLY_LIMIT = 10
-
-function getMonthsElapsed(startedAt: string): number {
-  const start = new Date(startedAt)
-  const now = new Date()
-  return Math.max(
-    (now.getFullYear() - start.getFullYear()) * 12 +
-      (now.getMonth() - start.getMonth()) +
-      1,
-    1,
-  )
-}
 
 /**
  * 현재 사용자의 구독 상태 조회
