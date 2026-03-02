@@ -1,12 +1,16 @@
 import * as Sentry from '@sentry/nextjs'
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
+import { env } from '@/libs/config/env'
+import { getGooglePlayAccessToken } from '@/libs/iap/google-auth'
 import { sendSlackNotification } from '@/libs/slack/client'
 import { formatIAPMessage } from '@/libs/slack/formatters'
 import { supabaseAdmin } from '@/libs/supabase/admin'
 import { handleApiError } from '@/libs/utils/errors'
 
 // Google RTDN SubscriptionNotificationType
+const SUBSCRIPTION_RECOVERED = 1
+const SUBSCRIPTION_RENEWED = 2
 // 3 = CANCELED (사용자 취소, 만료까지 사용 가능 → 로깅만)
 const SUBSCRIPTION_REVOKED = 12
 const SUBSCRIPTION_EXPIRED = 13
@@ -28,6 +32,97 @@ const NOTIFICATION_NAMES: Record<number, string> = {
   11: 'PAUSE_SCHEDULE_CHANGED',
   12: 'REVOKED',
   13: 'EXPIRED',
+}
+
+async function fetchGoogleExpiryTime(
+  purchaseToken: string,
+): Promise<string | null> {
+  try {
+    const accessToken = await getGooglePlayAccessToken()
+    const url = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${env.GOOGLE_PACKAGE_NAME}/purchases/subscriptionsv2/tokens/${purchaseToken}`
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+
+    if (!response.ok) {
+      Sentry.captureMessage('[RTDN] Google API fetch failed', {
+        level: 'error',
+        extra: { status: response.status },
+      })
+      return null
+    }
+
+    const data = await response.json()
+    return data.lineItems?.[0]?.expiryTime ?? null
+  } catch (error) {
+    Sentry.captureException(error, {
+      extra: { context: 'fetchGoogleExpiryTime' },
+    })
+    return null
+  }
+}
+
+async function handleSubscriptionRenewed(
+  purchaseToken: string,
+  subscriptionId: string,
+) {
+  const admin = supabaseAdmin()
+
+  const { data: purchase } = await admin
+    .from('event_purchases')
+    .select('user_id, product_id, amount')
+    .eq('purchase_token', purchaseToken)
+    .single()
+
+  if (!purchase) {
+    Sentry.captureMessage('[RTDN] renewed - purchase not found', {
+      level: 'warning',
+      extra: { purchaseToken, subscriptionId },
+    })
+    return
+  }
+
+  // Google API로 새 만료일 조회
+  const expiryTime = await fetchGoogleExpiryTime(purchaseToken)
+
+  const { error: updateError } = await admin
+    .from('user_plans')
+    .update({
+      expired_at: expiryTime ? new Date(expiryTime).toISOString() : null,
+    })
+    .eq('user_id', purchase.user_id)
+
+  if (updateError) {
+    Sentry.captureMessage('[RTDN] renewed - failed to update expired_at', {
+      level: 'error',
+      extra: {
+        userId: purchase.user_id,
+        expiryTime,
+        error: updateError.message,
+      },
+    })
+    return
+  }
+
+  Sentry.captureMessage('[RTDN] subscription renewed', {
+    level: 'info',
+    extra: {
+      userId: purchase.user_id,
+      subscriptionId,
+      newExpiresAt: expiryTime,
+    },
+  })
+
+  await sendSlackNotification(
+    formatIAPMessage({
+      type: 'subscription',
+      provider: 'GOOGLE',
+      productId: purchase.product_id,
+      amount: purchase.amount,
+      userId: purchase.user_id,
+      transactionId: purchaseToken,
+    }),
+  )
 }
 
 async function handleSubscriptionExpired(
@@ -217,7 +312,13 @@ export async function POST(req: NextRequest) {
         },
       })
 
-      if (notificationType === SUBSCRIPTION_EXPIRED) {
+      if (
+        notificationType === SUBSCRIPTION_RENEWED ||
+        notificationType === SUBSCRIPTION_RECOVERED
+      ) {
+        // 자동 갱신 또는 복구 → 새 만료일로 업데이트
+        await handleSubscriptionRenewed(purchaseToken, subscriptionId)
+      } else if (notificationType === SUBSCRIPTION_EXPIRED) {
         // 구독 만료 → FREE 다운그레이드 (환불 아님)
         await handleSubscriptionExpired(purchaseToken, subscriptionId)
       } else if (notificationType === SUBSCRIPTION_REVOKED) {
