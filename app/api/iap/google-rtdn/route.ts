@@ -76,11 +76,14 @@ async function handleSubscriptionRenewed(
 ) {
   const admin = supabaseAdmin()
 
+  // 동일 purchase_token 레코드가 여러 개일 수 있으므로 최초 구매 기준 조회
   const { data: purchase } = await admin
     .from('event_purchases')
     .select('user_id, product_id, amount, currency')
     .eq('purchase_token', purchaseToken)
-    .single()
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
 
   if (!purchase) {
     Sentry.captureMessage('[RTDN] renewed - purchase not found', {
@@ -120,7 +123,7 @@ async function handleSubscriptionRenewed(
       .from('event_purchases')
       .select('id')
       .eq('transaction_id', latestOrderId)
-      .single()
+      .maybeSingle()
 
     if (!existing) {
       const { error: insertError } = await admin
@@ -182,7 +185,9 @@ async function handleSubscriptionExpired(
     .from('event_purchases')
     .select('user_id, product_id')
     .eq('purchase_token', purchaseToken)
-    .single()
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
 
   if (!purchase) {
     Sentry.captureMessage('[RTDN] expired - purchase not found', {
@@ -216,7 +221,9 @@ async function handleSubscriptionRevoked(
     .from('event_purchases')
     .select('id, user_id, product_id, amount')
     .eq('purchase_token', purchaseToken)
-    .single()
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
 
   if (findError || !purchase) {
     Sentry.captureMessage('[RTDN] revoked - purchase not found', {
@@ -269,7 +276,9 @@ async function handleOneTimeRefund(purchaseToken: string, sku: string) {
     .from('event_purchases')
     .select('id, user_id, product_id, amount')
     .eq('purchase_token', purchaseToken)
-    .single()
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
 
   if (findError || !purchase) {
     Sentry.captureMessage('[RTDN] one-time refund - purchase not found', {
