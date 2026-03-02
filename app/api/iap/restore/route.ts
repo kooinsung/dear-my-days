@@ -103,12 +103,18 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Google orderId가 있으면 transaction_id로 사용 (일관된 주문 ID)
+    const finalTransactionId =
+      provider === 'GOOGLE' && verificationResult.orderId
+        ? verificationResult.orderId
+        : transactionId
+
     // 이미 존재하는 거래인지 확인
     const { data: existingPurchase } = await admin
       .from('event_purchases')
       .select('id, user_id')
-      .eq('transaction_id', transactionId)
-      .single()
+      .eq('transaction_id', finalTransactionId)
+      .maybeSingle()
 
     // Google 구매 확인 (acknowledge) - 미확인 시 자동 환불됨
     if (provider === 'GOOGLE') {
@@ -285,7 +291,7 @@ export async function POST(req: NextRequest) {
       .insert({
         user_id: user.id,
         provider: provider as PaymentProvider,
-        transaction_id: transactionId,
+        transaction_id: finalTransactionId,
         product_id: finalProductId,
         purchase_type: product.type,
         amount: product.amount,
@@ -298,7 +304,7 @@ export async function POST(req: NextRequest) {
         level: 'error',
         extra: {
           userId: user.id,
-          transactionId,
+          transactionId: finalTransactionId,
           finalProductId,
           purchaseError: purchaseError.message,
         },

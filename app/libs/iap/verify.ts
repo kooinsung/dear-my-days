@@ -11,6 +11,7 @@ export interface VerificationResult {
   isValid: boolean
   expiresAt: Date | null
   productId?: string
+  orderId?: string
   error?: string
 }
 
@@ -163,6 +164,7 @@ export async function verifyGoogleReceipt(
         isValid: true,
         expiresAt: null,
         productId,
+        orderId: data.orderId,
       }
     }
 
@@ -206,6 +208,7 @@ export async function verifyGoogleReceipt(
       isValid: true,
       expiresAt: expiryTime ? new Date(expiryTime) : null,
       productId: data.lineItems?.[0]?.productId || productId,
+      orderId: data.latestOrderId,
     }
   } catch (error) {
     Sentry.captureException(error, {
