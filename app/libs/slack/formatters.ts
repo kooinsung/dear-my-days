@@ -74,7 +74,7 @@ export function formatSignupMessage(
 }
 
 export function formatIAPMessage(info: {
-  type: 'subscription' | 'purchase' | 'restore'
+  type: 'subscription' | 'purchase' | 'restore' | 'refund'
   provider: string
   productId: string
   amount: number
@@ -85,6 +85,7 @@ export function formatIAPMessage(info: {
     subscription: { icon: '⭐', label: '구독' },
     purchase: { icon: '💳', label: '구매' },
     restore: { icon: '🔄', label: '복원' },
+    refund: { icon: '🔙', label: '환불' },
   }
   const { icon, label } = config[info.type] ?? { icon: '💳', label: info.type }
 

@@ -18,6 +18,8 @@ export type NotificationStatus = 'PENDING' | 'SENT' | 'FAILED' | 'CANCELLED'
 
 export type PlanType = 'FREE' | 'PREMIUM_MONTHLY' | 'PREMIUM_YEARLY'
 
+export type PurchaseStatus = 'COMPLETED' | 'REFUNDED'
+
 export type AuthProvider = 'email' | 'google' | 'kakao' | 'naver' | 'apple'
 
 export interface Event {

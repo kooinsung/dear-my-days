@@ -57,6 +57,8 @@ export function SubscriptionClient() {
   const [expiresAt, setExpiresAt] = useState<string | null>(null)
   const [extraEventSlots, setExtraEventSlots] = useState(0)
   const [eventLimit, setEventLimit] = useState(3)
+  const [eventCount, setEventCount] = useState(0)
+  const [monthlyAllowance, setMonthlyAllowance] = useState(0)
 
   const [subsProducts, setSubsProducts] = useState<Product[]>([])
   const [inappProducts, setInappProducts] = useState<Product[]>([])
@@ -94,6 +96,8 @@ export function SubscriptionClient() {
               expiresAt: null,
               extraEventSlots: 0,
               eventLimit: 3,
+              eventCount: 0,
+              monthlyAllowance: 0,
             }
       const products =
         productsResult.status === 'fulfilled' ? productsResult.value : []
@@ -149,6 +153,8 @@ export function SubscriptionClient() {
       setExpiresAt(subscription.expiresAt)
       setExtraEventSlots(subscription.extraEventSlots)
       setEventLimit(subscription.eventLimit)
+      setEventCount(subscription.eventCount ?? 0)
+      setMonthlyAllowance(subscription.monthlyAllowance ?? 0)
       setSubsProducts(subsFiltered)
       setInappProducts(inappFiltered)
       setPurchases(purchasesRes.data ?? [])
@@ -323,7 +329,15 @@ export function SubscriptionClient() {
                   marginBottom: 0,
                 })}
               >
-                이벤트 등록 제한: {isPremium ? '무제한' : `${eventLimit}개`}
+                이벤트 등록:{' '}
+                {isPremium ? (
+                  <span>
+                    월 {monthlyAllowance}개 (이월 포함 잔여:{' '}
+                    {eventLimit - eventCount}개)
+                  </span>
+                ) : (
+                  <span>{eventLimit}개</span>
+                )}
                 {!isPremium && extraEventSlots > 0 && (
                   <span className={css({ color: '#4F46E5' })}>
                     {' '}
@@ -341,6 +355,18 @@ export function SubscriptionClient() {
                   >
                     스토어에서 구독 관리
                   </Button>
+                  <p
+                    className={css({
+                      color: '#666',
+                      fontSize: '12px',
+                      marginTop: '8px',
+                      marginBottom: 0,
+                    })}
+                  >
+                    구독 취소는 App Store 또는 Google Play 스토어에서
+                    가능합니다. 위 버튼을 누르면 스토어의 구독 관리 페이지로
+                    이동합니다.
+                  </p>
                 </div>
               )}
             </section>

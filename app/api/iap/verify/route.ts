@@ -193,6 +193,7 @@ export async function POST(req: NextRequest) {
         purchase_type: product.type,
         amount: product.amount,
         currency: 'KRW',
+        purchase_token: receipt,
       })
 
     if (purchaseError) {

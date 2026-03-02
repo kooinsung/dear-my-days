@@ -381,6 +381,8 @@ export async function getCurrentSubscription(_userId: string): Promise<{
   expiresAt: string | null
   extraEventSlots: number
   eventLimit: number
+  eventCount?: number
+  monthlyAllowance?: number
 }> {
   try {
     const response = await fetch('/api/iap/subscription', {
