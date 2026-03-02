@@ -3,6 +3,19 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServer } from '@/libs/supabase/server'
 import { handleApiError, successResponse } from '@/libs/utils/errors'
 
+const PREMIUM_MONTHLY_LIMIT = 10
+
+function getMonthsElapsed(startedAt: string): number {
+  const start = new Date(startedAt)
+  const now = new Date()
+  return Math.max(
+    (now.getFullYear() - start.getFullYear()) * 12 +
+      (now.getMonth() - start.getMonth()) +
+      1,
+    1,
+  )
+}
+
 /**
  * 현재 사용자의 구독 상태 조회
  */
@@ -40,26 +53,50 @@ export async function GET(_req: NextRequest) {
       })
     }
 
-    // plan_type을 신뢰 (서버-투-서버 알림 없이는 expired_at으로 판단 불가)
-    // 자동 갱신 시 expired_at이 갱신되지 않으므로, plan_type이 PREMIUM이면 활성으로 간주
     const planType = plan.plan_type ?? 'FREE'
     const extraSlots = plan.extra_event_slots || 0
     const isPremium =
       planType === 'PREMIUM_MONTHLY' || planType === 'PREMIUM_YEARLY'
-    const eventLimit = isPremium ? 999999 : 3 + extraSlots
 
     Sentry.addBreadcrumb({
       category: 'iap',
       message: 'subscription check',
       level: 'info',
-      data: { userId: user.id, planType, isPremium, extraSlots, eventLimit },
+      data: { userId: user.id, planType, isPremium, extraSlots },
     })
+
+    if (isPremium && plan.started_at) {
+      // 프리미엄: 구독 시작 이후 이벤트만 카운트
+      const { count: premiumEventCount } = await supabase
+        .from('events')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('created_at', plan.started_at)
+
+      const monthsElapsed = getMonthsElapsed(plan.started_at)
+      const totalAllowance = monthsElapsed * PREMIUM_MONTHLY_LIMIT
+      const used = premiumEventCount ?? 0
+
+      return successResponse({
+        planType,
+        startedAt: plan.started_at,
+        expiresAt: plan.expired_at,
+        isActive: true,
+        extraEventSlots: extraSlots,
+        eventLimit: totalAllowance,
+        eventCount: used,
+        monthlyAllowance: PREMIUM_MONTHLY_LIMIT,
+      })
+    }
+
+    // FREE 플랜
+    const eventLimit = 3 + extraSlots
 
     return successResponse({
       planType,
       startedAt: plan.started_at,
       expiresAt: plan.expired_at,
-      isActive: isPremium,
+      isActive: false,
       extraEventSlots: extraSlots,
       eventLimit,
     })

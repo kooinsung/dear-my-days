@@ -10,9 +10,11 @@ import EventForm from '../edit/[id]/event-form'
 function EventLimitReached({
   eventCount,
   eventLimit,
+  isPremium,
 }: {
   eventCount: number
   eventLimit: number
+  isPremium: boolean
 }) {
   return (
     <div className={card()}>
@@ -52,8 +54,18 @@ function EventLimitReached({
         >
           현재 {eventCount}개 / 최대 {eventLimit}개 등록됨
           <br />
-          프리미엄 구독 또는 추가 슬롯을 구매하면
-          <br />더 많은 이벤트를 등록할 수 있습니다.
+          {isPremium ? (
+            <>
+              이번 달 이벤트 등록 허용량을 모두 사용했습니다.
+              <br />
+              다음 달에 추가 등록이 가능합니다.
+            </>
+          ) : (
+            <>
+              프리미엄 구독 또는 추가 슬롯을 구매하면
+              <br />더 많은 이벤트를 등록할 수 있습니다.
+            </>
+          )}
         </p>
         <Link
           href="/settings/subscription"
@@ -135,6 +147,7 @@ export function EventNewPageClient() {
           <EventLimitReached
             eventCount={limitInfo.eventCount}
             eventLimit={limitInfo.eventLimit}
+            isPremium={limitInfo.isPremium}
           />
         ) : (
           <div className={card()}>

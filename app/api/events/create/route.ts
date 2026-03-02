@@ -7,6 +7,18 @@ import { handleApiError, successResponse } from '@/libs/utils/errors'
 import { createEventSchema } from '@/libs/validation/schemas'
 
 const FREE_EVENT_LIMIT = 3
+const PREMIUM_MONTHLY_LIMIT = 10
+
+function getMonthsElapsed(startedAt: string): number {
+  const start = new Date(startedAt)
+  const now = new Date()
+  return Math.max(
+    (now.getFullYear() - start.getFullYear()) * 12 +
+      (now.getMonth() - start.getMonth()) +
+      1,
+    1,
+  )
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -34,7 +46,7 @@ export async function POST(req: NextRequest) {
         .eq('user_id', user.id),
       admin
         .from('user_plans')
-        .select('plan_type, extra_event_slots')
+        .select('plan_type, extra_event_slots, started_at')
         .eq('user_id', user.id)
         .single(),
     ])
@@ -43,7 +55,28 @@ export async function POST(req: NextRequest) {
     const isPremium =
       planType === 'PREMIUM_MONTHLY' || planType === 'PREMIUM_YEARLY'
 
-    if (!isPremium) {
+    if (isPremium) {
+      // 프리미엄: 구독 시작 이후 이벤트만 카운트, 경과월 x 10개 제한
+      const startedAt = userPlan?.started_at
+      if (startedAt) {
+        const { count: premiumEventCount } = await supabase
+          .from('events')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .gte('created_at', startedAt)
+
+        const monthsElapsed = getMonthsElapsed(startedAt)
+        const totalAllowance = monthsElapsed * PREMIUM_MONTHLY_LIMIT
+
+        if ((premiumEventCount ?? 0) >= totalAllowance) {
+          return NextResponse.json(
+            { error: ERROR_MESSAGES.events.premiumLimitExceeded },
+            { status: 403 },
+          )
+        }
+      }
+    } else {
+      // FREE: 전체 이벤트 카운트, 3 + extra_slots 제한
       const extraSlots = userPlan?.extra_event_slots ?? 0
       const maxEvents = FREE_EVENT_LIMIT + extraSlots
 
