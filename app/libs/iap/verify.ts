@@ -24,8 +24,6 @@ export async function verifyAppleReceipt(
   purchaseType: PurchaseType = 'SUBSCRIPTION',
 ): Promise<VerificationResult> {
   try {
-    // Apple의 verifyReceipt API 사용
-    // 프로덕션 환경 시도 후 실패하면 샌드박스 시도
     let response = await fetch('https://buy.itunes.apple.com/verifyReceipt', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -52,8 +50,11 @@ export async function verifyAppleReceipt(
       data = await response.json()
     }
 
-    // 검증 실패
     if (data.status !== 0) {
+      Sentry.captureMessage('[IAP] Apple verification failed', {
+        level: 'error',
+        extra: { status: data.status, purchaseType },
+      })
       return {
         isValid: false,
         expiresAt: null,
@@ -62,7 +63,6 @@ export async function verifyAppleReceipt(
     }
 
     // 소모품(INAPP): EVENT_SLOT이면 in_app 분기를 먼저 처리
-    // (구독 이력이 있는 사용자의 경우 latest_receipt_info가 존재하여 구독 정보를 반환하므로)
     if (purchaseType === 'EVENT_SLOT') {
       const inAppReceipts = data.receipt?.in_app
       if (inAppReceipts && inAppReceipts.length > 0) {
@@ -88,6 +88,10 @@ export async function verifyAppleReceipt(
       }
     }
 
+    Sentry.captureMessage('[IAP] Apple receipt has no info', {
+      level: 'warning',
+      extra: { purchaseType, hasInApp: !!data.receipt?.in_app },
+    })
     return {
       isValid: false,
       expiresAt: null,
@@ -146,7 +150,7 @@ export async function verifyGoogleReceipt(
       if (data.purchaseState !== 0) {
         Sentry.captureMessage('[IAP] Google INAPP purchase not completed', {
           level: 'error',
-          extra: { productId, purchaseState: data.purchaseState, data },
+          extra: { productId, purchaseState: data.purchaseState },
         })
         return {
           isValid: false,
@@ -184,11 +188,10 @@ export async function verifyGoogleReceipt(
 
     const data = await response.json()
 
-    // 구독 상태 확인
     if (data.subscriptionState !== 'SUBSCRIPTION_STATE_ACTIVE') {
       Sentry.captureMessage('[IAP] Google subscription not active', {
         level: 'error',
-        extra: { productId, subscriptionState: data.subscriptionState, data },
+        extra: { productId, subscriptionState: data.subscriptionState },
       })
       return {
         isValid: false,
@@ -197,7 +200,6 @@ export async function verifyGoogleReceipt(
       }
     }
 
-    // 만료 시간 추출
     const expiryTime = data.lineItems?.[0]?.expiryTime
 
     return {

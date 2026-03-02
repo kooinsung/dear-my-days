@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import { type NextRequest, NextResponse } from 'next/server'
 import { verifyAppleReceipt, verifyGoogleReceipt } from '@/libs/iap/verify'
 import { sendSlackNotification } from '@/libs/slack/client'
@@ -76,6 +77,18 @@ export async function POST(req: NextRequest) {
         ? await verifyAppleReceipt(receipt, purchaseType)
         : await verifyGoogleReceipt(receipt, productId, purchaseType)
 
+    Sentry.captureMessage('[IAP] restore verify result', {
+      level: verificationResult.isValid ? 'info' : 'error',
+      extra: {
+        provider,
+        productId,
+        purchaseType,
+        userId: user.id,
+        isValid: verificationResult.isValid,
+        error: verificationResult.error,
+      },
+    })
+
     if (!verificationResult.isValid) {
       return NextResponse.json(
         {
@@ -97,6 +110,10 @@ export async function POST(req: NextRequest) {
     const product = finalProductId ? PRODUCT_INFO[finalProductId] : undefined
 
     if (!product) {
+      Sentry.captureMessage('[IAP] restore unknown product', {
+        level: 'error',
+        extra: { finalProductId, provider, userId: user.id },
+      })
       return NextResponse.json(
         { success: false, error: 'Unknown product ID' },
         { status: 400 },
@@ -106,13 +123,24 @@ export async function POST(req: NextRequest) {
     if (existingPurchase) {
       // 다른 사용자의 거래인 경우 에러
       if (existingPurchase.user_id !== user.id) {
+        Sentry.captureMessage(
+          '[IAP] restore transaction belongs to another user',
+          {
+            level: 'warning',
+            extra: {
+              transactionId,
+              requestUserId: user.id,
+              ownerUserId: existingPurchase.user_id,
+            },
+          },
+        )
         return NextResponse.json(
           { success: false, error: 'Transaction belongs to another user' },
           { status: 403 },
         )
       }
 
-      // 같은 사용자의 거래인 경우 플랜 또는 슬롯 업데이트
+      // 같은 사용자의 거래인 경우 플랜 업데이트
       if (product.type === 'SUBSCRIPTION') {
         const { error: planError } = await admin.from('user_plans').upsert({
           user_id: user.id,
@@ -122,15 +150,19 @@ export async function POST(req: NextRequest) {
         })
 
         if (planError) {
-          console.error('Failed to restore plan:', planError)
+          Sentry.captureMessage('[IAP] restore failed to update plan', {
+            level: 'error',
+            extra: {
+              userId: user.id,
+              planType: product.planType,
+              planError: planError.message,
+            },
+          })
           return NextResponse.json(
             { success: false, error: 'Failed to restore subscription' },
             { status: 500 },
           )
         }
-      } else if (product.type === 'EVENT_SLOT') {
-        // 이벤트 슬롯은 이미 구매 기록이 있으므로 별도 처리 불필요
-        // 필요시 extra_event_slots를 다시 확인하고 동기화
       }
 
       await sendSlackNotification(
@@ -161,7 +193,14 @@ export async function POST(req: NextRequest) {
       })
 
       if (planError) {
-        console.error('Failed to update plan:', planError)
+        Sentry.captureMessage('[IAP] restore failed to update plan (new)', {
+          level: 'error',
+          extra: {
+            userId: user.id,
+            planType: product.planType,
+            planError: planError.message,
+          },
+        })
         return NextResponse.json(
           { success: false, error: 'Failed to update subscription' },
           { status: 500 },
@@ -174,22 +213,42 @@ export async function POST(req: NextRequest) {
       })
 
       if (slotError) {
+        Sentry.captureMessage(
+          '[IAP] restore increment_event_slots RPC failed, using fallback',
+          {
+            level: 'warning',
+            extra: { userId: user.id, slotError: slotError.message },
+          },
+        )
+
         const { data: currentPlan } = await admin
           .from('user_plans')
-          .select('extra_event_slots')
+          .select('extra_event_slots, plan_type')
           .eq('user_id', user.id)
           .single()
 
         const currentSlots = currentPlan?.extra_event_slots || 0
+        const currentPlanType = currentPlan?.plan_type ?? 'FREE'
 
         const { error: updateError } = await admin.from('user_plans').upsert({
           user_id: user.id,
-          plan_type: 'FREE',
+          plan_type: currentPlanType,
           extra_event_slots: currentSlots + 1,
         })
 
         if (updateError) {
-          console.error('Failed to update event slots:', updateError)
+          Sentry.captureMessage(
+            '[IAP] restore failed to update event slots (fallback)',
+            {
+              level: 'error',
+              extra: {
+                userId: user.id,
+                currentSlots,
+                currentPlanType,
+                updateError: updateError.message,
+              },
+            },
+          )
           return NextResponse.json(
             { success: false, error: 'Failed to add event slot' },
             { status: 500 },
@@ -198,7 +257,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // event_purchases에 구매 기록 (실패해도 플랜 업데이트는 이미 완료)
+    // event_purchases에 구매 기록
     const { error: purchaseError } = await admin
       .from('event_purchases')
       .insert({
@@ -212,7 +271,15 @@ export async function POST(req: NextRequest) {
       })
 
     if (purchaseError) {
-      console.error('Failed to insert purchase record:', purchaseError)
+      Sentry.captureMessage('[IAP] restore failed to insert purchase record', {
+        level: 'error',
+        extra: {
+          userId: user.id,
+          transactionId,
+          finalProductId,
+          purchaseError: purchaseError.message,
+        },
+      })
     }
 
     await sendSlackNotification(

@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/libs/supabase/admin'
 import { createSupabaseServer } from '@/libs/supabase/server'
@@ -27,6 +28,10 @@ export async function GET() {
       .order('created_at', { ascending: false })
 
     if (error) {
+      Sentry.captureMessage('[IAP] Failed to fetch purchases', {
+        level: 'error',
+        extra: { userId: user.id, error: error.message },
+      })
       return NextResponse.json(
         { success: false, error: '구매 기록을 불러올 수 없습니다.' },
         { status: 500 },
