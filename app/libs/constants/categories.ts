@@ -21,8 +21,12 @@ export function getCategoryConfig(
   return CATEGORIES.find((c) => c.value === category)
 }
 
+export const CATEGORY_LABELS: Record<CategoryType, string> = Object.fromEntries(
+  CATEGORIES.map((c) => [c.value, c.label]),
+) as Record<CategoryType, string>
+
 export function getCategoryLabel(category: CategoryType): string {
-  return getCategoryConfig(category)?.label || category
+  return CATEGORY_LABELS[category] || category
 }
 
 export function getCategoryIcon(category: CategoryType): string {

@@ -15,8 +15,7 @@ export async function requestPushPermissions(): Promise<boolean> {
   try {
     const result = await PushNotifications.requestPermissions()
     return result.receive === 'granted'
-  } catch (error) {
-    console.error('Failed to request push permissions:', error)
+  } catch {
     return false
   }
 }
@@ -26,7 +25,6 @@ export async function requestPushPermissions(): Promise<boolean> {
  */
 export async function registerPushNotifications(userId: string): Promise<void> {
   if (!isNativeSync()) {
-    console.log('Push notifications are only available in native app')
     return
   }
 
@@ -48,7 +46,6 @@ export async function registerPushNotifications(userId: string): Promise<void> {
     // 2. 권한 요청
     const granted = await requestPushPermissions()
     if (!granted) {
-      console.log('Push notification permission denied')
       return
     }
 
@@ -59,8 +56,6 @@ export async function registerPushNotifications(userId: string): Promise<void> {
     await PushNotifications.addListener(
       'registration',
       async (token: Token) => {
-        console.log('Push token:', token.value)
-
         // 5. 토큰을 서버에 저장
         try {
           const tokenPlatform = await getPlatform()
@@ -75,24 +70,23 @@ export async function registerPushNotifications(userId: string): Promise<void> {
           })
 
           if (!response.ok) {
-            console.error('Failed to register push token')
+            // 토큰 등록 실패 — 다음 앱 실행 시 재시도
           }
-        } catch (error) {
-          console.error('Failed to save push token:', error)
+        } catch {
+          // 토큰 저장 실패 — 다음 앱 실행 시 재시도
         }
       },
     )
 
     // 6. 토큰 등록 실패 리스너
-    await PushNotifications.addListener('registrationError', (error) => {
-      console.error('Push registration error:', error)
+    await PushNotifications.addListener('registrationError', () => {
+      // 토큰 등록 실패 — 다음 앱 실행 시 재시도
     })
 
     // 7. 푸시 알림 수신 리스너 (앱이 foreground일 때)
     await PushNotifications.addListener(
       'pushNotificationReceived',
-      (notification) => {
-        console.log('Push received:', notification)
+      (_notification) => {
         // TODO: Toast 표시 또는 UI 업데이트
       },
     )
@@ -101,8 +95,6 @@ export async function registerPushNotifications(userId: string): Promise<void> {
     await PushNotifications.addListener(
       'pushNotificationActionPerformed',
       (notification) => {
-        console.log('Push action:', notification)
-
         // 이벤트 상세 페이지로 이동
         const eventId = notification.notification.data?.eventId
         if (eventId) {
@@ -110,8 +102,8 @@ export async function registerPushNotifications(userId: string): Promise<void> {
         }
       },
     )
-  } catch (error) {
-    console.error('Failed to register push notifications:', error)
+  } catch {
+    // 푸시 알림 등록 실패
   }
 }
 
@@ -139,8 +131,8 @@ export async function unregisterPushNotifications(
 
     // 리스너 제거
     await PushNotifications.removeAllListeners()
-  } catch (error) {
-    console.error('Failed to unregister push notifications:', error)
+  } catch {
+    // 푸시 알림 해제 실패
   }
 }
 
@@ -162,8 +154,7 @@ export async function checkPushPermissions(): Promise<
       return 'prompt'
     }
     return status
-  } catch (error) {
-    console.error('Failed to check push permissions:', error)
+  } catch {
     return 'denied'
   }
 }

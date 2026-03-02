@@ -44,7 +44,6 @@ export function NotificationSettings({ eventId }: NotificationSettingsProps) {
         .eq('event_id', eventId)
 
       if (error) {
-        console.error('Failed to load notification settings:', error)
         return
       }
 
@@ -94,7 +93,6 @@ export function NotificationSettings({ eventId }: NotificationSettingsProps) {
         .eq('event_id', eventId)
 
       if (deleteError) {
-        console.error('Failed to delete old settings:', deleteError)
         setMessage('설정 저장 실패')
         return
       }
@@ -111,15 +109,13 @@ export function NotificationSettings({ eventId }: NotificationSettingsProps) {
           )
 
         if (insertError) {
-          console.error('Failed to save settings:', insertError)
           setMessage('설정 저장 실패')
           return
         }
       }
 
       setMessage('알림 설정이 저장되었습니다.')
-    } catch (error) {
-      console.error('Save error:', error)
+    } catch {
       setMessage('오류가 발생했습니다.')
     } finally {
       setLoading(false)

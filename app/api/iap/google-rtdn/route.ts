@@ -18,22 +18,6 @@ const SUBSCRIPTION_EXPIRED = 13
 // Google RTDN OneTimeProductNotificationType
 const ONE_TIME_PRODUCT_REFUNDED = 2
 
-const NOTIFICATION_NAMES: Record<number, string> = {
-  1: 'RECOVERED',
-  2: 'RENEWED',
-  3: 'CANCELED',
-  4: 'PURCHASED',
-  5: 'ON_HOLD',
-  6: 'IN_GRACE_PERIOD',
-  7: 'RESTARTED',
-  8: 'PRICE_CHANGE_CONFIRMED',
-  9: 'DEFERRED',
-  10: 'PAUSED',
-  11: 'PAUSE_SCHEDULE_CHANGED',
-  12: 'REVOKED',
-  13: 'EXPIRED',
-}
-
 interface GoogleSubscriptionInfo {
   expiryTime: string | null
   latestOrderId: string | null
@@ -152,16 +136,6 @@ async function handleSubscriptionRenewed(
     }
   }
 
-  Sentry.captureMessage('[RTDN] subscription renewed', {
-    level: 'info',
-    extra: {
-      userId: purchase.user_id,
-      subscriptionId,
-      latestOrderId,
-      newExpiresAt: expiryTime,
-    },
-  })
-
   await sendSlackNotification(
     formatIAPMessage({
       type: 'subscription',
@@ -213,14 +187,6 @@ async function handleSubscriptionExpired(
     })
     return
   }
-
-  Sentry.captureMessage('[RTDN] subscription expired → FREE', {
-    level: 'info',
-    extra: {
-      userId: purchase.user_id,
-      subscriptionId,
-    },
-  })
 }
 
 async function handleSubscriptionRevoked(
@@ -281,15 +247,6 @@ async function handleSubscriptionRevoked(
       },
     })
   }
-
-  Sentry.captureMessage('[RTDN] subscription revoked (refund) → FREE', {
-    level: 'info',
-    extra: {
-      userId: purchase.user_id,
-      purchaseId: purchase.id,
-      subscriptionId,
-    },
-  })
 
   await sendSlackNotification(
     formatIAPMessage({
@@ -374,11 +331,6 @@ async function handleOneTimeRefund(purchaseToken: string, sku: string) {
     }
   }
 
-  Sentry.captureMessage('[RTDN] one-time product refunded', {
-    level: 'info',
-    extra: { userId: purchase.user_id, purchaseId: purchase.id, sku },
-  })
-
   await sendSlackNotification(
     formatIAPMessage({
       type: 'refund',
@@ -419,15 +371,6 @@ export async function POST(req: NextRequest) {
     if (data.subscriptionNotification) {
       const { notificationType, purchaseToken, subscriptionId } =
         data.subscriptionNotification
-
-      Sentry.captureMessage('[RTDN] subscription notification', {
-        level: 'info',
-        extra: {
-          notificationType,
-          typeName: NOTIFICATION_NAMES[notificationType] ?? 'UNKNOWN',
-          subscriptionId,
-        },
-      })
 
       if (
         notificationType === SUBSCRIPTION_RENEWED ||

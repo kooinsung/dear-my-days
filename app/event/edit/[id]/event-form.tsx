@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { useCreateEvent, useEvent, useUpdateEvent } from '@/hooks/use-events'
+import { CATEGORIES } from '@/libs/constants/categories'
 import { createSupabaseBrowser } from '@/libs/supabase/browser'
 import type { CalendarType, CategoryType } from '@/libs/supabase/database.types'
 import {
@@ -80,13 +81,7 @@ export default function EventForm({
   const createEvent = useCreateEvent()
   const updateEvent = useUpdateEvent()
 
-  const categories: { value: CategoryType; label: string; icon: string }[] = [
-    { value: 'BIRTHDAY', label: '생일', icon: '🎂' },
-    { value: 'ANNIVERSARY', label: '기념일', icon: '💝' },
-    { value: 'MEMORIAL', label: '기일', icon: '🕯️' },
-    { value: 'HOLIDAY', label: '공휴일', icon: '🎉' },
-    { value: 'OTHER', label: '기타', icon: '📅' },
-  ]
+  const categories = CATEGORIES
 
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
   const [convertCandidates, setConvertCandidates] = useState<
@@ -154,7 +149,6 @@ export default function EventForm({
     )
 
     if (error) {
-      console.error('Failed to save notifications:', error)
       showToast('알림 설정 저장에 실패했습니다', 'error')
     }
   }
@@ -268,7 +262,6 @@ export default function EventForm({
       // SOLAR는 기존처럼 바로 저장
       await saveWithChoice(false)
     } catch (error) {
-      console.error(error)
       showToast(
         error instanceof Error ? error.message : '저장에 실패했습니다',
         'error',
@@ -736,8 +729,7 @@ export default function EventForm({
                     // 모달 닫기 → 저장
                     setIsConfirmOpen(false)
                     await saveWithChoice(pickedLeap)
-                  } catch (error) {
-                    console.error(error)
+                  } catch {
                     showToast('저장에 실패했습니다', 'error')
                   }
                 }}

@@ -20,24 +20,17 @@ export async function initializeSocialLogin() {
     !env.NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID &&
     !env.NEXT_PUBLIC_GOOGLE_IOS_CLIENT_ID
   ) {
-    console.warn('⚠️ Google Client IDs not configured')
     return
   }
 
-  try {
-    await SocialLogin.initialize({
-      google: {
-        iOSClientId: env.NEXT_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-        webClientId: env.NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-        mode: 'online',
-      },
-    })
-    isInitialized = true
-    console.log('✅ SocialLogin initialized')
-  } catch (error) {
-    console.error('❌ SocialLogin initialization error:', error)
-    throw error
-  }
+  await SocialLogin.initialize({
+    google: {
+      iOSClientId: env.NEXT_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+      webClientId: env.NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+      mode: 'online',
+    },
+  })
+  isInitialized = true
 }
 
 /**
@@ -55,53 +48,41 @@ export async function googleLogin() {
     )
   }
 
-  try {
-    // 1. 네이티브 Google Sign-In
-    const { provider, result } = await SocialLogin.login({
-      provider: 'google',
-      options: {
-        style: 'standard',
-        filterByAuthorizedAccounts: false,
-      },
-    })
+  // 1. 네이티브 Google Sign-In
+  const { result } = await SocialLogin.login({
+    provider: 'google',
+    options: {
+      style: 'standard',
+      filterByAuthorizedAccounts: false,
+    },
+  })
 
-    console.log('✅ Google native sign-in success:', {
-      provider,
-      responseType: result.responseType,
-    })
+  // 2. Online 모드 확인 (idToken 필요)
+  if (result.responseType !== 'online') {
+    throw new Error(
+      'Google login failed: Expected online mode but got offline mode',
+    )
+  }
 
-    // 2. Online 모드 확인 (idToken 필요)
-    if (result.responseType !== 'online') {
-      throw new Error(
-        'Google login failed: Expected online mode but got offline mode',
-      )
-    }
+  if (!result.idToken) {
+    throw new Error('Google login failed: No idToken received')
+  }
 
-    if (!result.idToken) {
-      throw new Error('Google login failed: No idToken received')
-    }
+  // 3. Google ID 토큰을 Supabase로 전달
+  const supabase = createSupabaseBrowser()
+  const { data, error } = await supabase.auth.signInWithIdToken({
+    provider: 'google',
+    token: result.idToken,
+  })
 
-    // 3. Google ID 토큰을 Supabase로 전달
-    const supabase = createSupabaseBrowser()
-    const { data, error } = await supabase.auth.signInWithIdToken({
-      provider: 'google',
-      token: result.idToken,
-    })
-
-    if (error) {
-      throw error
-    }
-
-    console.log('✅ Supabase session created')
-
-    // 신규 가입 알림 체크
-    fetch('/api/tracking/check-new-signup', { method: 'POST' }).catch(() => {})
-
-    return { success: true, data }
-  } catch (error) {
-    console.error('❌ Google login error:', error)
+  if (error) {
     throw error
   }
+
+  // 신규 가입 알림 체크
+  fetch('/api/tracking/check-new-signup', { method: 'POST' }).catch(() => {})
+
+  return { success: true, data }
 }
 
 /**
@@ -109,48 +90,40 @@ export async function googleLogin() {
  * accessToken을 서버로 보내 Supabase 세션을 생성
  */
 export async function kakaoLogin() {
-  try {
-    // 1. 네이티브 Kakao Sign-In → accessToken 반환
-    const result = await Capacitor3KakaoLogin.kakaoLogin()
-    const accessToken = result.value
+  // 1. 네이티브 Kakao Sign-In → accessToken 반환
+  const result = await Capacitor3KakaoLogin.kakaoLogin()
+  const accessToken = result.value
 
-    if (!accessToken) {
-      throw new Error('Kakao login failed: No accessToken received')
-    }
+  if (!accessToken) {
+    throw new Error('Kakao login failed: No accessToken received')
+  }
 
-    console.log('✅ Kakao native sign-in success')
+  // 2. 서버 API로 accessToken 전달 → Supabase 세션 생성
+  const response = await fetch('/api/auth/kakao-native', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ accessToken }),
+  })
 
-    // 2. 서버 API로 accessToken 전달 → Supabase 세션 생성
-    const response = await fetch('/api/auth/kakao-native', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accessToken }),
-    })
+  if (!response.ok) {
+    const errorData = await response.json()
+    throw new Error(errorData.error || 'Kakao 로그인 처리에 실패했습니다.')
+  }
 
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.error || 'Kakao 로그인 처리에 실패했습니다.')
-    }
+  const { tokenHash } = await response.json()
 
-    const { tokenHash } = await response.json()
+  // 3. OTP 검증으로 클라이언트 세션 생성
+  const supabase = createSupabaseBrowser()
+  const { data, error } = await supabase.auth.verifyOtp({
+    token_hash: tokenHash,
+    type: 'email',
+  })
 
-    // 3. OTP 검증으로 클라이언트 세션 생성
-    const supabase = createSupabaseBrowser()
-    const { data, error } = await supabase.auth.verifyOtp({
-      token_hash: tokenHash,
-      type: 'email',
-    })
-
-    if (error) {
-      throw error
-    }
-
-    console.log('✅ Supabase session created (Kakao)')
-    return { success: true, data }
-  } catch (error) {
-    console.error('❌ Kakao login error:', error)
+  if (error) {
     throw error
   }
+
+  return { success: true, data }
 }
 
 /**
@@ -159,9 +132,8 @@ export async function kakaoLogin() {
 export async function kakaoLogout() {
   try {
     await Capacitor3KakaoLogin.kakaoLogout()
-    console.log('✅ Kakao sign-out success')
-  } catch (error) {
-    console.error('❌ Kakao logout error:', error)
+  } catch {
+    // 로그아웃 실패는 무시
   }
 }
 
@@ -171,8 +143,7 @@ export async function kakaoLogout() {
 export async function googleLogout() {
   try {
     await SocialLogin.logout({ provider: 'google' })
-    console.log('✅ Google sign-out success')
-  } catch (error) {
-    console.error('❌ Google logout error:', error)
+  } catch {
+    // 로그아웃 실패는 무시
   }
 }

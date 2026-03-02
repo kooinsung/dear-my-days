@@ -140,12 +140,13 @@ async function sendFcmMessage(params: {
 
 // --- Notification Message Builder ---
 
+// 원본: app/libs/constants/categories.ts (Edge Function은 별도 런타임이라 직접 정의)
 const CATEGORY_LABELS: Record<string, string> = {
   BIRTHDAY: '생일',
   ANNIVERSARY: '기념일',
   MEMORIAL: '기일',
   HOLIDAY: '공휴일',
-  OTHER: '이벤트',
+  OTHER: '기타',
 }
 
 function formatMinutesBefore(total: number): string {
