@@ -33,6 +33,17 @@ const PRODUCT_LABELS: Record<string, string> = {
   'com.dearmydays.event.slot': '이벤트 슬롯 추가',
 }
 
+function formatKST(dateStr: string): string {
+  return new Date(dateStr).toLocaleString('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 interface PurchaseRecord {
   id: string
   purchase_type: string
@@ -318,7 +329,7 @@ export function SubscriptionClient() {
                     marginBottom: 0,
                   })}
                 >
-                  만료일: {new Date(expiresAt).toLocaleDateString('ko-KR')}
+                  만료일: {formatKST(expiresAt)}
                 </p>
               )}
               <p
@@ -599,16 +610,11 @@ export function SubscriptionClient() {
                               marginTop: '2px',
                             })}
                           >
-                            {new Date(purchase.created_at).toLocaleDateString(
-                              'ko-KR',
-                            )}
+                            {formatKST(purchase.created_at)}
                             {isRefunded && purchase.refunded_at && (
                               <span className={css({ color: '#DC2626' })}>
                                 {' '}
-                                · 환불{' '}
-                                {new Date(
-                                  purchase.refunded_at,
-                                ).toLocaleDateString('ko-KR')}
+                                · 환불 {formatKST(purchase.refunded_at)}
                               </span>
                             )}
                           </div>
