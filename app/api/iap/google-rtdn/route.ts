@@ -7,13 +7,65 @@ import { supabaseAdmin } from '@/libs/supabase/admin'
 import { handleApiError } from '@/libs/utils/errors'
 
 // Google RTDN SubscriptionNotificationType
+// 3 = CANCELED (사용자 취소, 만료까지 사용 가능 → 로깅만)
 const SUBSCRIPTION_REVOKED = 12
-const SUBSCRIPTION_REFUNDED = 13
+const SUBSCRIPTION_EXPIRED = 13
 
 // Google RTDN OneTimeProductNotificationType
 const ONE_TIME_PRODUCT_REFUNDED = 2
 
-async function handleSubscriptionRefund(
+const NOTIFICATION_NAMES: Record<number, string> = {
+  1: 'RECOVERED',
+  2: 'RENEWED',
+  3: 'CANCELED',
+  4: 'PURCHASED',
+  5: 'ON_HOLD',
+  6: 'IN_GRACE_PERIOD',
+  7: 'RESTARTED',
+  8: 'PRICE_CHANGE_CONFIRMED',
+  9: 'DEFERRED',
+  10: 'PAUSED',
+  11: 'PAUSE_SCHEDULE_CHANGED',
+  12: 'REVOKED',
+  13: 'EXPIRED',
+}
+
+async function handleSubscriptionExpired(
+  purchaseToken: string,
+  subscriptionId: string,
+) {
+  const admin = supabaseAdmin()
+
+  // user_plans → FREE 다운그레이드 (purchase_token으로 유저 찾기)
+  const { data: purchase } = await admin
+    .from('event_purchases')
+    .select('user_id, product_id')
+    .eq('purchase_token', purchaseToken)
+    .single()
+
+  if (!purchase) {
+    Sentry.captureMessage('[RTDN] expired - purchase not found', {
+      level: 'warning',
+      extra: { purchaseToken, subscriptionId },
+    })
+    return
+  }
+
+  await admin
+    .from('user_plans')
+    .update({ plan_type: 'FREE' })
+    .eq('user_id', purchase.user_id)
+
+  Sentry.captureMessage('[RTDN] subscription expired → FREE', {
+    level: 'info',
+    extra: {
+      userId: purchase.user_id,
+      subscriptionId,
+    },
+  })
+}
+
+async function handleSubscriptionRevoked(
   purchaseToken: string,
   subscriptionId: string,
 ) {
@@ -26,7 +78,7 @@ async function handleSubscriptionRefund(
     .single()
 
   if (findError || !purchase) {
-    Sentry.captureMessage('[RTDN] subscription refund - purchase not found', {
+    Sentry.captureMessage('[RTDN] revoked - purchase not found', {
       level: 'warning',
       extra: { purchaseToken, subscriptionId, findError: findError?.message },
     })
@@ -48,7 +100,7 @@ async function handleSubscriptionRefund(
     .update({ plan_type: 'FREE' })
     .eq('user_id', purchase.user_id)
 
-  Sentry.captureMessage('[RTDN] subscription refunded', {
+  Sentry.captureMessage('[RTDN] subscription revoked (refund) → FREE', {
     level: 'info',
     extra: {
       userId: purchase.user_id,
@@ -156,12 +208,23 @@ export async function POST(req: NextRequest) {
       const { notificationType, purchaseToken, subscriptionId } =
         data.subscriptionNotification
 
-      if (
-        notificationType === SUBSCRIPTION_REVOKED ||
-        notificationType === SUBSCRIPTION_REFUNDED
-      ) {
-        await handleSubscriptionRefund(purchaseToken, subscriptionId)
+      Sentry.captureMessage('[RTDN] subscription notification', {
+        level: 'info',
+        extra: {
+          notificationType,
+          typeName: NOTIFICATION_NAMES[notificationType] ?? 'UNKNOWN',
+          subscriptionId,
+        },
+      })
+
+      if (notificationType === SUBSCRIPTION_EXPIRED) {
+        // 구독 만료 → FREE 다운그레이드 (환불 아님)
+        await handleSubscriptionExpired(purchaseToken, subscriptionId)
+      } else if (notificationType === SUBSCRIPTION_REVOKED) {
+        // 환불로 인한 취소 → FREE + REFUNDED 처리
+        await handleSubscriptionRevoked(purchaseToken, subscriptionId)
       }
+      // CANCELED(3): 사용자 취소, 만료까지는 사용 가능 → 로깅만
     }
 
     if (data.oneTimeProductNotification) {
