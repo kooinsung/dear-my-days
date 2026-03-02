@@ -176,12 +176,15 @@ export async function purchaseProduct(
       ? PURCHASE_TYPE.INAPP
       : PURCHASE_TYPE.SUBS
 
+    const isConsumable = isInAppProduct(productId)
+
     const purchaseOptions: Parameters<
       typeof NativePurchases.purchaseProduct
     >[0] = {
       productIdentifier: productId,
       productType,
       quantity: 1,
+      ...(isConsumable && { isConsumable: true }),
     }
 
     const planId = PLAN_IDENTIFIERS[productId]
@@ -205,6 +208,7 @@ export async function purchaseProduct(
           hasReceipt: !!receipt,
           hasTransactionId: !!transactionId,
           platform,
+          resultKeys: Object.keys(result),
         },
       })
       return { success: false, error: '구매 정보를 가져올 수 없습니다.' }
@@ -212,19 +216,48 @@ export async function purchaseProduct(
 
     const provider = platform === 'ios' ? 'APPLE' : 'GOOGLE'
 
-    const response = await fetch('/api/iap/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        receipt,
+    let response: Response
+    try {
+      response = await fetch('/api/iap/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          receipt,
+          transactionId,
+          provider,
+          userId,
+          productId,
+        }),
+      })
+    } catch (fetchError) {
+      Sentry.captureException(fetchError, {
+        extra: { context: 'purchaseProduct-verify-fetch', productId, provider },
+      })
+      return {
+        success: false,
+        error: '서버 연결에 실패했습니다.',
         transactionId,
-        provider,
-        userId,
-        productId,
-      }),
-    })
+      }
+    }
 
-    const data = await response.json()
+    let data: { success: boolean; error?: string }
+    try {
+      data = await response.json()
+    } catch {
+      Sentry.captureMessage('[IAP] verify response parse failed', {
+        level: 'error',
+        extra: {
+          productId,
+          status: response.status,
+          statusText: response.statusText,
+        },
+      })
+      return {
+        success: false,
+        error: '서버 응답을 처리할 수 없습니다.',
+        transactionId,
+      }
+    }
 
     if (!response.ok || !data.success) {
       Sentry.captureMessage('[IAP] server verification failed', {

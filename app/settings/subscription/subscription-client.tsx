@@ -66,7 +66,6 @@ export function SubscriptionClient() {
 
   const loadData = useCallback(async () => {
     if (!userId) {
-      setLoading(false)
       return
     }
     setLoading(true)
