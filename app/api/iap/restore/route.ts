@@ -1,6 +1,10 @@
 import * as Sentry from '@sentry/nextjs'
 import { type NextRequest, NextResponse } from 'next/server'
-import { verifyAppleReceipt, verifyGoogleReceipt } from '@/libs/iap/verify'
+import {
+  acknowledgeGooglePurchase,
+  verifyAppleReceipt,
+  verifyGoogleReceipt,
+} from '@/libs/iap/verify'
 import { sendSlackNotification } from '@/libs/slack/client'
 import { formatIAPMessage } from '@/libs/slack/formatters'
 import { supabaseAdmin } from '@/libs/supabase/admin'
@@ -105,6 +109,24 @@ export async function POST(req: NextRequest) {
       .select('id, user_id')
       .eq('transaction_id', transactionId)
       .single()
+
+    // Google 구매 확인 (acknowledge) - 미확인 시 자동 환불됨
+    if (provider === 'GOOGLE') {
+      const acknowledged = await acknowledgeGooglePurchase(
+        receipt,
+        productId,
+        purchaseType,
+      )
+      if (!acknowledged) {
+        Sentry.captureMessage(
+          '[IAP] restore Google acknowledge failed but continuing',
+          {
+            level: 'warning',
+            extra: { productId, purchaseType, userId: user.id },
+          },
+        )
+      }
+    }
 
     const finalProductId = verificationResult.productId || productId
     const product = finalProductId ? PRODUCT_INFO[finalProductId] : undefined
