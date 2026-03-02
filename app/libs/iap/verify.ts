@@ -115,6 +115,15 @@ export async function verifyGoogleReceipt(
   purchaseType: PurchaseType = 'SUBSCRIPTION',
 ): Promise<VerificationResult> {
   try {
+    console.log('[IAP verifyGoogle] start:', {
+      productId,
+      purchaseType,
+      hasReceipt: !!receipt,
+      receiptLength: receipt?.length,
+      hasPackageName: !!env.GOOGLE_PACKAGE_NAME,
+      hasToken: !!env.GOOGLE_SERVICE_ACCOUNT_TOKEN,
+    })
+
     const baseUrl = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${env.GOOGLE_PACKAGE_NAME}`
     const headers = {
       Authorization: `Bearer ${env.GOOGLE_SERVICE_ACCOUNT_TOKEN}`,
@@ -123,10 +132,20 @@ export async function verifyGoogleReceipt(
     // 소모품(INAPP): products API 사용
     if (purchaseType === 'EVENT_SLOT') {
       const url = `${baseUrl}/purchases/products/${productId}/tokens/${receipt}`
+      console.log('[IAP verifyGoogle] INAPP API call:', {
+        url: url.substring(0, 100),
+      })
+
       const response = await fetch(url, { headers })
+
+      console.log('[IAP verifyGoogle] INAPP API response:', {
+        status: response.status,
+        ok: response.ok,
+      })
 
       if (!response.ok) {
         const errorText = await response.text()
+        console.log('[IAP verifyGoogle] INAPP API error:', { errorText })
         Sentry.captureMessage('[IAP] Google INAPP verification API failed', {
           level: 'error',
           extra: { productId, status: response.status, errorText },
@@ -139,6 +158,11 @@ export async function verifyGoogleReceipt(
       }
 
       const data = await response.json()
+      console.log('[IAP verifyGoogle] INAPP data:', {
+        purchaseState: data.purchaseState,
+        consumptionState: data.consumptionState,
+        acknowledgementState: data.acknowledgementState,
+      })
 
       // purchaseState: 0 = Purchased, 1 = Canceled, 2 = Pending
       if (data.purchaseState !== 0) {
@@ -162,10 +186,20 @@ export async function verifyGoogleReceipt(
 
     // 구독: subscriptionsv2 API 사용 (기존 로직)
     const url = `${baseUrl}/purchases/subscriptionsv2/tokens/${receipt}`
+    console.log('[IAP verifyGoogle] SUBS API call:', {
+      url: url.substring(0, 100),
+    })
+
     const response = await fetch(url, { headers })
+
+    console.log('[IAP verifyGoogle] SUBS API response:', {
+      status: response.status,
+      ok: response.ok,
+    })
 
     if (!response.ok) {
       const errorText = await response.text()
+      console.log('[IAP verifyGoogle] SUBS API error:', { errorText })
       Sentry.captureMessage(
         '[IAP] Google subscription verification API failed',
         {
@@ -181,6 +215,11 @@ export async function verifyGoogleReceipt(
     }
 
     const data = await response.json()
+    console.log('[IAP verifyGoogle] SUBS data:', {
+      subscriptionState: data.subscriptionState,
+      lineItems: data.lineItems?.length,
+      firstProductId: data.lineItems?.[0]?.productId,
+    })
 
     // 구독 상태 확인
     if (data.subscriptionState !== 'SUBSCRIPTION_STATE_ACTIVE') {
