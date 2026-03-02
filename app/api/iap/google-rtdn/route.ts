@@ -34,9 +34,14 @@ const NOTIFICATION_NAMES: Record<number, string> = {
   13: 'EXPIRED',
 }
 
-async function fetchGoogleExpiryTime(
+interface GoogleSubscriptionInfo {
+  expiryTime: string | null
+  latestOrderId: string | null
+}
+
+async function fetchGoogleSubscriptionInfo(
   purchaseToken: string,
-): Promise<string | null> {
+): Promise<GoogleSubscriptionInfo> {
   try {
     const accessToken = await getGooglePlayAccessToken()
     const url = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${env.GOOGLE_PACKAGE_NAME}/purchases/subscriptionsv2/tokens/${purchaseToken}`
@@ -49,16 +54,19 @@ async function fetchGoogleExpiryTime(
         level: 'error',
         extra: { status: response.status },
       })
-      return null
+      return { expiryTime: null, latestOrderId: null }
     }
 
     const data = await response.json()
-    return data.lineItems?.[0]?.expiryTime ?? null
+    return {
+      expiryTime: data.lineItems?.[0]?.expiryTime ?? null,
+      latestOrderId: data.latestOrderId ?? null,
+    }
   } catch (error) {
     Sentry.captureException(error, {
-      extra: { context: 'fetchGoogleExpiryTime' },
+      extra: { context: 'fetchGoogleSubscriptionInfo' },
     })
-    return null
+    return { expiryTime: null, latestOrderId: null }
   }
 }
 
@@ -70,7 +78,7 @@ async function handleSubscriptionRenewed(
 
   const { data: purchase } = await admin
     .from('event_purchases')
-    .select('user_id, product_id, amount')
+    .select('user_id, product_id, amount, currency')
     .eq('purchase_token', purchaseToken)
     .single()
 
@@ -82,9 +90,11 @@ async function handleSubscriptionRenewed(
     return
   }
 
-  // Google API로 새 만료일 조회
-  const expiryTime = await fetchGoogleExpiryTime(purchaseToken)
+  // Google API로 새 만료일 + 주문 ID 조회
+  const { expiryTime, latestOrderId } =
+    await fetchGoogleSubscriptionInfo(purchaseToken)
 
+  // user_plans 만료일 업데이트
   const { error: updateError } = await admin
     .from('user_plans')
     .update({
@@ -104,11 +114,47 @@ async function handleSubscriptionRenewed(
     return
   }
 
+  // 갱신 결제 기록 추가 (중복 방지: latestOrderId로 체크)
+  if (latestOrderId) {
+    const { data: existing } = await admin
+      .from('event_purchases')
+      .select('id')
+      .eq('transaction_id', latestOrderId)
+      .single()
+
+    if (!existing) {
+      const { error: insertError } = await admin
+        .from('event_purchases')
+        .insert({
+          user_id: purchase.user_id,
+          provider: 'GOOGLE' as const,
+          transaction_id: latestOrderId,
+          product_id: purchase.product_id,
+          purchase_type: 'SUBSCRIPTION',
+          amount: purchase.amount,
+          currency: purchase.currency ?? 'KRW',
+          purchase_token: purchaseToken,
+        })
+
+      if (insertError) {
+        Sentry.captureMessage('[RTDN] renewed - failed to insert purchase', {
+          level: 'error',
+          extra: {
+            userId: purchase.user_id,
+            latestOrderId,
+            error: insertError.message,
+          },
+        })
+      }
+    }
+  }
+
   Sentry.captureMessage('[RTDN] subscription renewed', {
     level: 'info',
     extra: {
       userId: purchase.user_id,
       subscriptionId,
+      latestOrderId,
       newExpiresAt: expiryTime,
     },
   })
@@ -120,7 +166,7 @@ async function handleSubscriptionRenewed(
       productId: purchase.product_id,
       amount: purchase.amount,
       userId: purchase.user_id,
-      transactionId: purchaseToken,
+      transactionId: latestOrderId ?? purchaseToken,
     }),
   )
 }
