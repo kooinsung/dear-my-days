@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import { env } from '@/libs/config/env'
 
 export type PurchaseType = 'SUBSCRIPTION' | 'EVENT_SLOT'
@@ -92,7 +93,9 @@ export async function verifyAppleReceipt(
       error: 'No receipt info found',
     }
   } catch (error) {
-    console.error('Apple verification error:', error)
+    Sentry.captureException(error, {
+      extra: { context: 'verifyAppleReceipt', purchaseType },
+    })
     return {
       isValid: false,
       expiresAt: null,
@@ -119,13 +122,15 @@ export async function verifyGoogleReceipt(
 
     // 소모품(INAPP): products API 사용
     if (purchaseType === 'EVENT_SLOT') {
-      const response = await fetch(
-        `${baseUrl}/purchases/products/${productId}/tokens/${receipt}`,
-        { headers },
-      )
+      const url = `${baseUrl}/purchases/products/${productId}/tokens/${receipt}`
+      const response = await fetch(url, { headers })
 
       if (!response.ok) {
         const errorText = await response.text()
+        Sentry.captureMessage('[IAP] Google INAPP verification API failed', {
+          level: 'error',
+          extra: { productId, status: response.status, errorText },
+        })
         return {
           isValid: false,
           expiresAt: null,
@@ -137,6 +142,10 @@ export async function verifyGoogleReceipt(
 
       // purchaseState: 0 = Purchased, 1 = Canceled, 2 = Pending
       if (data.purchaseState !== 0) {
+        Sentry.captureMessage('[IAP] Google INAPP purchase not completed', {
+          level: 'error',
+          extra: { productId, purchaseState: data.purchaseState, data },
+        })
         return {
           isValid: false,
           expiresAt: null,
@@ -152,13 +161,18 @@ export async function verifyGoogleReceipt(
     }
 
     // 구독: subscriptionsv2 API 사용 (기존 로직)
-    const response = await fetch(
-      `${baseUrl}/purchases/subscriptionsv2/tokens/${receipt}`,
-      { headers },
-    )
+    const url = `${baseUrl}/purchases/subscriptionsv2/tokens/${receipt}`
+    const response = await fetch(url, { headers })
 
     if (!response.ok) {
       const errorText = await response.text()
+      Sentry.captureMessage(
+        '[IAP] Google subscription verification API failed',
+        {
+          level: 'error',
+          extra: { productId, status: response.status, errorText },
+        },
+      )
       return {
         isValid: false,
         expiresAt: null,
@@ -170,6 +184,10 @@ export async function verifyGoogleReceipt(
 
     // 구독 상태 확인
     if (data.subscriptionState !== 'SUBSCRIPTION_STATE_ACTIVE') {
+      Sentry.captureMessage('[IAP] Google subscription not active', {
+        level: 'error',
+        extra: { productId, subscriptionState: data.subscriptionState, data },
+      })
       return {
         isValid: false,
         expiresAt: null,
@@ -186,7 +204,9 @@ export async function verifyGoogleReceipt(
       productId: data.lineItems?.[0]?.productId || productId,
     }
   } catch (error) {
-    console.error('Google verification error:', error)
+    Sentry.captureException(error, {
+      extra: { context: 'verifyGoogleReceipt', productId, purchaseType },
+    })
     return {
       isValid: false,
       expiresAt: null,

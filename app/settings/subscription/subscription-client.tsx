@@ -211,7 +211,7 @@ export function SubscriptionClient() {
   const isPremium =
     planType === 'PREMIUM_MONTHLY' || planType === 'PREMIUM_YEARLY'
 
-  const isLoading = authLoading || loading
+  const isLoading = authLoading || !user || loading
 
   return (
     <div className={css({ minHeight: '100vh', backgroundColor: 'background' })}>

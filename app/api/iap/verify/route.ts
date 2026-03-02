@@ -58,6 +58,18 @@ export async function POST(req: NextRequest) {
         ? await verifyAppleReceipt(receipt, purchaseType)
         : await verifyGoogleReceipt(receipt, productId, purchaseType)
 
+    Sentry.captureMessage('[IAP] verify result', {
+      level: verificationResult.isValid ? 'info' : 'error',
+      extra: {
+        provider,
+        productId,
+        purchaseType,
+        isValid: verificationResult.isValid,
+        resultProductId: verificationResult.productId,
+        error: verificationResult.error,
+      },
+    })
+
     if (!verificationResult.isValid) {
       return NextResponse.json(
         {
@@ -102,7 +114,14 @@ export async function POST(req: NextRequest) {
       })
 
       if (planError) {
-        console.error('Failed to update plan:', planError)
+        Sentry.captureMessage('[IAP] Failed to update plan', {
+          level: 'error',
+          extra: {
+            userId,
+            planType: product.planType,
+            planError: planError.message,
+          },
+        })
         return NextResponse.json(
           { success: false, error: 'Failed to update subscription' },
           { status: 500 },
@@ -139,7 +158,18 @@ export async function POST(req: NextRequest) {
         })
 
         if (updateError) {
-          console.error('Failed to update event slots:', updateError)
+          Sentry.captureMessage(
+            '[IAP] Failed to update event slots (fallback)',
+            {
+              level: 'error',
+              extra: {
+                userId,
+                currentSlots,
+                currentPlanType,
+                updateError: updateError.message,
+              },
+            },
+          )
           return NextResponse.json(
             { success: false, error: 'Failed to add event slot' },
             { status: 500 },
@@ -162,7 +192,15 @@ export async function POST(req: NextRequest) {
       })
 
     if (purchaseError) {
-      console.error('Failed to insert purchase record:', purchaseError)
+      Sentry.captureMessage('[IAP] Failed to insert purchase record', {
+        level: 'error',
+        extra: {
+          userId,
+          transactionId,
+          finalProductId,
+          purchaseError: purchaseError.message,
+        },
+      })
     }
 
     await sendSlackNotification(
