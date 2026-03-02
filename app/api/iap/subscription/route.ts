@@ -55,8 +55,23 @@ export async function GET(_req: NextRequest) {
 
     const planType = plan.plan_type ?? 'FREE'
     const extraSlots = plan.extra_event_slots || 0
-    const isPremium =
+    let isPremium =
       planType === 'PREMIUM_MONTHLY' || planType === 'PREMIUM_YEARLY'
+
+    // expired_at이 과거이면 만료된 구독 → FREE 다운그레이드
+    if (
+      isPremium &&
+      plan.expired_at &&
+      new Date(plan.expired_at) < new Date()
+    ) {
+      isPremium = false
+      // DB도 FREE로 업데이트 (비동기, 응답 차단 안 함)
+      supabase
+        .from('user_plans')
+        .update({ plan_type: 'FREE' })
+        .eq('user_id', user.id)
+        .then()
+    }
 
     Sentry.addBreadcrumb({
       category: 'iap',
