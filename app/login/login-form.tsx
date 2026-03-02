@@ -1,5 +1,6 @@
 'use client'
 
+import * as Sentry from '@sentry/nextjs'
 import type { User } from '@supabase/supabase-js'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
@@ -115,6 +116,12 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
 
   // OAuth
   const oauthLogin = async (provider: 'google' | 'kakao' | 'apple') => {
+    Sentry.addBreadcrumb({
+      category: 'auth',
+      message: `OAuth login started: ${provider}`,
+      level: 'info',
+      data: { provider, isNativeApp },
+    })
     setIsOAuthPending(true)
     setMessage('')
     setInfoMessage('')
@@ -124,11 +131,23 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
         const result =
           provider === 'google' ? await googleLogin() : await kakaoLogin()
         if (result.success) {
+          Sentry.addBreadcrumb({
+            category: 'auth',
+            message: `Native ${provider} login success, redirecting`,
+            level: 'info',
+          })
           // 네이티브 로그인은 signInWithIdToken/verifyOtp로 document.cookie에 세션 저장
           // WKWebView에서 쿠키 동기화를 보장하기 위해 전체 페이지 리로드 사용
           window.location.href = '/'
           return
         }
+        Sentry.captureMessage(
+          `[Auth] Native ${provider} login returned failure`,
+          {
+            level: 'warning',
+            extra: { provider },
+          },
+        )
       } else {
         // 웹 또는 네이티브 미지원 제공자: Supabase OAuth 플로우
         const supabase = createSupabaseBrowser()
@@ -138,9 +157,16 @@ export default function LoginForm({ initialUser }: LoginFormProps) {
             redirectTo: getOAuthCallbackUrl(window.location.origin),
           },
         })
+        Sentry.addBreadcrumb({
+          category: 'auth',
+          message: `Supabase OAuth redirect initiated: ${provider}`,
+          level: 'info',
+        })
       }
     } catch (error) {
-      console.error('❌ OAuth login error:', error)
+      Sentry.captureException(error, {
+        extra: { context: 'oauthLogin', provider, isNativeApp },
+      })
       const errorMessage =
         error instanceof Error
           ? error.message

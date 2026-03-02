@@ -73,28 +73,14 @@ const MOCK_PRODUCTS: Product[] = [
   },
 ]
 
-function withTimeout<T>(
-  promise: Promise<T>,
-  ms: number,
-  fallback: T,
-): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
-  ])
-}
-
 export async function isIAPAvailable(): Promise<boolean> {
   if (!(await isNative())) {
     return false
   }
   try {
     const { NativePurchases } = await import('@capgo/native-purchases')
-    return await withTimeout(
-      NativePurchases.isBillingSupported().then((r) => r.isBillingSupported),
-      5000,
-      false,
-    )
+    const { isBillingSupported } = await NativePurchases.isBillingSupported()
+    return isBillingSupported
   } catch {
     return false
   }
@@ -111,31 +97,25 @@ export async function getProducts(): Promise<Product[]> {
     )
     const platform = await getPlatform()
 
-    const subsIds = [PRODUCT_IDS.PREMIUM_MONTHLY, PRODUCT_IDS.PREMIUM_YEARLY]
-    const inappIds = [PRODUCT_IDS.EVENT_SLOT]
+    const subsResult = await NativePurchases.getProducts({
+      productIdentifiers: [
+        PRODUCT_IDS.PREMIUM_MONTHLY,
+        PRODUCT_IDS.PREMIUM_YEARLY,
+      ],
+      productType: PURCHASE_TYPE.SUBS,
+    })
 
-    const [subsResult, inappResult] = await withTimeout(
-      Promise.all([
-        NativePurchases.getProducts({
-          productIdentifiers: [...subsIds],
-          productType: PURCHASE_TYPE.SUBS,
-        }),
-        NativePurchases.getProducts({
-          productIdentifiers: [...inappIds],
-          productType: PURCHASE_TYPE.INAPP,
-        }),
-      ]),
-      10000,
-      [{ products: [] }, { products: [] }],
-    )
+    const eventSlotResult = await NativePurchases.getProduct({
+      productIdentifier: PRODUCT_IDS.EVENT_SLOT,
+      productType: PURCHASE_TYPE.INAPP,
+    })
 
     const products: Product[] = []
 
     for (const p of subsResult.products) {
-      const productId = (p.planIdentifier || p.identifier) as ProductId
       products.push({
-        id: productId,
-        title: p.title || productId,
+        id: (p.planIdentifier || p.identifier) as ProductId,
+        title: p.title || p.identifier,
         description: p.description || '',
         price: p.priceString || `${p.price}`,
         priceValue: p.price,
@@ -145,7 +125,8 @@ export async function getProducts(): Promise<Product[]> {
       })
     }
 
-    for (const p of inappResult.products) {
+    if (eventSlotResult.product) {
+      const p = eventSlotResult.product
       products.push({
         id: p.identifier as ProductId,
         title: p.title || p.identifier,
@@ -162,10 +143,8 @@ export async function getProducts(): Promise<Product[]> {
       Sentry.captureMessage('[IAP] getProducts returned 0 products', {
         level: 'error',
         extra: {
-          subsRaw: subsResult.products.length,
-          inappRaw: inappResult.products.length,
-          requestedSubs: subsIds,
-          requestedInapp: inappIds,
+          subsCount: subsResult.products.length,
+          hasEventSlot: !!eventSlotResult.product,
         },
       })
     }
@@ -202,6 +181,7 @@ export async function purchaseProduct(
     >[0] = {
       productIdentifier: productId,
       productType,
+      quantity: 1,
     }
 
     const planId = PLAN_IDENTIFIERS[productId]
@@ -286,12 +266,24 @@ export async function restorePurchases(
   }
 
   try {
-    const { NativePurchases } = await import('@capgo/native-purchases')
+    const { NativePurchases, PURCHASE_TYPE } = await import(
+      '@capgo/native-purchases'
+    )
     const platform = await getPlatform()
     const provider = platform === 'ios' ? 'APPLE' : 'GOOGLE'
 
     await NativePurchases.restorePurchases()
-    const { purchases } = await NativePurchases.getPurchases()
+
+    const subsResult = await NativePurchases.getPurchases({
+      productType: PURCHASE_TYPE.SUBS,
+    })
+    const inappResult = await NativePurchases.getPurchases({
+      productType: PURCHASE_TYPE.INAPP,
+    })
+    const purchases = [
+      ...(subsResult.purchases ?? []),
+      ...(inappResult.purchases ?? []),
+    ]
 
     if (!purchases || purchases.length === 0) {
       return { success: false, error: '복원할 구매 내역이 없습니다.' }
