@@ -31,6 +31,14 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { receipt, transactionId, provider, userId, productId } = body
 
+    console.log('[IAP verify] request:', {
+      provider,
+      productId,
+      userId,
+      transactionId,
+      hasReceipt: !!receipt,
+    })
+
     // 입력 검증
     if (!receipt || !transactionId || !provider || !userId) {
       return NextResponse.json(
@@ -58,6 +66,13 @@ export async function POST(req: NextRequest) {
         ? await verifyAppleReceipt(receipt, purchaseType)
         : await verifyGoogleReceipt(receipt, productId, purchaseType)
 
+    console.log('[IAP verify] verification result:', {
+      isValid: verificationResult.isValid,
+      resultProductId: verificationResult.productId,
+      error: verificationResult.error,
+      purchaseType,
+    })
+
     Sentry.captureMessage('[IAP] verify result', {
       level: verificationResult.isValid ? 'info' : 'error',
       extra: {
@@ -81,11 +96,16 @@ export async function POST(req: NextRequest) {
     }
 
     // 중복 거래 확인
-    const { data: existingPurchase } = await admin
+    const { data: existingPurchase, error: duplicateCheckError } = await admin
       .from('event_purchases')
       .select('id')
       .eq('transaction_id', transactionId)
       .single()
+
+    console.log('[IAP verify] duplicate check:', {
+      existingPurchase,
+      duplicateCheckError: duplicateCheckError?.message,
+    })
 
     if (existingPurchase) {
       return NextResponse.json(
@@ -97,6 +117,11 @@ export async function POST(req: NextRequest) {
     const finalProductId = verificationResult.productId || productId
     const product = finalProductId ? PRODUCT_INFO[finalProductId] : undefined
 
+    console.log('[IAP verify] product lookup:', {
+      finalProductId,
+      product,
+    })
+
     if (!product) {
       return NextResponse.json(
         { success: false, error: 'Unknown product ID' },
@@ -106,11 +131,23 @@ export async function POST(req: NextRequest) {
 
     // 구독 또는 이벤트 슬롯에 따라 user_plans 먼저 업데이트
     if (product.type === 'SUBSCRIPTION') {
-      const { error: planError } = await admin.from('user_plans').upsert({
+      const upsertData = {
         user_id: userId,
         plan_type: product.planType,
         started_at: new Date().toISOString(),
         expired_at: verificationResult.expiresAt?.toISOString() || null,
+      }
+      console.log(
+        '[IAP verify] upserting user_plans (SUBSCRIPTION):',
+        upsertData,
+      )
+
+      const { error: planError } = await admin
+        .from('user_plans')
+        .upsert(upsertData)
+
+      console.log('[IAP verify] user_plans upsert result:', {
+        error: planError?.message ?? null,
       })
 
       if (planError) {
@@ -128,9 +165,15 @@ export async function POST(req: NextRequest) {
         )
       }
     } else if (product.type === 'EVENT_SLOT') {
+      console.log('[IAP verify] calling increment_event_slots RPC:', { userId })
+
       const { error: slotError } = await admin.rpc('increment_event_slots', {
         user_id_param: userId,
         increment_by: 1,
+      })
+
+      console.log('[IAP verify] RPC result:', {
+        error: slotError?.message ?? null,
       })
 
       if (slotError) {
@@ -151,10 +194,20 @@ export async function POST(req: NextRequest) {
         const currentSlots = currentPlan?.extra_event_slots || 0
         const currentPlanType = currentPlan?.plan_type ?? 'FREE'
 
+        console.log('[IAP verify] fallback upsert:', {
+          currentSlots,
+          currentPlanType,
+          newSlots: currentSlots + 1,
+        })
+
         const { error: updateError } = await admin.from('user_plans').upsert({
           user_id: userId,
           plan_type: currentPlanType,
           extra_event_slots: currentSlots + 1,
+        })
+
+        console.log('[IAP verify] fallback upsert result:', {
+          error: updateError?.message ?? null,
         })
 
         if (updateError) {
@@ -179,17 +232,24 @@ export async function POST(req: NextRequest) {
     }
 
     // event_purchases 테이블에 구매 기록 (실패해도 플랜 업데이트는 이미 완료)
+    const insertData = {
+      user_id: userId,
+      provider: provider as PaymentProvider,
+      transaction_id: transactionId,
+      product_id: finalProductId,
+      purchase_type: product.type,
+      amount: product.amount,
+      currency: 'KRW',
+    }
+    console.log('[IAP verify] inserting event_purchases:', insertData)
+
     const { error: purchaseError } = await admin
       .from('event_purchases')
-      .insert({
-        user_id: userId,
-        provider: provider as PaymentProvider,
-        transaction_id: transactionId,
-        product_id: finalProductId,
-        purchase_type: product.type,
-        amount: product.amount,
-        currency: 'KRW',
-      })
+      .insert(insertData)
+
+    console.log('[IAP verify] event_purchases insert result:', {
+      error: purchaseError?.message ?? null,
+    })
 
     if (purchaseError) {
       Sentry.captureMessage('[IAP] Failed to insert purchase record', {
@@ -213,6 +273,8 @@ export async function POST(req: NextRequest) {
         transactionId,
       }),
     )
+
+    console.log('[IAP verify] SUCCESS - returning response')
 
     return successResponse({
       transactionId,
