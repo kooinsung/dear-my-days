@@ -511,6 +511,8 @@ GET /api/lunar/lunar-to-solar?year=2024&month=1&day=1
 | `/api/iap/verify` | POST | 영수증 검증 |
 | `/api/iap/subscription` | GET/POST | 구독 상태 조회/관리 |
 | `/api/iap/restore` | POST | 구매 복원 |
+| `/api/iap/purchases` | GET | 구매 기록 조회 |
+| `/api/iap/google-rtdn` | POST | Google RTDN 웹훅 (Pub/Sub) |
 
 ### 트래킹 API
 
@@ -828,12 +830,16 @@ pnpm dev:android           # Android 라이브 리로드 개발
 
 ## 프로젝트 상태
 
-**최근 작업** (2026-02-28):
+**최근 작업** (2026-03-03):
+- ✅ IAP 코드 리팩토링 (공유 상수 추출, 중복 제거)
+- ✅ Google RTDN 웹훅 (자동 갱신, 만료, 환불 처리)
+- ✅ Google Play purchase acknowledge 구현
+
+**이전 작업** (2026-02-28):
 - ✅ Sentry 에러 모니터링 통합 (`@sentry/nextjs`)
 - ✅ Slack Webhook 알림 (회원가입, 서버 에러)
 - ✅ 푸시 알림 구현 (FCM + Capacitor Push Notifications)
 - ✅ 인앱결제 구현 (Apple IAP + Google Play Billing)
-- ✅ 알림 설정 minutes_before 컬럼 마이그레이션
 - ✅ Kakao 네이티브 로그인 API
 - ✅ 회원가입 추적 및 Slack 알림
 
@@ -852,6 +858,6 @@ pnpm dev:android           # Android 라이브 리로드 개발
 
 ---
 
-**마지막 업데이트**: 2026-02-28
+**마지막 업데이트**: 2026-03-03
 **메인테이너**: @a17050
 **Co-Author**: Claude Opus 4.6

@@ -197,10 +197,22 @@ async function handleSubscriptionExpired(
     return
   }
 
-  await admin
+  const { error: updateError } = await admin
     .from('user_plans')
     .update({ plan_type: 'FREE' })
     .eq('user_id', purchase.user_id)
+
+  if (updateError) {
+    Sentry.captureMessage('[RTDN] expired - failed to downgrade plan', {
+      level: 'error',
+      extra: {
+        userId: purchase.user_id,
+        subscriptionId,
+        error: updateError.message,
+      },
+    })
+    return
+  }
 
   Sentry.captureMessage('[RTDN] subscription expired → FREE', {
     level: 'info',
@@ -234,7 +246,7 @@ async function handleSubscriptionRevoked(
   }
 
   // event_purchases 환불 처리
-  await admin
+  const { error: refundError } = await admin
     .from('event_purchases')
     .update({
       status: 'REFUNDED',
@@ -242,11 +254,33 @@ async function handleSubscriptionRevoked(
     })
     .eq('id', purchase.id)
 
+  if (refundError) {
+    Sentry.captureMessage('[RTDN] revoked - failed to update purchase', {
+      level: 'error',
+      extra: {
+        purchaseId: purchase.id,
+        userId: purchase.user_id,
+        error: refundError.message,
+      },
+    })
+  }
+
   // user_plans → FREE 다운그레이드
-  await admin
+  const { error: planError } = await admin
     .from('user_plans')
     .update({ plan_type: 'FREE' })
     .eq('user_id', purchase.user_id)
+
+  if (planError) {
+    Sentry.captureMessage('[RTDN] revoked - failed to downgrade plan', {
+      level: 'error',
+      extra: {
+        userId: purchase.user_id,
+        subscriptionId,
+        error: planError.message,
+      },
+    })
+  }
 
   Sentry.captureMessage('[RTDN] subscription revoked (refund) → FREE', {
     level: 'info',
@@ -289,13 +323,27 @@ async function handleOneTimeRefund(purchaseToken: string, sku: string) {
   }
 
   // event_purchases 환불 처리
-  await admin
+  const { error: refundError } = await admin
     .from('event_purchases')
     .update({
       status: 'REFUNDED',
       refunded_at: new Date().toISOString(),
     })
     .eq('id', purchase.id)
+
+  if (refundError) {
+    Sentry.captureMessage(
+      '[RTDN] one-time refund - failed to update purchase',
+      {
+        level: 'error',
+        extra: {
+          purchaseId: purchase.id,
+          userId: purchase.user_id,
+          error: refundError.message,
+        },
+      },
+    )
+  }
 
   // extra_event_slots 1 감소 (최소 0)
   const { data: currentPlan } = await admin
@@ -306,10 +354,24 @@ async function handleOneTimeRefund(purchaseToken: string, sku: string) {
 
   const currentSlots = currentPlan?.extra_event_slots ?? 0
   if (currentSlots > 0) {
-    await admin
+    const { error: slotError } = await admin
       .from('user_plans')
       .update({ extra_event_slots: currentSlots - 1 })
       .eq('user_id', purchase.user_id)
+
+    if (slotError) {
+      Sentry.captureMessage(
+        '[RTDN] one-time refund - failed to decrement slots',
+        {
+          level: 'error',
+          extra: {
+            userId: purchase.user_id,
+            currentSlots,
+            error: slotError.message,
+          },
+        },
+      )
+    }
   }
 
   Sentry.captureMessage('[RTDN] one-time product refunded', {

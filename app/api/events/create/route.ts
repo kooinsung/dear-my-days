@@ -1,24 +1,15 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { ERROR_MESSAGES } from '@/libs/constants/messages'
+import {
+  FREE_EVENT_LIMIT,
+  getMonthsElapsed,
+  PREMIUM_MONTHLY_LIMIT,
+} from '@/libs/iap/constants'
 import { supabaseAdmin } from '@/libs/supabase/admin'
 import { createSupabaseServer } from '@/libs/supabase/server'
 import { convertCalendarDates } from '@/libs/utils/calendar-conversion'
 import { handleApiError, successResponse } from '@/libs/utils/errors'
 import { createEventSchema } from '@/libs/validation/schemas'
-
-const FREE_EVENT_LIMIT = 3
-const PREMIUM_MONTHLY_LIMIT = 10
-
-function getMonthsElapsed(startedAt: string): number {
-  const start = new Date(startedAt)
-  const now = new Date()
-  return Math.max(
-    (now.getFullYear() - start.getFullYear()) * 12 +
-      (now.getMonth() - start.getMonth()) +
-      1,
-    1,
-  )
-}
 
 export async function POST(req: NextRequest) {
   try {
