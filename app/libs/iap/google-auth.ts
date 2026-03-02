@@ -1,4 +1,5 @@
 import 'server-only'
+import * as Sentry from '@sentry/nextjs'
 import { importPKCS8, SignJWT } from 'jose'
 import { env } from '@/libs/config/env'
 
@@ -10,7 +11,6 @@ let cachedAccessToken: { token: string; expiresAt: number } | null = null
 
 /**
  * Google Play Developer API용 액세스 토큰을 동적으로 생성 (캐싱 포함)
- * FCM send.ts의 getAccessToken()과 동일한 패턴
  */
 export async function getGooglePlayAccessToken(): Promise<string> {
   if (cachedAccessToken && Date.now() < cachedAccessToken.expiresAt) {
@@ -55,6 +55,10 @@ export async function getGooglePlayAccessToken(): Promise<string> {
 
   if (!response.ok) {
     const errorText = await response.text()
+    Sentry.captureMessage('[IAP] Google OAuth2 token exchange failed', {
+      level: 'error',
+      extra: { status: response.status, errorText, clientEmail },
+    })
     throw new Error(`Failed to get Google Play access token: ${errorText}`)
   }
 

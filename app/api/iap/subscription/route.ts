@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import { type NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServer } from '@/libs/supabase/server'
 import { handleApiError, successResponse } from '@/libs/utils/errors'
@@ -39,21 +40,26 @@ export async function GET(_req: NextRequest) {
       })
     }
 
-    // 만료 확인
-    const now = new Date()
-    const expiresAt = plan.expired_at ? new Date(plan.expired_at) : null
-    const isExpired = expiresAt && expiresAt < now
-
-    // 이벤트 제한 계산
-    const planType = isExpired ? 'FREE' : plan.plan_type
+    // plan_type을 신뢰 (서버-투-서버 알림 없이는 expired_at으로 판단 불가)
+    // 자동 갱신 시 expired_at이 갱신되지 않으므로, plan_type이 PREMIUM이면 활성으로 간주
+    const planType = plan.plan_type ?? 'FREE'
     const extraSlots = plan.extra_event_slots || 0
-    const eventLimit = planType === 'FREE' ? 3 + extraSlots : 999999 // PREMIUM은 무제한
+    const isPremium =
+      planType === 'PREMIUM_MONTHLY' || planType === 'PREMIUM_YEARLY'
+    const eventLimit = isPremium ? 999999 : 3 + extraSlots
+
+    Sentry.addBreadcrumb({
+      category: 'iap',
+      message: 'subscription check',
+      level: 'info',
+      data: { userId: user.id, planType, isPremium, extraSlots, eventLimit },
+    })
 
     return successResponse({
       planType,
       startedAt: plan.started_at,
       expiresAt: plan.expired_at,
-      isActive: !isExpired,
+      isActive: isPremium,
       extraEventSlots: extraSlots,
       eventLimit,
     })

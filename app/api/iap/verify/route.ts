@@ -98,6 +98,10 @@ export async function POST(req: NextRequest) {
     const product = finalProductId ? PRODUCT_INFO[finalProductId] : undefined
 
     if (!product) {
+      Sentry.captureMessage('[IAP] Unknown product ID', {
+        level: 'error',
+        extra: { finalProductId, provider, userId },
+      })
       return NextResponse.json(
         { success: false, error: 'Unknown product ID' },
         { status: 400 },
