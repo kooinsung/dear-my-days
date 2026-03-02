@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { CATEGORY_LABELS } from '@/libs/constants/categories'
 import type { CategoryType } from '@/libs/supabase/database.types'
 import { css } from '@/styled-system/css'
 import { flex } from '@/styled-system/patterns'
@@ -23,14 +24,6 @@ const CATEGORY_COLORS: Record<CategoryType, string> = {
   MEMORIAL: '#6c757d',
   HOLIDAY: '#ffd700',
   OTHER: '#4f46e5',
-}
-
-const CATEGORY_LABELS: Record<CategoryType, string> = {
-  BIRTHDAY: '생일',
-  ANNIVERSARY: '기념일',
-  MEMORIAL: '기일',
-  HOLIDAY: '공휴일',
-  OTHER: '기타',
 }
 
 export function CalendarPageClient({

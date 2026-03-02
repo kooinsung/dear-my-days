@@ -24,28 +24,18 @@ export function NativeAppProvider({ children }: { children: React.ReactNode }) {
   useAppState(
     () => {
       // Foreground: 세션 체크, 데이터 새로고침
-      console.log('App became active')
     },
     () => {
       // Background: 리소스 정리
-      console.log('App became inactive')
     },
   )
 
   // Status Bar 스타일 설정
   useEffect(() => {
     if (isNativeSync()) {
-      StatusBar.setOverlaysWebView({ overlay: false }).catch((error) => {
-        console.error('Failed to set status bar overlay:', error)
-      })
-
-      StatusBar.setStyle({ style: Style.Light }).catch((error) => {
-        console.error('Failed to set status bar style:', error)
-      })
-
-      StatusBar.setBackgroundColor({ color: '#ffffff' }).catch((error) => {
-        console.error('Failed to set status bar background:', error)
-      })
+      StatusBar.setOverlaysWebView({ overlay: false }).catch(() => {})
+      StatusBar.setStyle({ style: Style.Light }).catch(() => {})
+      StatusBar.setBackgroundColor({ color: '#ffffff' }).catch(() => {})
     }
   }, [])
 

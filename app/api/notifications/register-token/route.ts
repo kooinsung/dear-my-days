@@ -59,7 +59,6 @@ export async function POST(req: NextRequest) {
           .eq('id', existing.id)
 
         if (updateError) {
-          console.error('Failed to update token:', updateError)
           return NextResponse.json(
             { success: false, error: 'Failed to update token' },
             { status: 500 },
@@ -75,7 +74,6 @@ export async function POST(req: NextRequest) {
       })
 
       if (insertError) {
-        console.error('Failed to insert token:', insertError)
         return NextResponse.json(
           { success: false, error: 'Failed to register token' },
           { status: 500 },

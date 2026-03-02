@@ -64,18 +64,6 @@ export async function POST(req: NextRequest) {
         ? await verifyAppleReceipt(receipt, purchaseType)
         : await verifyGoogleReceipt(receipt, productId, purchaseType)
 
-    Sentry.captureMessage('[IAP] restore verify result', {
-      level: verificationResult.isValid ? 'info' : 'error',
-      extra: {
-        provider,
-        productId,
-        purchaseType,
-        userId: user.id,
-        isValid: verificationResult.isValid,
-        error: verificationResult.error,
-      },
-    })
-
     if (!verificationResult.isValid) {
       return NextResponse.json(
         {
