@@ -1,6 +1,10 @@
 import * as Sentry from '@sentry/nextjs'
 import { type NextRequest, NextResponse } from 'next/server'
-import { verifyAppleReceipt, verifyGoogleReceipt } from '@/libs/iap/verify'
+import {
+  acknowledgeGooglePurchase,
+  verifyAppleReceipt,
+  verifyGoogleReceipt,
+} from '@/libs/iap/verify'
 import { sendSlackNotification } from '@/libs/slack/client'
 import { formatIAPMessage } from '@/libs/slack/formatters'
 import { supabaseAdmin } from '@/libs/supabase/admin'
@@ -92,6 +96,24 @@ export async function POST(req: NextRequest) {
         { success: false, error: 'Transaction already processed' },
         { status: 400 },
       )
+    }
+
+    // Google 구매 확인 (acknowledge) - 미확인 시 자동 환불됨
+    if (provider === 'GOOGLE') {
+      const acknowledged = await acknowledgeGooglePurchase(
+        receipt,
+        productId,
+        purchaseType,
+      )
+      if (!acknowledged) {
+        Sentry.captureMessage(
+          '[IAP] Google acknowledge failed but continuing',
+          {
+            level: 'warning',
+            extra: { productId, purchaseType, userId },
+          },
+        )
+      }
     }
 
     const finalProductId = verificationResult.productId || productId

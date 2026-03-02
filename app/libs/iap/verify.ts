@@ -218,3 +218,56 @@ export async function verifyGoogleReceipt(
     }
   }
 }
+
+/**
+ * Google Play 구매 확인(acknowledge)
+ * 확인하지 않으면 Google이 자동으로 환불 처리함 (테스트: 3분, 프로덕션: 3일)
+ */
+export async function acknowledgeGooglePurchase(
+  purchaseToken: string,
+  productId: string,
+  purchaseType: PurchaseType = 'SUBSCRIPTION',
+): Promise<boolean> {
+  try {
+    const accessToken = await getGooglePlayAccessToken()
+    const baseUrl = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${env.GOOGLE_PACKAGE_NAME}`
+
+    const endpoint =
+      purchaseType === 'EVENT_SLOT'
+        ? `${baseUrl}/purchases/products/${productId}/tokens/${purchaseToken}:acknowledge`
+        : `${baseUrl}/purchases/subscriptions/${productId}/tokens/${purchaseToken}:acknowledge`
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      Sentry.captureMessage('[IAP] Google acknowledge failed', {
+        level: 'error',
+        extra: {
+          productId,
+          purchaseType,
+          status: response.status,
+          errorText,
+        },
+      })
+      return false
+    }
+
+    Sentry.captureMessage('[IAP] Google purchase acknowledged', {
+      level: 'info',
+      extra: { productId, purchaseType },
+    })
+    return true
+  } catch (error) {
+    Sentry.captureException(error, {
+      extra: { context: 'acknowledgeGooglePurchase', productId, purchaseType },
+    })
+    return false
+  }
+}
