@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/libs/supabase/admin'
+import type { AuthProvider } from '@/libs/supabase/database.types'
 import { createSupabaseServer } from '@/libs/supabase/server'
 import { handleApiError } from '@/libs/utils/errors'
 
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json()
     const { provider } = body as {
-      provider: 'naver' | 'google' | 'kakao' | 'email' | 'apple'
+      provider: AuthProvider
     }
 
     // 2. 현재 연결된 provider 개수 확인

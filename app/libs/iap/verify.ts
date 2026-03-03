@@ -1,8 +1,9 @@
 import * as Sentry from '@sentry/nextjs'
 import { env } from '@/libs/config/env'
 import { getGooglePlayAccessToken } from '@/libs/iap/google-auth'
+import type { PurchaseType } from '@/libs/supabase/database.types'
 
-export type PurchaseType = 'SUBSCRIPTION' | 'EVENT_SLOT'
+export type { PurchaseType }
 
 /**
  * 영수증 검증 결과

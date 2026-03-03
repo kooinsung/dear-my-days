@@ -15,7 +15,11 @@ import {
   purchaseProduct,
   restorePurchases,
 } from '@/libs/capacitor/iap'
-import type { PlanType } from '@/libs/supabase/database.types'
+import type {
+  PlanType,
+  PurchaseStatus,
+  PurchaseType,
+} from '@/libs/supabase/database.types'
 import { useUIStore } from '@/stores/ui-store'
 import { css, cx } from '@/styled-system/css'
 import { flex, vstack } from '@/styled-system/patterns'
@@ -46,12 +50,12 @@ function formatKST(dateStr: string): string {
 
 interface PurchaseRecord {
   id: string
-  purchase_type: string
+  purchase_type: PurchaseType
   product_id: string
   amount: number
   currency: string
   created_at: string
-  status?: 'COMPLETED' | 'REFUNDED'
+  status?: PurchaseStatus
   refunded_at?: string | null
 }
 
