@@ -1,6 +1,8 @@
+import type { PlanType, PurchaseType } from '@/libs/supabase/database.types'
+
 export const PRODUCT_INFO: Record<
   string,
-  { amount: number; type: 'SUBSCRIPTION' | 'EVENT_SLOT'; planType?: string }
+  { amount: number; type: PurchaseType; planType?: PlanType }
 > = {
   'com.dearmydays.premium.monthly': {
     amount: 4900,
