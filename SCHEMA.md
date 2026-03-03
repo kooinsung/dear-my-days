@@ -88,8 +88,7 @@ CREATE TYPE purchase_type AS ENUM (
 ```sql
 CREATE TYPE payment_provider AS ENUM (
   'APPLE',    -- Apple In-App Purchase
-  'GOOGLE',   -- Google Play Billing
-  'STRIPE'    -- Stripe (웹 결제, 향후 지원)
+  'GOOGLE'    -- Google Play Billing
 );
 ```
 
@@ -188,7 +187,10 @@ CREATE TABLE public.event_purchases (
   purchase_type purchase_type NOT NULL DEFAULT 'SUBSCRIPTION',
   amount INTEGER NOT NULL,
   currency CHAR(3) NOT NULL DEFAULT 'KRW',
-  purchased_at TIMESTAMPTZ NOT NULL,
+  status TEXT NOT NULL DEFAULT 'COMPLETED',
+  refunded_at TIMESTAMPTZ NULL,
+  purchase_token TEXT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
   CONSTRAINT event_purchases_pkey PRIMARY KEY (id),
   CONSTRAINT event_purchases_user_id_fkey FOREIGN KEY (user_id)
@@ -204,6 +206,11 @@ CREATE UNIQUE INDEX idx_event_purchases_transaction_id
   ON event_purchases(transaction_id)
   WHERE transaction_id IS NOT NULL;
 
+-- purchase_token 인덱스 (RTDN 조회용)
+CREATE INDEX idx_event_purchases_purchase_token
+  ON event_purchases(purchase_token)
+  WHERE purchase_token IS NOT NULL;
+
 -- RLS
 ALTER TABLE event_purchases ENABLE ROW LEVEL SECURITY;
 
@@ -213,6 +220,9 @@ CREATE POLICY "Users can view their own purchases"
 CREATE POLICY "Service role can insert purchases"
   ON event_purchases FOR INSERT WITH CHECK (true);
 
+CREATE POLICY "Service role can update purchases"
+  ON event_purchases FOR UPDATE WITH CHECK (true);
+
 -- 코멘트
 COMMENT ON COLUMN event_purchases.purchase_type IS
   '구매 유형: 구독(SUBSCRIPTION) 또는 이벤트 슬롯(EVENT_SLOT)';
@@ -220,6 +230,10 @@ COMMENT ON COLUMN event_purchases.transaction_id IS
   'Apple/Google 트랜잭션 ID (중복 방지용)';
 COMMENT ON COLUMN event_purchases.product_id IS
   '구매한 상품 ID (예: com.dearmydays.premium.monthly)';
+COMMENT ON COLUMN event_purchases.status IS
+  '구매 상태: COMPLETED(정상) 또는 REFUNDED(환불)';
+COMMENT ON COLUMN event_purchases.purchase_token IS
+  'Google Play purchaseToken / Apple receipt (RTDN 조회용)';
 ```
 
 ### `device_tokens`
@@ -362,45 +376,51 @@ CREATE INDEX idx_user_providers_user_id ON user_providers(user_id);
 
 ## 주요 함수
 
-### `get_user_event_limit(user_id_param UUID)`
-사용자의 이벤트 등록 가능 개수를 반환합니다.
+### `get_user_event_limit(p_user_id UUID)`
+사용자의 현재 이벤트 수와 등록 가능 개수를 반환합니다.
 
 ```sql
-CREATE OR REPLACE FUNCTION get_user_event_limit(user_id_param UUID)
-RETURNS INTEGER AS $$
+CREATE FUNCTION get_user_event_limit(p_user_id UUID)
+RETURNS TABLE(event_count INTEGER, event_limit INTEGER) AS $$
 DECLARE
-  user_plan plan_type;
+  user_plan_type TEXT;
+  subscription_started TIMESTAMPTZ;
   extra_slots INTEGER;
-  event_limit INTEGER;
+  months_elapsed INTEGER;
+  cnt INTEGER;
+  lim INTEGER;
 BEGIN
-  -- 사용자 플랜 정보 조회
-  SELECT plan_type, extra_event_slots
-  INTO user_plan, extra_slots
-  FROM user_plans
-  WHERE user_id = user_id_param;
+  SELECT plan_type, started_at, extra_event_slots
+  INTO user_plan_type, subscription_started, extra_slots
+  FROM user_plans WHERE user_id = p_user_id;
 
-  -- 플랜이 없으면 FREE로 간주
-  IF user_plan IS NULL THEN
-    user_plan := 'FREE';
-    extra_slots := 0;
-  END IF;
-
-  -- 플랜별 이벤트 제한
-  IF user_plan = 'FREE' THEN
-    event_limit := 3 + COALESCE(extra_slots, 0);
+  IF user_plan_type IS NULL OR user_plan_type = 'FREE' THEN
+    SELECT COUNT(*) INTO cnt FROM events WHERE user_id = p_user_id;
+    lim := 3 + COALESCE(extra_slots, 0);
   ELSE
-    -- PREMIUM_MONTHLY 또는 PREMIUM_YEARLY는 무제한
-    event_limit := 999999;
+    SELECT COUNT(*) INTO cnt FROM events
+    WHERE user_id = p_user_id AND created_at >= subscription_started;
+
+    months_elapsed := GREATEST(
+      (EXTRACT(YEAR FROM age(NOW(), subscription_started)) * 12 +
+       EXTRACT(MONTH FROM age(NOW(), subscription_started)))::INTEGER + 1,
+      1
+    );
+    lim := months_elapsed * 10;
   END IF;
 
-  RETURN event_limit;
+  event_count := cnt;
+  event_limit := lim;
+  RETURN NEXT;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 ```
 
-**반환값:**
-- FREE 플랜: `3 + extra_event_slots`
-- PREMIUM 플랜: `999999` (무제한)
+**반환값 (`RETURNS TABLE`):**
+- `event_count`: 현재 등록된 이벤트 수
+- `event_limit`: 등록 가능 이벤트 수
+  - FREE 플랜: `3 + extra_event_slots` (전체 이벤트 카운트)
+  - PREMIUM 플랜: `경과월 × 10` (구독 시작 이후 이벤트만 카운트)
 
 ### `check_event_limit()`
 이벤트 생성 시 제한을 체크하는 트리거 함수입니다.
@@ -411,18 +431,34 @@ RETURNS TRIGGER AS $$
 DECLARE
   current_count INTEGER;
   event_limit INTEGER;
+  user_plan_type TEXT;
+  subscription_started TIMESTAMPTZ;
+  extra_slots INTEGER;
+  months_elapsed INTEGER;
 BEGIN
-  -- 현재 이벤트 개수 조회
-  SELECT COUNT(*) INTO current_count
-  FROM events
-  WHERE user_id = NEW.user_id;
+  SELECT plan_type, started_at, extra_event_slots
+  INTO user_plan_type, subscription_started, extra_slots
+  FROM user_plans WHERE user_id = NEW.user_id;
 
-  -- 사용자의 이벤트 제한 조회
-  event_limit := get_user_event_limit(NEW.user_id);
+  IF user_plan_type IS NULL OR user_plan_type = 'FREE' THEN
+    -- FREE: 전체 이벤트 카운트, 제한 = 3 + extra_slots
+    SELECT COUNT(*) INTO current_count FROM events WHERE user_id = NEW.user_id;
+    event_limit := 3 + COALESCE(extra_slots, 0);
+  ELSE
+    -- PREMIUM: 구독 시작 이후 이벤트 카운트, 제한 = 경과월 × 10
+    SELECT COUNT(*) INTO current_count FROM events
+    WHERE user_id = NEW.user_id AND created_at >= subscription_started;
 
-  -- 제한 초과 체크
+    months_elapsed := GREATEST(
+      (EXTRACT(YEAR FROM age(NOW(), subscription_started)) * 12 +
+       EXTRACT(MONTH FROM age(NOW(), subscription_started)))::INTEGER + 1,
+      1
+    );
+    event_limit := months_elapsed * 10;
+  END IF;
+
   IF current_count >= event_limit THEN
-    RAISE EXCEPTION '이벤트 등록 제한을 초과했습니다. 현재: %, 제한: %',
+    RAISE EXCEPTION 'event_limit_exceeded: current=%, limit=%',
       current_count, event_limit;
   END IF;
 
@@ -555,7 +591,14 @@ SELECT * FROM get_pending_notifications();
 8. **`20260227_cleanup_past_notifications.sql`**
    - 과거 알림 데이터 정리
 
+9. **`20260302_iap_business_logic.sql`**
+   - `event_purchases`에 `status`, `refunded_at`, `purchase_token` 컬럼 추가
+   - `event_purchases`, `user_plans` FK에 CASCADE DELETE 추가
+   - `check_event_limit()` 업데이트 (프리미엄 월별 제한 로직)
+   - `get_user_event_limit()` → `RETURNS TABLE(event_count, event_limit)` 반환 타입 변경
+   - `event_purchases` UPDATE RLS 정책 추가
+
 ---
 
-**마지막 업데이트:** 2026-02-28
-**버전:** 3.0.0 (minutes_before 마이그레이션 + kv_store)
+**마지막 업데이트:** 2026-03-03
+**버전:** 4.0.0 (IAP 환불/RTDN + 프리미엄 월별 제한)
